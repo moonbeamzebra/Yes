@@ -30,44 +30,45 @@ public class LongTermProcessor implements Runnable {
 
     private BlockingQueue<LogstashMessage> inputQueue;
 
-    private final IndexWriter luceneIndexWriter;
+    private IndexWriter luceneIndexWriter;
 
     private volatile boolean doRun = true;
 
-
     private long olderTimestamp = System.currentTimeMillis();
     private long newerTimestamp = System.currentTimeMillis();
-    private long count = 0;
+    private final long startTime;
+    private long maxQueueLength = 0;
+    long previousNow = System.currentTimeMillis();
 
-    public void stopIt() {
+    private long count = 0;
+    private long thisRunCount = 0;
+    private long reportCount = 0;
+
+
+    synchronized public void stopIt() {
         doRun = false;
     }
 
     private static final long printEvery = 100000;
 
 
-    public LongTermProcessor(String name, BlockingQueue<LogstashMessage> inputQueue, String indexPath) throws AppException {
+    public LongTermProcessor(String name, BlockingQueue<LogstashMessage> inputQueue) throws AppException {
 
         this.name = name;
         this.inputQueue = inputQueue;
 
-        this.luceneIndexWriter = createIndex(indexPath);
+        this.startTime = System.currentTimeMillis();
 
     }
 
     public void run() {
 
         logger.info("New LongTermProcessor running");
-        count = 0;
-        long startTime = System.currentTimeMillis();
-        long previousNow = startTime;
-        long now;
-        long totalTime;
-        long totalTimeSinceStart;
-        float msgPerSec;
-        float msgPerSecSinceStart;
-        long queueLength = 0;
-        long maxQueueLength = 0;
+        doRun = true;
+        thisRunCount = 0;
+        reportCount = 0;
+        olderTimestamp = System.currentTimeMillis();
+        newerTimestamp = System.currentTimeMillis();
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
@@ -81,29 +82,15 @@ public class LongTermProcessor implements Runnable {
                 try {
                     storeInLucene(message);
                     count++;
+                    thisRunCount++;
+                    reportCount++;
 
                 } catch (AppException e) {
                     logger.error("AppException", e);
                 }
 
-                queueLength = inputQueue.size();
-                if (queueLength > maxQueueLength)
-                    maxQueueLength = queueLength;
-
-                if ((count % printEvery) == 0) {
-                    now = System.currentTimeMillis();
-                    totalTime = now - previousNow;
-
-                    totalTimeSinceStart = now - startTime;
-                    msgPerSecSinceStart = ((float) count / (float) totalTimeSinceStart) * 1000;
-
-                    msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
-
-                    System.out.println("LongTermProcessor: " + printEvery +
-                            " messages sent in " + totalTime +
-                            " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + maxQueueLength +
-                            " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
-                    previousNow = now;
+                if (reportCount == printEvery) {
+                    printReport();
                 }
             }
         } catch (InterruptedException e) {
@@ -114,11 +101,37 @@ public class LongTermProcessor implements Runnable {
             } catch (IOException e1) {
                 logger.error("IOException", e);
             }
-            logger.error("InterruptedException", e);
+            if (doRun)
+                logger.error("InterruptedException", e);
+            else
+                logger.info("Processor manager asked to stop!");
         }
     }
 
-    private void storeInLucene(LogstashMessage message) throws AppException {
+    synchronized void printReport()
+    {
+        long queueLength = inputQueue.size();
+        if (queueLength > maxQueueLength)
+            maxQueueLength = queueLength;
+
+        long now = System.currentTimeMillis();
+
+        long totalTimeSinceStart = now - startTime;
+        float msgPerSecSinceStart = ((float) count / (float) totalTimeSinceStart) * 1000;
+
+        long totalTime = now - previousNow;
+        float msgPerSec = ((float) reportCount / (float) totalTime) * 1000;
+
+        System.out.println(this.getClass().getSimpleName() + ": " + reportCount +
+                " messages sent in " + totalTime +
+                " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + maxQueueLength +
+                " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
+        previousNow = now;
+        reportCount = 0;
+
+    }
+
+    synchronized private void storeInLucene(LogstashMessage message) throws AppException {
 
         try {
 
@@ -158,7 +171,7 @@ public class LongTermProcessor implements Runnable {
         this.inputQueue = inputQueue;
     }
 
-    public IndexWriter createIndex(String indexPath) throws AppException{
+    public void createIndex(String indexPath) throws AppException{
 
         IndexWriter indexWriter = null;
 
@@ -188,7 +201,7 @@ public class LongTermProcessor implements Runnable {
             throw new AppException(e.getMessage(),e);
         }
 
-        return indexWriter;
+        this.luceneIndexWriter = indexWriter;
     }
 
     public long getOlderTimestamp() {
@@ -199,8 +212,8 @@ public class LongTermProcessor implements Runnable {
         return newerTimestamp;
     }
 
-    public long getCount() {
-        return count;
+    public long getThisRunCount() {
+        return thisRunCount;
     }
 
 }

@@ -42,11 +42,11 @@ public class Dispatcher implements Runnable {
         ObjectMapper mapper = new ObjectMapper();
 
         LongTermProcessorMgmt longTermProcessorMgmt =
-                new LongTermProcessorMgmt("LongTermProcessor",
+                new LongTermProcessorMgmt("LongTermProcessorMgmt",
                         config.getLongTermCuttingTime(),
                         config);
         BlockingQueue<LogstashMessage> longTermQueue = longTermProcessorMgmt.getInputQueue();
-        Thread longTermThread = new Thread(longTermProcessorMgmt);
+        Thread longTermThread = new Thread(longTermProcessorMgmt, "LongTermProcessorMgmt");
         longTermThread.start();
 
         logger.info("New Dispatcher running");

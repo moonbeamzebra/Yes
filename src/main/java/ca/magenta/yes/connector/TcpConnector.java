@@ -34,7 +34,7 @@ public class TcpConnector extends TCPServer {
 
         Dispatcher dispatcher = new Dispatcher("Dispatcher", config);
         dispatcherQueue = dispatcher.getInputQueue();
-        Thread dispatcherThread = new Thread(dispatcher);
+        Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
         dispatcherThread.start();
 
 

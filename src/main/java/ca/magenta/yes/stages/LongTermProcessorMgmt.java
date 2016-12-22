@@ -32,12 +32,6 @@ public class LongTermProcessorMgmt implements Runnable {
         doRun = false;
     }
 
-
-
-    private static final long printEvery = 100;
-
-    private long count = 0;
-
     public LongTermProcessorMgmt(String name, long cuttingTime, Config config) {
 
         this.name = name;
@@ -51,56 +45,36 @@ public class LongTermProcessorMgmt implements Runnable {
 
         ObjectMapper mapper = new ObjectMapper();
 
+        LongTermProcessor longTermProcessor = new LongTermProcessor("LongTermProcessor",
+                inputQueue);
 
         logger.info("New LongTermProcessorMgmt running");
-        count = 0;
-        long previousNow = System.currentTimeMillis();
-        long now;
-        long totalTime;
-        float msgPerSec;
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
                 String indexPath = config.getIndexBaseDirectory() + File.separator;
                 String indexPathName = indexPath + java.util.UUID.randomUUID();
-                LongTermProcessor longTermProcessor = new LongTermProcessor("LongTermProcessor",
-                        inputQueue,
-                        indexPathName);
-                Thread longTermThread = new Thread(longTermProcessor);
+                longTermProcessor.createIndex(indexPathName);
+                Thread longTermThread = new Thread(longTermProcessor, "LongTermProcessor");
                 longTermThread.start();
 
                 Thread.sleep(cuttingTime);
-                logger.debug("Time to stop");
+
+                logger.info("Time to rotate...stop the thread");
                 longTermProcessor.stopIt();
                 longTermThread.interrupt();
                 longTermThread.join();
-                logger.debug("Stopped");
-                long count = longTermProcessor.getCount();
+                logger.info("Stopped");
+                longTermProcessor.printReport();
+
+                long count = longTermProcessor.getThisRunCount();
                 if (count > 0) {
-                    long olderTimestamp = longTermProcessor.getOlderTimestamp();
-                    long newerTimestamp = longTermProcessor.getOlderTimestamp();
-                    String newFileName = "" + olderTimestamp + "-" +
-                            newerTimestamp + ".cut." +
-                            System.currentTimeMillis() +
-                            ".lucene";
-                    String newIndexPathName = indexPath + newFileName;
-                    File dir = new File(indexPathName);
-                    File newDirName = new File(newIndexPathName);
-                    if ( dir.isDirectory() )
-                        dir.renameTo(newDirName);
+                    publishIndex(longTermProcessor,indexPath,indexPathName);
                 }
                 else
                 {
-                    File index = new File(indexPathName);
-                    String[]entries = index.list();
-                    for(String s: entries){
-                        File currentFile = new File(index.getPath(),s);
-                        currentFile.delete();
-                    }
+                    deleteUnusedIndex(indexPathName);
                 }
-                longTermProcessor = null;
-                longTermThread = null;
-
             }
         } catch (InterruptedException e) {
             logger.error("InterruptedException", e);
@@ -109,6 +83,39 @@ public class LongTermProcessorMgmt implements Runnable {
 
     public BlockingQueue<LogstashMessage> getInputQueue() {
         return inputQueue;
+    }
+
+    private void publishIndex(LongTermProcessor longTermProcessor,
+                              String indexPath,
+                              String indexPathName)
+    {
+        long olderTimestamp = longTermProcessor.getOlderTimestamp();
+        long newerTimestamp = longTermProcessor.getOlderTimestamp();
+        String newFileName = "" + olderTimestamp + "-" +
+                newerTimestamp + ".cut." +
+                System.currentTimeMillis() +
+                ".lucene";
+        String newIndexPathName = indexPath + newFileName;
+        File dir = new File(indexPathName);
+        File newDirName = new File(newIndexPathName);
+        if ( dir.isDirectory() )
+            dir.renameTo(newDirName);
+    }
+
+    private void deleteUnusedIndex(String indexPathName)
+    {
+        File index = new File(indexPathName);
+        String[]entries = index.list();
+        for(String s: entries){
+            logger.info(String.format("Delete [%s]", s));
+            File currentFile = new File(index.getPath(),s);
+            currentFile.delete();
+            logger.info(String.format("Done"));
+        }
+        String s = indexPathName;
+        logger.info(String.format("Delete dir [%s]", indexPathName));
+        index.delete();
+        logger.info(String.format("Done"));
     }
 
 
