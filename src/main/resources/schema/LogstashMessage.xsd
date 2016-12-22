@@ -1,0 +1,30 @@
+<xs:schema attributeFormDefault="unqualified"
+	elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:element name="LogstashMessage">
+		<xs:complexType>
+			<!--{"source":"10.10.10.10","message":"device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop",-->
+			<!--"type":"checkpoint_log","dest":"20.20.20.20","tags":[],"path":"/mylogs/in.mylog",-->
+			<!--"@timestamp":"2016-12-21T13:30:24.631Z","port":"80","@version":"1","host":"lsnode10",-->
+			<!--"action":"drop","device":"fw01","customer":"MyLogs"}-->
+			<xs:sequence>
+				<xs:element name="timestamp" type="xs:long" />
+				<xs:element name="device" type="xs:string" />
+				<xs:element name="source" type="xs:string" />
+				<xs:element name="dest" type="xs:string" />
+				<xs:element name="port" type="xs:string" />
+				<xs:element name="action" type="xs:string" />
+				<xs:element name="msg" type="xs:string" />
+				<xs:element name="customer" type="xs:string" />
+				<xs:element name="message" type="xs:string" />
+				<xs:element name="type" type="xs:string" />
+				<xs:element name="tags" type="xs:string" />
+				<xs:element name="path" type="xs:string" />
+				<xs:element name="logstasHtimestamp" type="xs:string" />
+				<xs:element name="logstasHversion" type="xs:string" />
+				<xs:element name="host" type="xs:string" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+
+
+</xs:schema>
