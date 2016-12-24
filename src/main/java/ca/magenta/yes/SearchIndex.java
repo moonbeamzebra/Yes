@@ -43,6 +43,7 @@ public class SearchIndex {
 
         String indexName = "lucene";
         String indexNamePath = "." + File.separator + indexName;
+        indexNamePath = "./luceneIndex/1482345024631-1482345024631.cut.1482434631483.lucene";
 
         System.out.println("Searching for '" + searchString + "' in " +  indexNamePath);
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));

@@ -18,7 +18,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotNull;
-import java.net.URL;
 
 @Component
 @ConfigurationProperties(prefix = "ca.magenta.yes", ignoreUnknownFields = false)
@@ -29,12 +28,25 @@ public class Config {
     private int tcpConnectorPort;
 
 
-    @NotNull
-    private int longTermCuttingTime;
 
+
+    @NotNull
+    private int apiServerPort;
+
+    // Default: 5 minutes
+    private int longTermCuttingTime = 300000;
+
+    // Default: 200 millliseconds
+    private int realTimeCuttingTime = 200;
 
     @NotNull
     private String indexBaseDirectory;
+
+    private int processorQueueDepth = 300000;
+
+
+
+    private float queueDepthWarningThreshold = (float) 0.8;
 
     @NotNull
     private String environment;
@@ -63,6 +75,38 @@ public class Config {
         this.indexBaseDirectory = indexBaseDirectory;
     }
 
+    public int getRealTimeCuttingTime() {
+        return realTimeCuttingTime;
+    }
+
+    public void setRealTimeCuttingTime(int realTimeCuttingTime) {
+        this.realTimeCuttingTime = realTimeCuttingTime;
+    }
+
+    public int getApiServerPort() {
+        return apiServerPort;
+    }
+
+    public void setApiServerPort(int apiServerPort) {
+        this.apiServerPort = apiServerPort;
+    }
+
+    public int getProcessorQueueDepth() {
+        return processorQueueDepth;
+    }
+
+    public void setProcessorQueueDepth(int processorQueueDepth) {
+        this.processorQueueDepth = processorQueueDepth;
+    }
+
+    public float getQueueDepthWarningThreshold() {
+        return queueDepthWarningThreshold;
+    }
+
+    public void setQueueDepthWarningThreshold(float queueDepthWarninghreshold) {
+        this.queueDepthWarningThreshold = queueDepthWarninghreshold;
+    }
+
     public String getEnvironment() {
         return environment;
     }
@@ -70,4 +114,6 @@ public class Config {
     public void setEnvironment(String environment) {
         this.environment = environment;
     }
+
+
 }

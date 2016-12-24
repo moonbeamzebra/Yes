@@ -45,9 +45,17 @@ public class Dispatcher implements Runnable {
                 new LongTermProcessorMgmt("LongTermProcessorMgmt",
                         config.getLongTermCuttingTime(),
                         config);
-        BlockingQueue<LogstashMessage> longTermQueue = longTermProcessorMgmt.getInputQueue();
+        //BlockingQueue<LogstashMessage> longTermQueue = longTermProcessorMgmt.getInputQueue();
         Thread longTermThread = new Thread(longTermProcessorMgmt, "LongTermProcessorMgmt");
         longTermThread.start();
+
+        RealTimeProcessorMgmt realTimeProcessorMgmt =
+                new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
+                        config.getRealTimeCuttingTime(),
+                        config);
+        //BlockingQueue<LogstashMessage> realTimeQueue = realTimeProcessorMgmt.getInputQueue();
+        Thread realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
+        realTimeThread.start();
 
         logger.info("New Dispatcher running");
         count = 0;
@@ -69,16 +77,6 @@ public class Dispatcher implements Runnable {
                     LogstashMessage logstashMessage = null;
                     try {
                         logstashMessage = mapper.readValue(message, LogstashMessage.class);
-                        //2016-12-21T13:30:24.640Z
-                        //yyyy-MM-ddTHH:mm:ss.SSSZ
-
-//						String input = logstashMessage.getLogstasHtimestamp();
-//						TimeZone utc = TimeZone.getTimeZone("UTC");
-//						SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-//						f.setTimeZone(utc);
-//						GregorianCalendar cal = new GregorianCalendar(utc);
-//						cal.setTime(f.parse(input));
-//						System.out.println(cal.getTime());
 
                         String str = logstashMessage.getLogstasHtimestamp();
                         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -89,7 +87,10 @@ public class Dispatcher implements Runnable {
                         String jsonInString = mapper.writeValueAsString(logstashMessage);
                         logger.debug("Dispatcher received OBJ: " + jsonInString);
 
-                        longTermQueue.put(logstashMessage);
+                        longTermProcessorMgmt.putInQueue(logstashMessage);
+                        realTimeProcessorMgmt.putInQueue(logstashMessage);
+//                        longTermQueue.put(logstashMessage);
+//                        realTimeQueue.put(logstashMessage);
                     } catch (ParseException e) {
                         logger.error("ParseException", e);
                     } catch (IOException e) {
