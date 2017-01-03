@@ -1,13 +1,14 @@
 package ca.magenta.yes.stages;
 
 
+import ca.magenta.utils.AppException;
 import ca.magenta.yes.Config;
-import ca.magenta.yes.data.LogstashMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -23,7 +24,7 @@ public abstract class ProcessorMgmt implements Runnable {
     final Config config;
 
 
-    private final BlockingQueue<LogstashMessage> inputQueue;
+    private final BlockingQueue<HashMap<String, Object>> inputQueue;
 
     private volatile boolean doRun = true;
 
@@ -35,7 +36,7 @@ public abstract class ProcessorMgmt implements Runnable {
 
         this.name = name;
         this.cuttingTime = cuttingTime;
-        this.inputQueue = new ArrayBlockingQueue<LogstashMessage>(config.getProcessorQueueDepth());
+        this.inputQueue = new ArrayBlockingQueue<HashMap<String, Object>>(config.getProcessorQueueDepth());
         this.config = config;
 
     }
@@ -46,50 +47,55 @@ public abstract class ProcessorMgmt implements Runnable {
 
         //LongTermProcessor longTermProcessor = new LongTermProcessor("LongTermProcessor",
         //        inputQueue);
-        Processor processor = createProcessor(inputQueue);
-
-        logger.info(String.format("New [%s] running",this.getClass().getSimpleName()));
         try {
+            Processor processor = createProcessor(inputQueue);
 
-            while (doRun || !inputQueue.isEmpty()) {
-                String indexPath = config.getIndexBaseDirectory() + File.separator;
-                String indexPathName = indexPath +
-                        this.getClass().getSimpleName() + "." +
-                        java.util.UUID.randomUUID();
-                processor.createIndex(indexPathName);
-                Thread processorThread = new Thread(processor, processor.getClass().getSimpleName());
-                processorThread.start();
+            logger.info(String.format("New [%s] running", this.getClass().getSimpleName()));
+            try {
 
-                Thread.sleep(cuttingTime);
+                while (doRun || !inputQueue.isEmpty()) {
+                    String indexPath = config.getIndexBaseDirectory() + File.separator;
+                    String indexPathName = indexPath +
+                            this.getClass().getSimpleName() + "." +
+                            java.util.UUID.randomUUID();
+                    processor.createIndex(indexPathName);
+                    Thread processorThread = new Thread(processor, processor.getClass().getSimpleName());
+                    processorThread.start();
 
-                if (logger.isDebugEnabled())
-                    logger.debug("Time to rotate...stop the thread");
-                processor.stopIt();
-                processorThread.interrupt();
-                processorThread.join();
-                if (logger.isDebugEnabled())
-                    logger.debug("Stopped");
-                if (this instanceof LongTermProcessorMgmt)
-                    processor.printReport();
+                    Thread.sleep(cuttingTime);
 
-                try {
-                    processor.commitAndClose();
-                    long count = processor.getThisRunCount();
-                    if (count > 0) {
-                        publishIndex(processor,indexPath,indexPathName);
+                    if (logger.isDebugEnabled())
+                        logger.debug("Time to rotate...stop the thread");
+                    processor.stopIt();
+                    processorThread.interrupt();
+                    processorThread.join();
+                    if (logger.isDebugEnabled())
+                        logger.debug("Stopped");
+                    if (this instanceof LongTermProcessorMgmt)
+                        processor.printReport();
+
+                    try {
+                        processor.commitAndClose();
+                        long count = processor.getThisRunCount();
+                        if (count > 0) {
+                            publishIndex(processor, indexPath, indexPathName);
+                        } else {
+                            deleteUnusedIndex(indexPathName);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    else
-                    {
-                        deleteUnusedIndex(indexPathName);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
+
                 }
-
+            } catch (InterruptedException e) {
+                logger.error("InterruptedException", e);
             }
-        } catch (InterruptedException e) {
-            logger.error("InterruptedException", e);
         }
+        catch (AppException e)
+        {
+            logger.error("AppException", e);
+        }
+
     }
 
 //    public BlockingQueue<LogstashMessage> getInputQueue() {
@@ -98,14 +104,14 @@ public abstract class ProcessorMgmt implements Runnable {
 
     abstract void publishIndex(Processor processor,
                                String indexPath,
-                               String indexPathName);
+                               String indexPathName) throws IOException, AppException;
 
     abstract void deleteUnusedIndex(String indexPathName);
 
-    abstract Processor createProcessor(BlockingQueue<LogstashMessage> queue);
+    abstract Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException;
 
 
-    public void putInQueue(LogstashMessage logstashMessage) throws InterruptedException {
+    public void putInQueue(HashMap<String, Object> logstashMessage) throws InterruptedException {
 
         inputQueue.put(logstashMessage);
 

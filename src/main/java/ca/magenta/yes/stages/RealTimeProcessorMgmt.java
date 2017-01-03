@@ -1,18 +1,14 @@
 package ca.magenta.yes.stages;
 
 
+import ca.magenta.utils.AppException;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.api.APIServer;
 import ca.magenta.yes.connector.common.IndexPublisher;
-import ca.magenta.yes.data.LogstashMessage;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -28,7 +24,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     public RealTimeProcessorMgmt(String name, long cuttingTime, Config config) {
         super(name, cuttingTime, config);
 
-        startAPIServer();
+        startAPIServer(config);
 
     }
 
@@ -52,10 +48,9 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
     @Override
-    Processor createProcessor(BlockingQueue<LogstashMessage> queue) {
+    Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException {
 
-        return new RealTimeProcessor("RealTimeProcessor",
-                queue);
+        return new RealTimeProcessor("RealTimeProcessor", queue);
 
     }
 
@@ -65,12 +60,12 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
 
-    public void startAPIServer() {
+    public void startAPIServer(Config config) {
 
         try {
 
             if ((apiServer == null) || ( ! apiServer.getRunner().isAlive())) {
-                apiServer = new APIServer(config.getApiServerPort(),"APISrvr");
+                apiServer = new APIServer(this.config.getApiServerPort(),"APISrvr", config.getIndexBaseDirectory());
                 logger.info("Starting APIServer...");
                 apiServer.startServer();
                 logger.info("APIServer started");

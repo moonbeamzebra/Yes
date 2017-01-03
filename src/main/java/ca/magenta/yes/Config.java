@@ -25,9 +25,11 @@ public class Config {
 
 
     @NotNull
-    private int tcpConnectorPort;
+    private int logstashConnectorPort;
 
 
+    @NotNull
+    private int genericConnectorPort;
 
 
     @NotNull
@@ -51,12 +53,20 @@ public class Config {
     @NotNull
     private String environment;
 
-    public int getTcpConnectorPort() {
-        return tcpConnectorPort;
+    public int getLogstashConnectorPort() {
+        return logstashConnectorPort;
     }
 
-    public void setTcpConnectorPort(int tcpConnectorPort) {
-        this.tcpConnectorPort = tcpConnectorPort;
+    public void setLogstashConnectorPort(int logstashConnectorPort) {
+        this.logstashConnectorPort = logstashConnectorPort;
+    }
+
+    public int getGenericConnectorPort() {
+        return genericConnectorPort;
+    }
+
+    public void setGenericConnectorPort(int genericConnectorPort) {
+        this.genericConnectorPort = genericConnectorPort;
     }
 
     public int getLongTermCuttingTime() {

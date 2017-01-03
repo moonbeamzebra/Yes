@@ -1,6 +1,7 @@
 package ca.magenta.yes;
 
-import ca.magenta.yes.connector.TcpConnector;
+import ca.magenta.yes.connector.GenericConnector;
+import ca.magenta.yes.connector.LogstashConnector;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,13 +17,21 @@ public class Application {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Application.class.getPackage().getName());
 
 
-    final TcpConnector tcpConnector;
+    //final LogstashConnector logstashConnector;
+    final GenericConnector genericConnector;
 
 
-    public Application(TcpConnector tcpConnector) throws IOException {
-        this.tcpConnector = tcpConnector;
+//    public Application(LogstashConnector tcpConnector) throws IOException {
+//        this.logstashConnector = tcpConnector;
+//
+//        tcpConnector.startServer();
+//
+//    }
 
-        tcpConnector.startServer();
+    public Application(GenericConnector genericConnector) throws IOException {
+        this.genericConnector = genericConnector;
+
+        genericConnector.startServer();
 
     }
 

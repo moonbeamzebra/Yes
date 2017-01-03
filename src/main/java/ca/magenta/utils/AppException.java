@@ -6,7 +6,7 @@ package ca.magenta.utils;
  *
  * @author jplaberge@magenta.ca
  */
-public class AppException extends RuntimeException {
+public class AppException extends java.lang.Exception {
 
     private static final long serialVersionUID = -6049895267370229367L;
 

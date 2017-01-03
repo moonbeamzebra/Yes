@@ -2,16 +2,13 @@ package ca.magenta.yes.connector;
 
 import ca.magenta.utils.TCPServer;
 import ca.magenta.yes.Config;
-import ca.magenta.yes.stages.Dispatcher;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -19,23 +16,23 @@ import java.util.concurrent.BlockingQueue;
  * Created by jean-paul.laberge on 12/19/2016.
  */
 @Component
-public class TcpConnector extends TCPServer {
+public class GenericConnector extends TCPServer {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
 
 
-    private final BlockingQueue<String> dispatcherQueue;
+    private final BlockingQueue<String> outputQueue;
 
-    public TcpConnector(Config config) {
+    public GenericConnector(Config config) {
 
-        super(config.getTcpConnectorPort(), TcpConnector.class.getName());
+        super(config.getGenericConnectorPort(), GenericConnector.class.getName());
 
-        logger.info(String.format("TcpConnector started on port [%d]", config.getTcpConnectorPort()));
+        logger.info(String.format("GenericConnector started on port [%d]", config.getGenericConnectorPort()));
 
-        Dispatcher dispatcher = new Dispatcher("Dispatcher", config);
-        dispatcherQueue = dispatcher.getInputQueue();
-        Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
-        dispatcherThread.start();
+        LogParser logParser = new LogParser("LogParser", config);
+        outputQueue = logParser.getInputQueue();
+        Thread logParserThread = new Thread(logParser, "LogParser");
+        logParserThread.start();
 
 
     }
@@ -55,10 +52,7 @@ public class TcpConnector extends TCPServer {
 
             while ((inputLine = in.readLine()) != null) {
                 logger.debug("Client: " + inputLine);
-                inputLine = inputLine.replace("@timestamp", "logstasHtimestamp");
-                inputLine = inputLine.replace("@version", "logstasHversion");
-                inputLine = inputLine.replace("\"tags\":[]", "\"tags\":\"[]\"");
-                dispatcherQueue.put(inputLine);
+                outputQueue.put(inputLine);
             }
 
             in.close();

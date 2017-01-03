@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.StringJoiner;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -45,7 +47,6 @@ public class Dispatcher implements Runnable {
                 new LongTermProcessorMgmt("LongTermProcessorMgmt",
                         config.getLongTermCuttingTime(),
                         config);
-        //BlockingQueue<LogstashMessage> longTermQueue = longTermProcessorMgmt.getInputQueue();
         Thread longTermThread = new Thread(longTermProcessorMgmt, "LongTermProcessorMgmt");
         longTermThread.start();
 
@@ -53,7 +54,6 @@ public class Dispatcher implements Runnable {
                 new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
                         config.getRealTimeCuttingTime(),
                         config);
-        //BlockingQueue<LogstashMessage> realTimeQueue = realTimeProcessorMgmt.getInputQueue();
         Thread realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
         realTimeThread.start();
 
@@ -71,33 +71,33 @@ public class Dispatcher implements Runnable {
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
-                String message = inputQueue.take();
-                logger.debug("Dispatcher received: " + message);
+                String jsonMsg = inputQueue.take();
+                logger.debug("Dispatcher received: " + jsonMsg);
+                HashMap<String, Object> hashedMsg = null;
                 try {
-                    LogstashMessage logstashMessage = null;
-                    try {
-                        logstashMessage = mapper.readValue(message, LogstashMessage.class);
 
-                        String str = logstashMessage.getLogstasHtimestamp();
+                    hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
+                    logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
+
+
+                    long epoch = System.currentTimeMillis();
+                    hashedMsg.put("rxTimestamp", Long.toString(epoch));
+                    String str = (String) hashedMsg.get("@timestamp");
+                    if (str != null) {
                         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
                         Date date = null;
                         date = df.parse(str);
-                        long epoch = date.getTime();
-                        logstashMessage.setTimestamp(epoch);
-                        String jsonInString = mapper.writeValueAsString(logstashMessage);
-                        logger.debug("Dispatcher received OBJ: " + jsonInString);
-
-                        longTermProcessorMgmt.putInQueue(logstashMessage);
-                        realTimeProcessorMgmt.putInQueue(logstashMessage);
-//                        longTermQueue.put(logstashMessage);
-//                        realTimeQueue.put(logstashMessage);
-                    } catch (ParseException e) {
-                        logger.error("ParseException", e);
-                    } catch (IOException e) {
-                        logger.error("IOException", e);
+                        epoch = date.getTime();
+                        //logger.info(String.format("timestamp:[%d]", epoch));
                     }
-                } catch (AppException e) {
-                    logger.error("ServiceException", e);
+                    hashedMsg.put("txTimestamp", Long.toString(epoch));
+
+                    longTermProcessorMgmt.putInQueue(hashedMsg);
+                    realTimeProcessorMgmt.putInQueue(hashedMsg);
+                } catch (ParseException e) {
+                    logger.error("ParseException", e);
+                } catch (IOException e) {
+                    logger.error("IOException", e);
                 }
 
                 count++;

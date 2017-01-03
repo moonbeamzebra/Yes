@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -20,7 +21,7 @@ public class LongTermProcessor extends Processor {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermProcessor.class.getPackage().getName());
 
-    public LongTermProcessor(String name, BlockingQueue<LogstashMessage> inputQueue) throws AppException {
+    public LongTermProcessor(String name, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
         super(name, inputQueue);
     }
 
@@ -32,7 +33,7 @@ public class LongTermProcessor extends Processor {
             Analyzer analyzer = new StandardAnalyzer();
             boolean recreateIndexIfExists = false;
 
-            logger.debug("Indexing in '" + indexPath + "'");
+            logger.info("Indexing in '" + indexPath + "'");
 
 
             indexDir = null;

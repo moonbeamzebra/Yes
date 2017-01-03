@@ -1,5 +1,6 @@
 package ca.magenta.yes.connector.common;
 
+import ca.magenta.yes.data.NormalizedLogRecord;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
@@ -82,10 +83,10 @@ public abstract class IndexSubscriber implements Runnable {
                     for (ScoreDoc scoreDoc : results.scoreDocs) {
                         //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
                         Document doc = searcher.doc(scoreDoc.doc);
-                        String key = String.format("{timestamp : %s, device : %s, source : %s, dest : %s, port : %s }", doc.get("timestamp"), doc.get("device"), doc.get("source"), doc.get("dest"), doc.get("port"));
-                        if (logger.isDebugEnabled())
-                            logger.debug("Found:" + key);
-                        this.forward(key);
+                        NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
+                        System.out.println("Found:" + normalizedLogRecord.toString());
+
+                        this.forward(normalizedLogRecord.toJson());
                     }
 
                     reader.close();

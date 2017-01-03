@@ -11,6 +11,7 @@ import org.apache.lucene.store.RAMDirectory;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -18,7 +19,7 @@ public class RealTimeProcessor extends Processor {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RealTimeProcessor.class.getPackage().getName());
 
-    public RealTimeProcessor(String name, BlockingQueue<LogstashMessage> inputQueue) throws AppException {
+    public RealTimeProcessor(String name, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
         super(name, inputQueue);
     }
 

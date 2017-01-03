@@ -9,6 +9,8 @@ import org.apache.lucene.store.Directory;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -19,8 +21,7 @@ public abstract class Processor implements Runnable {
 
     private final String name;
 
-    private BlockingQueue<LogstashMessage> inputQueue;
-
+    private BlockingQueue<HashMap<String, Object>> inputQueue;
 
 
     Directory indexDir;
@@ -28,8 +29,9 @@ public abstract class Processor implements Runnable {
 
     private volatile boolean doRun = true;
 
-    private long olderTimestamp = System.currentTimeMillis();
-    private long newerTimestamp = System.currentTimeMillis();
+    private RunTimeStamps runTimeStamps;
+    //    private long olderTimestamp = System.currentTimeMillis();
+//    private long newerTimestamp = System.currentTimeMillis();
     private final long startTime;
     private long hiWaterMarkQueueLength = 0;
     long previousNow = System.currentTimeMillis();
@@ -46,7 +48,7 @@ public abstract class Processor implements Runnable {
     private static final long printEvery = 100000;
 
 
-    public Processor(String name, BlockingQueue<LogstashMessage> inputQueue) throws AppException {
+    public Processor(String name, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
 
         this.name = name;
         this.inputQueue = inputQueue;
@@ -57,21 +59,24 @@ public abstract class Processor implements Runnable {
 
     public void run() {
         if (logger.isDebugEnabled())
-            logger.debug(String.format("New [%s] running",this.getClass().getSimpleName()));
+            logger.debug(String.format("New [%s] running", this.getClass().getSimpleName()));
         doRun = true;
         thisRunCount = 0;
         reportCount = 0;
-        olderTimestamp = System.currentTimeMillis();
-        newerTimestamp = System.currentTimeMillis();
+        runTimeStamps = new RunTimeStamps();
+//        olderTimestamp = Long.MAX_VALUE;
+//        newerTimestamp = 0;
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
-                LogstashMessage message = inputQueue.take();
-                long timestamp = message.getTimestamp();
-                if (timestamp < olderTimestamp)
-                    olderTimestamp = timestamp;
-                if (timestamp > newerTimestamp)
-                    newerTimestamp = timestamp;
+                HashMap<String, Object> message = inputQueue.take();
+                long txTimestamp = Long.valueOf((String) message.get("txTimestamp"));
+                long rxTimestamp = Long.valueOf((String) message.get("rxTimestamp"));
+                runTimeStamps.compute(txTimestamp, rxTimestamp);
+//                if (timestamp < olderTimestamp)
+//                    olderTimestamp = timestamp;
+//                if (timestamp > newerTimestamp)
+//                    newerTimestamp = timestamp;
                 if (logger.isDebugEnabled())
                     logger.debug("Processor received: " + message);
                 try {
@@ -88,13 +93,14 @@ public abstract class Processor implements Runnable {
                     printReport();
                 }
             }
+
         } catch (InterruptedException e) {
             if (doRun)
                 logger.error("InterruptedException", e);
-            else
-                if (logger.isDebugEnabled())
-                    logger.debug("Processor manager asked to stop!");
+            else if (logger.isDebugEnabled())
+                logger.debug("Processor manager asked to stop!");
         }
+        runTimeStamps.setRunEndTimestamp(System.currentTimeMillis());
     }
 
     synchronized void commitAndClose() throws IOException {
@@ -104,8 +110,7 @@ public abstract class Processor implements Runnable {
 
     }
 
-    synchronized void printReport()
-    {
+    synchronized void printReport() {
         long queueLength = inputQueue.size();
         if (queueLength > hiWaterMarkQueueLength)
             hiWaterMarkQueueLength = queueLength;
@@ -127,7 +132,7 @@ public abstract class Processor implements Runnable {
 
     }
 
-    synchronized private void storeInLucene(LogstashMessage message) throws AppException {
+    synchronized private void storeInLucene(HashMap<String, Object> message) throws AppException {
 
         try {
 
@@ -141,19 +146,19 @@ public abstract class Processor implements Runnable {
             //			<xs:element name="customer" type="xs:string" />
             //			<xs:element name="message" type="xs:string" />
             //			<xs:element name="type" type="xs:string" />
-            document.add(new StringField("LogstasHtimestamp", message.getLogstasHtimestamp(), Field.Store.YES));
-            //document.add(new StringField("timestamp", Long.toString(message.getTimestamp()), Field.Store.YES));
-            document.add(new LongPoint(  "timestamp", message.getTimestamp()));
-            document.add(new StoredField("timestamp", message.getTimestamp()));
-            document.add(new StringField("timestamp", Long.toString(message.getTimestamp()), Field.Store.YES));
-            document.add(new StringField("device", message.getDevice(), Field.Store.YES));
-            document.add(new StringField("source", message.getSource(), Field.Store.YES));
-            document.add(new StringField("dest", message.getDest(), Field.Store.YES));
-            document.add(new StringField("port", message.getPort(), Field.Store.YES));
-            document.add(new StringField("action", message.getAction(), Field.Store.YES));
-            document.add(new StringField("customer", message.getCustomer(), Field.Store.YES));
-            document.add(new StringField("type", message.getType(), Field.Store.YES));
-            document.add(new TextField("message", message.getMessage(), Field.Store.YES));
+            for (Map.Entry<String, Object> fieldE : message.entrySet()) {
+                if ("message".equals(fieldE.getKey())) {
+                    document.add(new TextField("message", (String) fieldE.getValue(), Field.Store.YES));
+                } else if (fieldE.getValue() instanceof Integer) {
+                    document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
+                    document.add(new StoredField(fieldE.getKey(), (Integer) fieldE.getValue()));
+                } else if (fieldE.getValue() instanceof Long) {
+                    document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
+                    document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
+                } else {
+                    document.add(new StringField(fieldE.getKey(), (String) fieldE.getValue(), Field.Store.YES));
+                }
+            }
 
             luceneIndexWriter.addDocument(document);
             if (logger.isDebugEnabled())
@@ -166,19 +171,14 @@ public abstract class Processor implements Runnable {
 
     }
 
-    public void setInputQueue(BlockingQueue<LogstashMessage> inputQueue)
-    {
+    public void setInputQueue(BlockingQueue<HashMap<String, Object>> inputQueue) {
         this.inputQueue = inputQueue;
     }
 
     public abstract void createIndex(String indexPath) throws AppException;
 
-    public long getOlderTimestamp() {
-        return olderTimestamp;
-    }
-
-    public long getNewerTimestamp() {
-        return newerTimestamp;
+    public RunTimeStamps getRunTimeStamps() {
+        return runTimeStamps;
     }
 
     public long getThisRunCount() {
@@ -187,6 +187,69 @@ public abstract class Processor implements Runnable {
 
     synchronized public Directory getIndexDir() {
         return indexDir;
+    }
+
+    static class RunTimeStamps {
+
+        private long olderTxTimestamp;
+        private long newerTxTimestamp;
+
+        private long olderRxTimestamp;
+        private long newerRxTimestamp;
+
+        private final long runStartTimestamp;
+        private long runEndTimestamp;
+
+        RunTimeStamps() {
+            runStartTimestamp = System.currentTimeMillis();
+
+            olderTxTimestamp = Long.MAX_VALUE;
+            newerTxTimestamp = 0;
+
+            olderRxTimestamp = Long.MAX_VALUE;
+            newerRxTimestamp = 0;
+        }
+
+        public void compute(long txTimestamp, long rxTimestamp) {
+
+            if (txTimestamp < olderTxTimestamp)
+                olderTxTimestamp = txTimestamp;
+            if (txTimestamp > newerTxTimestamp)
+                newerTxTimestamp = txTimestamp;
+
+            if (rxTimestamp < olderRxTimestamp)
+                olderRxTimestamp = rxTimestamp;
+            if (rxTimestamp > newerRxTimestamp)
+                newerRxTimestamp = rxTimestamp;
+        }
+
+        public long getOlderTxTimestamp() {
+            return olderTxTimestamp;
+        }
+
+        public long getNewerTxTimestamp() {
+            return newerTxTimestamp;
+        }
+
+        public long getOlderRxTimestamp() {
+            return olderRxTimestamp;
+        }
+
+        public long getNewerRxTimestamp() {
+            return newerRxTimestamp;
+        }
+
+        public long getRunStartTimestamp() {
+            return runStartTimestamp;
+        }
+
+        public long getRunEndTimestamp() {
+            return runEndTimestamp;
+        }
+
+        public void setRunEndTimestamp(long runEndTimestamp) {
+            this.runEndTimestamp = runEndTimestamp;
+        }
     }
 
 }
