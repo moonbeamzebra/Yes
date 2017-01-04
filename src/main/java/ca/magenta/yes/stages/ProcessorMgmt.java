@@ -90,9 +90,7 @@ public abstract class ProcessorMgmt implements Runnable {
             } catch (InterruptedException e) {
                 logger.error("InterruptedException", e);
             }
-        }
-        catch (AppException e)
-        {
+        } catch (AppException e) {
             logger.error("AppException", e);
         }
 
@@ -115,15 +113,17 @@ public abstract class ProcessorMgmt implements Runnable {
 
         inputQueue.put(logstashMessage);
 
-        int length = inputQueue.size();
-        float percentFull = length / config.getProcessorQueueDepth();
+        if (logger.isWarnEnabled()) {
+            int length = inputQueue.size();
+            float percentFull = length / config.getProcessorQueueDepth();
 
-        if (percentFull > config.getQueueDepthWarningThreshold())
-            logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
-                    "queue length:[%d] " +
-                    "Percent:[%f] " +
-                    "Threshold:[%f]",
-                    config.getProcessorQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
+            if (percentFull > config.getQueueDepthWarningThreshold())
+                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
+                                "queue length:[%d] " +
+                                "Percent:[%f] " +
+                                "Threshold:[%f]",
+                        config.getProcessorQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
+        }
 
     }
 }
