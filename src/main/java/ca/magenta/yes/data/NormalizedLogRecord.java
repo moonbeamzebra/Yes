@@ -33,7 +33,7 @@ public class NormalizedLogRecord {
         this.srcTimestamp = Long.valueOf(logRecordDoc.get("txTimestamp"));
         this.rxTimestamp = Long.valueOf(logRecordDoc.get("rxTimestamp"));
         this.deviceName = logRecordDoc.get("device");
-        this.partition = logRecordDoc.get("customer");
+        this.partition = logRecordDoc.get("partition");
         this.source = logRecordDoc.get("source");
         this.dest = logRecordDoc.get("dest");
         this.port = logRecordDoc.get("port");

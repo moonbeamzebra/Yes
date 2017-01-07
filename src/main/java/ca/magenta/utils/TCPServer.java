@@ -39,6 +39,7 @@ public class TCPServer implements Cloneable, Runnable {
 
 	public synchronized void startServer() throws IOException {
 		if (getRunner() == null) {
+			logger.info(String.format("TCPServer port [%d]", port));
 			server = new ServerSocket(port);
 			setRunner(new Thread(this,name));
 			getRunner().start();

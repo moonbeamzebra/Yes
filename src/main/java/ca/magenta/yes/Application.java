@@ -1,7 +1,9 @@
 package ca.magenta.yes;
 
+import ca.magenta.yes.connector.ConnectorMgmt;
 import ca.magenta.yes.connector.GenericConnector;
 import ca.magenta.yes.connector.LogstashConnector;
+import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -18,23 +20,20 @@ public class Application {
 
 
     //final LogstashConnector logstashConnector;
-    final GenericConnector genericConnector;
+    final ConnectorMgmt connectorMgmt;
+    //final GenericConnector genericConnectorA;
+    //final GenericConnector genericConnectorB;
+    //final RealTimeProcessorMgmt realTimeProcessorMgmt;
 
 
-//    public Application(LogstashConnector tcpConnector) throws IOException {
-//        this.logstashConnector = tcpConnector;
-//
-//        tcpConnector.startServer();
-//
-//    }
+    public Application(ConnectorMgmt connectorMgmt)  {
+        this.connectorMgmt = connectorMgmt;
 
-    public Application(GenericConnector genericConnector) throws IOException {
-        this.genericConnector = genericConnector;
+        Thread connectorMgmtThread = new Thread( this.connectorMgmt, "connectorMgmt");
+        //connectorMgmtThread.start();
 
-        genericConnector.startServer();
 
     }
-
 
     public static void main(String[] args) throws IOException {
 

@@ -84,7 +84,7 @@ public abstract class IndexSubscriber implements Runnable {
                         //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
                         Document doc = searcher.doc(scoreDoc.doc);
                         NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
-                        System.out.println("Found:" + normalizedLogRecord.toString());
+                        //System.out.println("Found:" + normalizedLogRecord.toString());
 
                         this.forward(normalizedLogRecord.toJson());
                     }

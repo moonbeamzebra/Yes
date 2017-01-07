@@ -20,6 +20,9 @@ public abstract class ProcessorMgmt implements Runnable {
 
     private final String name;
 
+    final String partition;
+
+
     private final long cuttingTime;
     final Config config;
 
@@ -32,9 +35,10 @@ public abstract class ProcessorMgmt implements Runnable {
         doRun = false;
     }
 
-    public ProcessorMgmt(String name, long cuttingTime, Config config) {
+    public ProcessorMgmt(String name, String partition, long cuttingTime, Config config) {
 
         this.name = name;
+        this.partition = partition;
         this.cuttingTime = cuttingTime;
         this.inputQueue = new ArrayBlockingQueue<HashMap<String, Object>>(config.getProcessorQueueDepth());
         this.config = config;

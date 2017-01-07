@@ -33,6 +33,13 @@ public class Config {
 
 
     @NotNull
+    private int genericConnectorPortA;
+
+    @NotNull
+    private int genericConnectorPortB;
+
+
+    @NotNull
     private int apiServerPort;
 
     // Default: 5 minutes
@@ -67,6 +74,22 @@ public class Config {
 
     public void setGenericConnectorPort(int genericConnectorPort) {
         this.genericConnectorPort = genericConnectorPort;
+    }
+
+    public int getGenericConnectorPortA() {
+        return genericConnectorPortA;
+    }
+
+    public void setGenericConnectorPortA(int genericConnectorPortA) {
+        this.genericConnectorPortA = genericConnectorPortA;
+    }
+
+    public int getGenericConnectorPortB() {
+        return genericConnectorPortB;
+    }
+
+    public void setGenericConnectorPortB(int genericConnectorPortB) {
+        this.genericConnectorPortB = genericConnectorPortB;
     }
 
     public int getLongTermCuttingTime() {

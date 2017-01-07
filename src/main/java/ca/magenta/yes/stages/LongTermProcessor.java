@@ -21,8 +21,8 @@ public class LongTermProcessor extends Processor {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermProcessor.class.getPackage().getName());
 
-    public LongTermProcessor(String name, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
-        super(name, inputQueue);
+    public LongTermProcessor(String name, String partition, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
+        super(name, partition, inputQueue);
     }
 
     synchronized  public void createIndex(String indexPath) throws AppException{

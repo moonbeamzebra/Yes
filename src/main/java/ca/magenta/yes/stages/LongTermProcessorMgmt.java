@@ -22,12 +22,15 @@ import java.util.concurrent.BlockingQueue;
 
 public class LongTermProcessorMgmt extends ProcessorMgmt {
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermProcessorMgmt.class.getPackage().getName());
 
     private final String masterIndexPathName;
 
-    public LongTermProcessorMgmt(String name, long cuttingTime, Config config) {
-        super(name, cuttingTime, config);
+    public LongTermProcessorMgmt(String name, long cuttingTime, Config config, String partition) {
+        super(name, partition, cuttingTime, config);
+
+
+        logger.info(String.format("New LongTermProcessorMgmt running for partition [%s]", partition));
 
         masterIndexPathName = config.getIndexBaseDirectory() +
                 File.separator +
@@ -38,7 +41,8 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
     synchronized  void publishIndex(Processor longTermProcessor,
                               String indexPath,
                               String indexPathName) throws IOException, AppException {
-        String newFileName = String.format("%d.run.%d-%d.lucene",
+        String newFileName = String.format("%s-%d.run.%d-%d.lucene",
+                partition,
                 longTermProcessor.getRunTimeStamps().getNewerRxTimestamp(),
                 longTermProcessor.getRunTimeStamps().getRunStartTimestamp(),
                 longTermProcessor.getRunTimeStamps().getRunEndTimestamp());
@@ -47,7 +51,7 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
         File newDirName = new File(newIndexPathName);
         if ( dir.isDirectory() ) {
             dir.renameTo(newDirName);
-            updateMasterIndex(newFileName, longTermProcessor.getRunTimeStamps());
+            updateMasterIndex(masterIndexPathName, newFileName, longTermProcessor.getRunTimeStamps());
             logger.info(String.format("Index [%s] published", newFileName));
         }
         else
@@ -56,7 +60,7 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
         }
     }
 
-    synchronized private void updateMasterIndex(String newFileName,
+    synchronized static private void updateMasterIndex(String masterIndexPathName, String newFileName,
                                                 Processor.RunTimeStamps runTimeStamps) throws IOException, AppException {
         IndexWriter masterIndex = openIndex(masterIndexPathName);
 
@@ -110,11 +114,11 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
 
     Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException {
 
-        return new LongTermProcessor("LongTermProcessor", queue);
+        return new LongTermProcessor("LongTermProcessor", partition, queue);
 
     }
 
-    synchronized  public IndexWriter openIndex(String indexPath) throws AppException {
+    synchronized static public IndexWriter openIndex(String indexPath) throws AppException {
 
         IndexWriter indexWriter = null;
 

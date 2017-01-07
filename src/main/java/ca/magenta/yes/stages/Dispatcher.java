@@ -1,9 +1,7 @@
 package ca.magenta.yes.stages;
 
 
-import ca.magenta.utils.AppException;
 import ca.magenta.yes.Config;
-import ca.magenta.yes.data.LogstashMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +10,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.StringJoiner;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -22,15 +19,21 @@ public class Dispatcher implements Runnable {
     private static final long printEvery = 650000;
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
     private final String name;
+    private final String partition;
     private final BlockingQueue<String> inputQueue;
     private final Config config;
     private volatile boolean doRun = true;
     private long count = 0;
+    private RealTimeProcessorMgmt realTimeProcessorMgmt;
 
-    public Dispatcher(String name, Config config) {
+    public Dispatcher(String name, Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, String partition) {
+
+        this.realTimeProcessorMgmt = realTimeProcessorMgmt;
 
         this.inputQueue = new ArrayBlockingQueue<String>(1000000);
         this.name = name;
+
+        this.partition = partition;
 
         this.config = config;
     }
@@ -46,18 +49,19 @@ public class Dispatcher implements Runnable {
         LongTermProcessorMgmt longTermProcessorMgmt =
                 new LongTermProcessorMgmt("LongTermProcessorMgmt",
                         config.getLongTermCuttingTime(),
-                        config);
+                        config,
+                        partition);
         Thread longTermThread = new Thread(longTermProcessorMgmt, "LongTermProcessorMgmt");
         longTermThread.start();
 
-        RealTimeProcessorMgmt realTimeProcessorMgmt =
-                new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
-                        config.getRealTimeCuttingTime(),
-                        config);
-        Thread realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
-        realTimeThread.start();
+//        RealTimeProcessorMgmt realTimeProcessorMgmt =
+//                new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
+//                        config.getRealTimeCuttingTime(),
+//                        config);
+//        Thread realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
+//        realTimeThread.start();
 
-        logger.info("New Dispatcher running");
+        logger.info(String.format("New Dispatcher running for partition [%s]", partition));
         count = 0;
         long startTime = System.currentTimeMillis();
         long previousNow = startTime;
@@ -116,7 +120,7 @@ public class Dispatcher implements Runnable {
 
                     msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
 
-                    System.out.println("Dispatcher: " + printEvery +
+                    System.out.println(partition + "-" + "Dispatcher: " + printEvery +
                             " messages sent in " + totalTime +
                             " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + maxQueueLength +
                             " trend: [" + msgPerSecSinceStart + " msgs/sec] ");

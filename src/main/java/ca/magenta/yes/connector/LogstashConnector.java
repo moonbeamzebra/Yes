@@ -4,7 +4,6 @@ import ca.magenta.utils.TCPServer;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.stages.Dispatcher;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -29,7 +28,7 @@ public class LogstashConnector extends TCPServer {
 
         logger.info(String.format("LogstashConnector started on port [%d]", config.getLogstashConnectorPort()));
 
-        Dispatcher dispatcher = new Dispatcher("Dispatcher", config);
+        Dispatcher dispatcher = new Dispatcher("Dispatcher", config, null, null);
         dispatcherQueue = dispatcher.getInputQueue();
         Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
         dispatcherThread.start();

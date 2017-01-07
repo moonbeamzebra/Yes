@@ -20,6 +20,8 @@ public abstract class Processor implements Runnable {
 
 
     private final String name;
+    final String partition;
+
 
     private BlockingQueue<HashMap<String, Object>> inputQueue;
 
@@ -48,9 +50,10 @@ public abstract class Processor implements Runnable {
     private static final long printEvery = 100000;
 
 
-    public Processor(String name, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
+    public Processor(String name, String partition, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
 
         this.name = name;
+        this.partition = partition;
         this.inputQueue = inputQueue;
 
         this.startTime = System.currentTimeMillis();
@@ -123,7 +126,7 @@ public abstract class Processor implements Runnable {
         long totalTime = now - previousNow;
         float msgPerSec = ((float) reportCount / (float) totalTime) * 1000;
 
-        System.out.println(this.getClass().getSimpleName() + ": " + reportCount +
+        System.out.println(partition + "-" + this.getClass().getSimpleName() + ": " + reportCount +
                 " messages sent in " + totalTime +
                 " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + hiWaterMarkQueueLength +
                 " trend: [" + msgPerSecSinceStart + " msgs/sec] ");

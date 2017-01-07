@@ -21,8 +21,8 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     private APIServer apiServer = null;
 
 
-    public RealTimeProcessorMgmt(String name, long cuttingTime, Config config) {
-        super(name, cuttingTime, config);
+    public RealTimeProcessorMgmt(String name, long cuttingTime, Config config, String partition) {
+        super(name, partition, cuttingTime, config);
 
         startAPIServer(config);
 
@@ -50,7 +50,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     @Override
     Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException {
 
-        return new RealTimeProcessor("RealTimeProcessor", queue);
+        return new RealTimeProcessor("RealTimeProcessor", partition, queue);
 
     }
 

@@ -1,8 +1,8 @@
 package ca.magenta.yes.connector;
 
-import ca.magenta.utils.AppException;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.stages.Dispatcher;
+import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
@@ -20,7 +20,7 @@ public class LogParser implements Runnable {
     private final BlockingQueue<String> outputQueue;
     private final BlockingQueue<String> inputQueue;
 
-    private final String customer;
+    private final String partition;
 
     private volatile boolean doRun = true;
 
@@ -32,14 +32,14 @@ public class LogParser implements Runnable {
 
     private long count = 0;
 
-    public LogParser(String name, Config config) {
+    public LogParser(String name, Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, String partition) {
 
         this.inputQueue = new ArrayBlockingQueue<String>(1000000);
         this.name = name;
 
-        customer = Integer.toString(config.getGenericConnectorPort());
+        this.partition = partition;
 
-        Dispatcher dispatcher = new Dispatcher("Dispatcher", config);
+        Dispatcher dispatcher = new Dispatcher("Dispatcher", config, realTimeProcessorMgmt, this.partition);
         outputQueue = dispatcher.getInputQueue();
         Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
         dispatcherThread.start();
@@ -48,7 +48,7 @@ public class LogParser implements Runnable {
 
     public void run() {
 
-        logger.info("New LogParser running");
+        logger.info(String.format("New LogParser running for partition [%s]", partition));
         count = 0;
         long previousNow = System.currentTimeMillis();
         long now;
@@ -90,7 +90,7 @@ public class LogParser implements Runnable {
 
         hashedMsg.put("message", logMsg);
         hashedMsg.put("type", "pseudoCheckpoint");
-        hashedMsg.put("customer", customer);
+        hashedMsg.put("partition", partition);
 
         String[] items = logMsg.split("\\|");
 
