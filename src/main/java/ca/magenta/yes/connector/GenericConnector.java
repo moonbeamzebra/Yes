@@ -24,7 +24,7 @@ public class GenericConnector extends TCPServer {
 
     private final String partition;
 
-    public GenericConnector(Config config, int genericConnectorPort, String partition, RealTimeProcessorMgmt realTimeProcessorMgmt) {
+    public GenericConnector(Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, int genericConnectorPort, String partition) {
 
         super(genericConnectorPort, GenericConnector.class.getName());
 

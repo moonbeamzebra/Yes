@@ -29,7 +29,7 @@ public class Config {
 
 
     @NotNull
-    private int genericConnectorPort;
+    private String genericConnectorPorts;
 
 
     @NotNull
@@ -68,12 +68,12 @@ public class Config {
         this.logstashConnectorPort = logstashConnectorPort;
     }
 
-    public int getGenericConnectorPort() {
-        return genericConnectorPort;
+    public String getGenericConnectorPorts() {
+        return genericConnectorPorts;
     }
 
-    public void setGenericConnectorPort(int genericConnectorPort) {
-        this.genericConnectorPort = genericConnectorPort;
+    public void setGenericConnectorPorts(String genericConnectorPorts) {
+        this.genericConnectorPorts = genericConnectorPorts;
     }
 
     public int getGenericConnectorPortA() {
