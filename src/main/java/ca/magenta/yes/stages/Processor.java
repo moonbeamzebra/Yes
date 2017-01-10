@@ -2,8 +2,8 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
-import ca.magenta.yes.data.LogstashMessage;
 import org.apache.lucene.document.*;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.Directory;
 import org.slf4j.LoggerFactory;
@@ -73,9 +73,10 @@ public abstract class Processor implements Runnable {
 
             while (doRun || !inputQueue.isEmpty()) {
                 HashMap<String, Object> message = inputQueue.take();
-                long txTimestamp = Long.valueOf((String) message.get("txTimestamp"));
+                long srcTimestamp = Long.valueOf((String) message.get("srcTimestamp"));
+                //long srcTimestamp = (long) message.get("srcTimestamp");
                 long rxTimestamp = Long.valueOf((String) message.get("rxTimestamp"));
-                runTimeStamps.compute(txTimestamp, rxTimestamp);
+                runTimeStamps.compute(srcTimestamp, rxTimestamp);
 //                if (timestamp < olderTimestamp)
 //                    olderTimestamp = timestamp;
 //                if (timestamp > newerTimestamp)
@@ -159,6 +160,12 @@ public abstract class Processor implements Runnable {
                     document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
                     document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
                 } else {
+                    FieldType newType = new FieldType();
+                    newType.setTokenized(false);
+                    newType.setStored(true);
+                    newType.setIndexOptions(IndexOptions.DOCS);
+                    Field f = new Field (fieldE.getKey(), (String) fieldE.getValue(), newType);
+                    //document.add(f);
                     document.add(new StringField(fieldE.getKey(), (String) fieldE.getValue(), Field.Store.YES));
                 }
             }
@@ -194,8 +201,8 @@ public abstract class Processor implements Runnable {
 
     static class RunTimeStamps {
 
-        private long olderTxTimestamp;
-        private long newerTxTimestamp;
+        private long olderSrcTimestamp;
+        private long newerSrcTimestamp;
 
         private long olderRxTimestamp;
         private long newerRxTimestamp;
@@ -206,19 +213,19 @@ public abstract class Processor implements Runnable {
         RunTimeStamps() {
             runStartTimestamp = System.currentTimeMillis();
 
-            olderTxTimestamp = Long.MAX_VALUE;
-            newerTxTimestamp = 0;
+            olderSrcTimestamp = Long.MAX_VALUE;
+            newerSrcTimestamp = 0;
 
             olderRxTimestamp = Long.MAX_VALUE;
             newerRxTimestamp = 0;
         }
 
-        public void compute(long txTimestamp, long rxTimestamp) {
+        public void compute(long srcTimestamp, long rxTimestamp) {
 
-            if (txTimestamp < olderTxTimestamp)
-                olderTxTimestamp = txTimestamp;
-            if (txTimestamp > newerTxTimestamp)
-                newerTxTimestamp = txTimestamp;
+            if (srcTimestamp < olderSrcTimestamp)
+                olderSrcTimestamp = srcTimestamp;
+            if (srcTimestamp > newerSrcTimestamp)
+                newerSrcTimestamp = srcTimestamp;
 
             if (rxTimestamp < olderRxTimestamp)
                 olderRxTimestamp = rxTimestamp;
@@ -226,12 +233,12 @@ public abstract class Processor implements Runnable {
                 newerRxTimestamp = rxTimestamp;
         }
 
-        public long getOlderTxTimestamp() {
-            return olderTxTimestamp;
+        public long getOlderSrcTimestamp() {
+            return olderSrcTimestamp;
         }
 
-        public long getNewerTxTimestamp() {
-            return newerTxTimestamp;
+        public long getNewerSrcTimestamp() {
+            return newerSrcTimestamp;
         }
 
         public long getOlderRxTimestamp() {

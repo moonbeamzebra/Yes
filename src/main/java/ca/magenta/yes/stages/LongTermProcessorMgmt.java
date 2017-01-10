@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -66,12 +65,12 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
 
         Document document = new Document();
 
-        document.add(new StringField("olderTxTimestamp", Long.toString(runTimeStamps.getOlderTxTimestamp()), Field.Store.YES));
-//        document.add(new LongPoint("olderTxTimestamp", runTimeStamps.getOlderTxTimestamp()));
-//        document.add(new StoredField("olderTxTimestamp", runTimeStamps.getOlderTxTimestamp()));
-        document.add(new StringField("newerTxTimestamp", Long.toString(runTimeStamps.getNewerTxTimestamp()), Field.Store.YES));
-//        document.add(new LongPoint("newerTxTimestamp", runTimeStamps.getNewerTxTimestamp()));
-//        document.add(new StoredField("newerTxTimestamp", runTimeStamps.getNewerTxTimestamp()));
+        document.add(new StringField("olderTxTimestamp", Long.toString(runTimeStamps.getOlderSrcTimestamp()), Field.Store.YES));
+//        document.add(new LongPoint("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
+//        document.add(new StoredField("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
+        document.add(new StringField("newerTxTimestamp", Long.toString(runTimeStamps.getNewerSrcTimestamp()), Field.Store.YES));
+//        document.add(new LongPoint("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
+//        document.add(new StoredField("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
 
         document.add(new StringField("olderRxTimestamp", Long.toString(runTimeStamps.getOlderRxTimestamp()), Field.Store.YES));
 //        document.add(new LongPoint("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));

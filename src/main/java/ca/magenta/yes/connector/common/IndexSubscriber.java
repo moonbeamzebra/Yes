@@ -4,6 +4,7 @@ import ca.magenta.yes.data.NormalizedLogRecord;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -73,8 +74,8 @@ public abstract class IndexSubscriber implements Runnable {
                     IndexSearcher searcher = new IndexSearcher(reader);
 
 
-                    Analyzer analyzer = new KeywordAnalyzer();
-                    //Analyzer analyzer = new StandardAnalyzer();
+                    //Analyzer analyzer = new KeywordAnalyzer();
+                    Analyzer analyzer = new StandardAnalyzer();
                     QueryParser queryParser = new QueryParser("message", analyzer);
                     Query query = queryParser.parse(searchString);
                     TopDocs results = searcher.search(query, 1000);

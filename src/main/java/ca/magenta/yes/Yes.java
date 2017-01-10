@@ -328,9 +328,11 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                         logger.error(String.format("Bad periodString format: [%s]", e.getMessage()));
                         rc = 1;
                     }
-                } else if (a_sArgs[i].startsWith("-")) {
-                    rc = 1;
-                } else {
+                }
+//                else if (a_sArgs[i].startsWith("-")) {
+//                    rc = 1;
+//                }
+                else {
                     String searchStringPart = a_sArgs[i];
                     if (searchString == null)
                         searchString = searchStringPart;

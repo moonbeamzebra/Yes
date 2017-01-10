@@ -2,4 +2,3 @@ loc=4801107|time=2016-05-20 14:03:11|action=drop|orig=172.31.254.22|i/f_dir=inbo
 device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop|msg=Connnection dropped
 device=fw01|source=10.10.10.20|dest=20.20.20.10|port=80|action=accept|msg=Connnection accpted
 device=fw01|source=10.10.10.30|dest=20.20.20.20|port=80|action=terminate|msg=Connnection terminated
-

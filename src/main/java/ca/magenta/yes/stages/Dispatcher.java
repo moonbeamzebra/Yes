@@ -94,7 +94,7 @@ public class Dispatcher implements Runnable {
                         epoch = date.getTime();
                         //logger.info(String.format("timestamp:[%d]", epoch));
                     }
-                    hashedMsg.put("txTimestamp", Long.toString(epoch));
+                    hashedMsg.put("srcTimestamp", Long.toString(epoch));
 
                     longTermProcessorMgmt.putInQueue(hashedMsg);
                     realTimeProcessorMgmt.putInQueue(hashedMsg);

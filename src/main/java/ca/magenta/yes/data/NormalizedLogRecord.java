@@ -22,29 +22,14 @@ public class NormalizedLogRecord {
 
     private final HashMap<String, Object> data;
 
-//    private long srcTimestamp;
-//    private long rxTimestamp;
-//
-//    private String deviceName;
-//    private String partition;
-//    private String source;
-//    private String dest;
-//    private String port;
-//    private String action;
-//    private String description;
-//
-//    private String type;
-//
-//    private String message;
-
     public NormalizedLogRecord(Document logRecordDoc) {
 
         data = new HashMap<String, Object>();
 
         for (IndexableField field : logRecordDoc.getFields()) {
-            logger.info(String.format("field:[%s]; [%s]", field.name(), field.fieldType().toString()));
+            //logger.info(String.format("field:[%s]; [%s]", field.name(), field.fieldType().toString()));
             switch (field.name()) {
-                case "txTimestamp":
+                case "srcTimestamp":
                 case "rxTimestamp":
                     data.put(field.name(), Long.valueOf(logRecordDoc.get(field.name())));
                     break;
