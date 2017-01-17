@@ -19,20 +19,13 @@ public class Application {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Application.class.getPackage().getName());
 
 
-    //final LogstashConnector logstashConnector;
     final ConnectorMgmt connectorMgmt;
-    //final GenericConnector genericConnectorA;
-    //final GenericConnector genericConnectorB;
-    //final RealTimeProcessorMgmt realTimeProcessorMgmt;
 
 
     public Application(ConnectorMgmt connectorMgmt)  {
         this.connectorMgmt = connectorMgmt;
 
         Thread connectorMgmtThread = new Thread( this.connectorMgmt, "connectorMgmt");
-        //connectorMgmtThread.start();
-
-
     }
 
     public static void main(String[] args) throws IOException {
@@ -44,6 +37,9 @@ public class Application {
             @Override
             public void onApplicationEvent(ContextClosedEvent event) {
 
+
+                ConnectorMgmt connectorMgmt = (ConnectorMgmt) event.getApplicationContext().getBean("connectorMgmt");
+                connectorMgmt.stopConnectors();
 
                 logger.info(String.format("ContextClosedEvent: [%s]", event.toString()));
 

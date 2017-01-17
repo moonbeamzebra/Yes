@@ -6,10 +6,13 @@ import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
+
+import static java.io.FileDescriptor.in;
 
 
 /**
@@ -20,50 +23,75 @@ public class GenericConnector extends TCPServer {
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
 
 
-    private final BlockingQueue<String> outputQueue;
+    private BlockingQueue<String> outputQueue;
+
+    private final LogParser logParser;
+    private final Thread logParserThread;
 
     private final String partition;
 
     public GenericConnector(Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, int genericConnectorPort, String partition) {
 
-        super(genericConnectorPort, GenericConnector.class.getName());
+        super(genericConnectorPort, partition);
 
         this.partition = partition;
 
         logger.info(String.format("GenericConnector started on port [%d] for partion [%s]", genericConnectorPort,partition));
 
-        LogParser logParser = new LogParser("LogParser", config, realTimeProcessorMgmt, partition);
+        logParser = new LogParser(partition, config, realTimeProcessorMgmt, partition);
         outputQueue = logParser.getInputQueue();
-        Thread logParserThread = new Thread(logParser, "LogParser");
+        logParserThread = new Thread(logParser, "LogParser");
         logParserThread.start();
 
 
     }
 
+    @Override
+    public synchronized void stopServer() {
+        super.stopServer();
+
+        logParser.stopIt();
+        logParserThread.interrupt();
+        try {
+            logParserThread.join(20000);
+        } catch (InterruptedException e) {
+            logger.error("InterruptedException", e);
+        }
+
+        outputQueue = null;
+        logger.info(String.format("LogParser [%s] stopped",logParser.getName()));
+
+
+
+
+    }
+
+
     public void run(Socket data) {
         try {
-
-
+            BufferedReader in = new BufferedReader(new InputStreamReader(data.getInputStream()));
 
             InetAddress clientAddress = data.getInetAddress();
             int port = data.getPort();
             logger.info("Connected to client: " + clientAddress.getHostAddress() + ":" + port);
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(data.getInputStream()));
 
             String inputLine;
 
-            while ((inputLine = in.readLine()) != null) {
-                logger.debug("Client: " + inputLine);
-                outputQueue.put(inputLine);
+            while ( (! shouldStop) && (inputLine = in.readLine()) != null) {
+                logger.debug(String.format("Client[%b]: [%s]", shouldStop, inputLine));
+                try {
+                    outputQueue.put(inputLine);
+                } catch (InterruptedException e) {
+                    if (! shouldStop)
+                        logger.error("InterruptedException", e);
+                }
             }
 
             in.close();
-            data.close();
 
-            // Process the data socket here.
-        } catch (Exception e) {
-            logger.error("", e);
+        } catch (IOException e) {
+            logger.error("IOException", e);
         }
     }
 

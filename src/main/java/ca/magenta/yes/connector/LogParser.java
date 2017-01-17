@@ -16,9 +16,10 @@ public class LogParser implements Runnable {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
 
+
     private final String name;
     private final BlockingQueue<String> outputQueue;
-    private final BlockingQueue<String> inputQueue;
+    private BlockingQueue<String> inputQueue;
 
     private final String partition;
 
@@ -54,16 +55,21 @@ public class LogParser implements Runnable {
         long now;
         long totalTime;
         float msgPerSec;
-        try {
 
-            while (doRun || !inputQueue.isEmpty()) {
-                String logMsg = inputQueue.take();
-                logger.debug("LogParser received: " + logMsg);
+            while (doRun) {
+                String logMsg = null;
                 try {
-                    dispatchParsingAndProcessing(logMsg);
-                } catch (JsonProcessingException e) {
-                    logger.error("JsonProcessingException", e);
+                    logMsg = inputQueue.take();
+                    try {
+                        dispatchParsingAndProcessing(logMsg);
+                    } catch (JsonProcessingException e) {
+                        logger.error("JsonProcessingException", e);
+                    }
+                } catch (InterruptedException e) {
+                    if (doRun)
+                        logger.error("InterruptedException", e);
                 }
+                logger.debug("LogParser received: " + logMsg);
 
                 count++;
 
@@ -77,9 +83,7 @@ public class LogParser implements Runnable {
                     previousNow = now;
                 }
             }
-        } catch (InterruptedException e) {
-            logger.error("InterruptedException", e);
-        }
+        inputQueue = null;
     }
 
     private void dispatchParsingAndProcessing(String logMsg) throws JsonProcessingException, InterruptedException {
@@ -120,5 +124,10 @@ public class LogParser implements Runnable {
     public BlockingQueue<String> getInputQueue() {
         return inputQueue;
     }
+
+    public String getName() {
+        return name;
+    }
+
 
 }

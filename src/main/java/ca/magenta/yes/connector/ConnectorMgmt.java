@@ -1,6 +1,7 @@
 package ca.magenta.yes.connector;
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.TCPServer;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,8 @@ public class ConnectorMgmt implements Runnable {
     //private final GenericConnector genericConnectorB;
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
 
+    ArrayList<GenericConnector> genericConnectors;
+
     private volatile boolean doRun = true;
 
     public void stopIt() {
@@ -33,12 +36,24 @@ public class ConnectorMgmt implements Runnable {
         Thread realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
         realTimeThread.start();
 
-        ArrayList<GenericConnector> genericConnectors = constructConnectors(config, realTimeProcessorMgmt);
+        genericConnectors = constructConnectors(config, realTimeProcessorMgmt);
         for (GenericConnector genericConnector : genericConnectors)
         {
             genericConnector.startServer();
         }
 
+
+    }
+
+    public void stopConnectors()
+    {
+        for (GenericConnector genericConnector : genericConnectors)
+        {
+            genericConnector.stopServer();
+            logger.info(String.format("GenericConnector [%s] stopped", genericConnector.getName()));
+        }
+
+        TCPServer.stopLaunchedTCPServers();
 
     }
 
