@@ -18,6 +18,7 @@ public class ConnectorMgmt implements Runnable {
     //private final GenericConnector genericConnectorA;
     //private final GenericConnector genericConnectorB;
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
+    private final Thread realTimeThread;
 
     ArrayList<GenericConnector> genericConnectors;
 
@@ -33,7 +34,7 @@ public class ConnectorMgmt implements Runnable {
                 new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
                         config.getRealTimeCuttingTime(),
                         config, "single");
-        Thread realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
+        realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
         realTimeThread.start();
 
         genericConnectors = constructConnectors(config, realTimeProcessorMgmt);
@@ -59,7 +60,7 @@ public class ConnectorMgmt implements Runnable {
 
     public void run() {
 
-        logger.info("New LogParser running");
+        logger.info("New ConnectorMgmt running");
         long previousNow = System.currentTimeMillis();
         long now;
         long totalTime;
@@ -107,4 +108,21 @@ public class ConnectorMgmt implements Runnable {
     }
 
 
+    public void stop() {
+
+        this.stopConnectors();
+
+        realTimeProcessorMgmt.stopAPIServer();
+        realTimeProcessorMgmt.stopIt();
+        realTimeThread.interrupt();
+        try {
+            realTimeThread.join(20000);
+            logger.info("RealTimeProcessorMgmt stopped");
+
+        } catch (InterruptedException e) {
+            logger.error("InterruptedException", e);
+        }
+
+
+    }
 }

@@ -92,7 +92,8 @@ public abstract class ProcessorMgmt implements Runnable {
 
                 }
             } catch (InterruptedException e) {
-                logger.error("InterruptedException", e);
+                if (doRun)
+                    logger.error("InterruptedException", e);
             }
         } catch (AppException e) {
             logger.error("AppException", e);

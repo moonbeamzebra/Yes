@@ -30,7 +30,7 @@ public class Dispatcher implements Runnable {
 
         this.realTimeProcessorMgmt = realTimeProcessorMgmt;
 
-        this.inputQueue = new ArrayBlockingQueue<String>(1000000);
+        this.inputQueue = new ArrayBlockingQueue<String>(config.getDispatcherQueueDepth());
         this.name = name;
 
         this.partition = partition;
@@ -135,6 +135,25 @@ public class Dispatcher implements Runnable {
     public BlockingQueue<String> getInputQueue() {
         return inputQueue;
     }
+
+    public void putInQueue(String jsonMsg) throws InterruptedException {
+
+        inputQueue.put(jsonMsg);
+
+        if (logger.isWarnEnabled()) {
+            int length = inputQueue.size();
+            float percentFull = length / config.getDispatcherQueueDepth();
+
+            if (percentFull > config.getQueueDepthWarningThreshold())
+                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
+                                "queue length:[%d] " +
+                                "Percent:[%f] " +
+                                "Threshold:[%f]",
+                        config.getDispatcherQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
+        }
+
+    }
+
 
 
 }

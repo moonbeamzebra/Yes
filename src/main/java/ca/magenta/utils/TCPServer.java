@@ -79,11 +79,11 @@ public class TCPServer implements Cloneable, Runnable {
         } else if (data != null) {
             shouldStop = true;
             getRunner().interrupt();
-            try {
-                getRunner().join(20000);
-            } catch (InterruptedException e) {
-                logger.error(String.format("InterruptedException", e));
-            }
+//            try {
+//                getRunner().join(20000);
+//            } catch (InterruptedException e) {
+//                logger.error(String.format("InterruptedException", e));
+//            }
             String rName = getRunner().getName();
             InetAddress clientAddress = data.getInetAddress();
             int port = data.getPort();

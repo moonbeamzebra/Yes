@@ -39,7 +39,7 @@ public class Application {
 
 
                 ConnectorMgmt connectorMgmt = (ConnectorMgmt) event.getApplicationContext().getBean("connectorMgmt");
-                connectorMgmt.stopConnectors();
+                connectorMgmt.stop();
 
                 logger.info(String.format("ContextClosedEvent: [%s]", event.toString()));
 

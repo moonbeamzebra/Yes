@@ -76,7 +76,13 @@ public class IndexPublisher implements Runnable {
         if (logger.isDebugEnabled())
             logger.debug(String.format("Received [%s]", indexDir));
         if (!subscribers.isEmpty())
-            outboundQueue.put(indexDir);
+            try {
+                outboundQueue.put(indexDir);
+            } catch (InterruptedException e) {
+                if (doRun)
+                    throw e;
+
+            }
         else if (logger.isDebugEnabled())
             logger.debug("No subscribers for: " + indexDir);
     }

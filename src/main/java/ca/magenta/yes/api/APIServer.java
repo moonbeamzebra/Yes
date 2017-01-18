@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.HashMap;
 
 /**
@@ -19,128 +20,124 @@ import java.util.HashMap;
  */
 public class APIServer extends TCPServer {
 
-	private static Logger logger = Logger.getLogger(APIServer.class);
-	
-    private volatile boolean doRun = true;
+    private static Logger logger = Logger.getLogger(APIServer.class);
+
     private final String indexBaseDirectory;
 
-    public void stop() {
-        doRun = false;
+
+    public APIServer(int port, String name, String indexBaseDirectory) {
+
+        super(port, name);
+        this.indexBaseDirectory = indexBaseDirectory;
     }
 
-	public APIServer(int port, String name, String indexBaseDirectory) {
+    public void run(Socket data) {
+        try {
 
-    	super(port, name);
-    	this.indexBaseDirectory = indexBaseDirectory;
-	}
+            String apiServerName = this.getClass().getSimpleName() + "-" + this.getClientCount();
+            String threadName = SubscriptionForwarder.class.getSimpleName() + "-" + this.getClientCount();
 
-	public void run(Socket data) {
-		try {
+            InetAddress clientAddress = data.getInetAddress();
+            int port = data.getPort();
+            logger.info(apiServerName + " is now connected to client: " + clientAddress.getHostAddress() + ":" + port);
 
-			String apiServerName = this.getClass().getSimpleName() + "-" + this.getClientCount();
-			String threadName = SubscriptionForwarder.class.getSimpleName() + "-" + this.getClientCount();
+            PrintWriter toClient = new PrintWriter(data.getOutputStream(), true);
 
-			InetAddress clientAddress = data.getInetAddress();
-			int port = data.getPort();
-			logger.info(apiServerName + " is now connected to client: " + clientAddress.getHostAddress() + ":" + port);
+            BufferedReader fromClient = new BufferedReader(new InputStreamReader(data.getInputStream()));
 
-			PrintWriter toClient = new PrintWriter(data.getOutputStream(), true);
-			
-			BufferedReader fromClient = new BufferedReader(new InputStreamReader(data.getInputStream()));
+            String inputLine;
 
-			String inputLine;
+            String mode = null;
 
-			String mode = null;
+            String searchString = "*";
+            HashMap<String, String> control = null;
+            if ((inputLine = fromClient.readLine()) != null) {
+                logger.info("Client: " + inputLine);
+                ObjectMapper mapper = new ObjectMapper();
+                control = mapper.readValue(inputLine, HashMap.class);
 
-			String searchString = "*";
-			HashMap<String, String> control = null;
-			if ((inputLine = fromClient.readLine()) != null) {
-				logger.info("Client: " + inputLine);
-				ObjectMapper mapper = new ObjectMapper();
-				control = mapper.readValue(inputLine, HashMap.class);
+                mode = control.get("mode");
+                logger.info("Mode: " + mode);
 
-				mode = control.get("mode");
-				logger.info("Mode: " + mode);
+            }
 
-			}
+            if ("realTime".equals(mode)) {
+                searchString = control.get("searchString");
+                logger.info("searchString: " + searchString);
 
-			if ("realTime".equals(mode))
-			{
-				searchString = control.get("searchString");
-				logger.info("searchString: " + searchString);
+                SubscriptionForwarder subscriptionServer = new SubscriptionForwarder(threadName, searchString, toClient);
 
-				SubscriptionForwarder subscriptionServer = new SubscriptionForwarder(threadName, searchString, toClient);
+                Thread subscritionServerThread = new Thread(subscriptionServer, threadName);
+                subscritionServerThread.start();
 
-				Thread subscritionServerThread = new Thread(subscriptionServer, threadName);
-				subscritionServerThread.start();
+                while ((!shouldStop) && (inputLine = fromClient.readLine()) != null) {
+                    logger.info("Client: " + inputLine);
 
-				while ((inputLine = fromClient.readLine()) != null) {
-					logger.info("Client: " + inputLine);
+                }
 
-				}
+                logger.info(apiServerName + " is now disconnected from client: " + clientAddress.getHostAddress() + ":" + port);
 
-				logger.info(apiServerName + " is now disconnected from client: " + clientAddress.getHostAddress() + ":" + port);
+                fromClient.close();
+                toClient.close();
+                data.close();
 
-				fromClient.close();
-				toClient.close();
-				data.close();
+                subscriptionServer.stop();
+                subscritionServerThread.interrupt();
+                subscritionServerThread.join();
 
-				subscriptionServer.stop();
-				subscritionServerThread.interrupt();
-				subscritionServerThread.join();
+                logger.info(threadName + " stopped");
 
-				logger.info(threadName + " stopped");
+                setClientCount(getClientCount() - 1);
 
-				setClientCount(getClientCount() - 1);
+            } else if ("longTerm".equals(mode)) {
+                String olderTimeStr = control.get("olderTime");
+                logger.info("olderTimeStr: " + olderTimeStr);
+                String newerTimeStr = control.get("newerTime");
+                logger.info("newerTimeStr: " + newerTimeStr);
 
-			}
-			else if ("longTerm".equals(mode))
-			{
-				String olderTimeStr = control.get("olderTime");
-				logger.info("olderTimeStr: " + olderTimeStr);
-				String newerTimeStr = control.get("newerTime");
-				logger.info("newerTimeStr: " + newerTimeStr);
+                TimeRange periodTimeRange = new TimeRange(Long.valueOf(olderTimeStr), Long.valueOf(newerTimeStr));
 
-				TimeRange periodTimeRange = new TimeRange(Long.valueOf(olderTimeStr), Long.valueOf(newerTimeStr));
+                searchString = control.get("searchString");
+                logger.info("searchString: " + searchString);
 
-				searchString = control.get("searchString");
-				logger.info("searchString: " + searchString);
+                LongTermReader longTermReader = new LongTermReader(threadName,
+                        indexBaseDirectory,
+                        periodTimeRange,
+                        searchString,
+                        toClient);
 
-				LongTermReader longTermReader = new LongTermReader(threadName,
-						indexBaseDirectory,
-						periodTimeRange,
-						searchString,
-						toClient);
+                Thread longTermReaderThread = new Thread(longTermReader, threadName);
+                longTermReaderThread.start();
 
-				Thread longTermReaderThread = new Thread(longTermReader, threadName);
-				longTermReaderThread.start();
+                while ((inputLine = fromClient.readLine()) != null) {
+                    logger.info("Client: " + inputLine);
 
-				while ((inputLine = fromClient.readLine()) != null) {
-					logger.info("Client: " + inputLine);
+                }
 
-				}
+                logger.info(apiServerName + " is now disconnected from client: " + clientAddress.getHostAddress() + ":" + port);
 
-				logger.info(apiServerName + " is now disconnected from client: " + clientAddress.getHostAddress() + ":" + port);
+                fromClient.close();
+                toClient.close();
+                data.close();
 
-				fromClient.close();
-				toClient.close();
-				data.close();
+                longTermReader.stop();
+                longTermReaderThread.interrupt();
+                longTermReaderThread.join();
 
-				longTermReader.stop();
-				longTermReaderThread.interrupt();
-				longTermReaderThread.join();
+                logger.info(threadName + " stopped");
 
-				logger.info(threadName + " stopped");
+                setClientCount(getClientCount() - 1);
 
-				setClientCount(getClientCount() - 1);
-
-			}
+            }
 
 
-			// Process the data socket here.
-		} catch (Exception e) {
-			logger.error("", e);
-		}
-	}
+            // Process the data socket here.
+        } catch (SocketException e) {
+            if (!shouldStop)
+                logger.error("SocketException", e);
+        } catch (Exception e) {
+            logger.error("Exception", e);
+        }
+    }
 
 }

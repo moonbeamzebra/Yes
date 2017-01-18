@@ -53,7 +53,9 @@ public class Config {
 
     private int processorQueueDepth = 300000;
 
+    private int logParserQueueDepth = 1000000;
 
+    private int dispatcherQueueDepth = 1000000;
 
     private float queueDepthWarningThreshold = (float) 0.8;
 
@@ -130,6 +132,22 @@ public class Config {
 
     public void setProcessorQueueDepth(int processorQueueDepth) {
         this.processorQueueDepth = processorQueueDepth;
+    }
+
+    public int getLogParserQueueDepth() {
+        return logParserQueueDepth;
+    }
+
+    public void setLogParserQueueDepth(int logParserQueueDepth) {
+        this.logParserQueueDepth = logParserQueueDepth;
+    }
+
+    public int getDispatcherQueueDepth() {
+        return dispatcherQueueDepth;
+    }
+
+    public void setDispatcherQueueDepth(int dispatcherQueueDepth) {
+        this.dispatcherQueueDepth = dispatcherQueueDepth;
     }
 
     public float getQueueDepthWarningThreshold() {

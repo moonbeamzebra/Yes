@@ -18,8 +18,10 @@ public class LogParser implements Runnable {
 
 
     private final String name;
-    private final BlockingQueue<String> outputQueue;
     private BlockingQueue<String> inputQueue;
+    private final Config config;
+    private final Dispatcher dispatcher;
+
 
     private final String partition;
 
@@ -35,13 +37,14 @@ public class LogParser implements Runnable {
 
     public LogParser(String name, Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, String partition) {
 
-        this.inputQueue = new ArrayBlockingQueue<String>(1000000);
+        this.inputQueue = new ArrayBlockingQueue<String>(config.getLogParserQueueDepth());
+
         this.name = name;
+        this.config = config;
 
         this.partition = partition;
 
-        Dispatcher dispatcher = new Dispatcher("Dispatcher", config, realTimeProcessorMgmt, this.partition);
-        outputQueue = dispatcher.getInputQueue();
+        dispatcher = new Dispatcher("Dispatcher", config, realTimeProcessorMgmt, this.partition);
         Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
         dispatcherThread.start();
 
@@ -83,7 +86,6 @@ public class LogParser implements Runnable {
                     previousNow = now;
                 }
             }
-        inputQueue = null;
     }
 
     private void dispatchParsingAndProcessing(String logMsg) throws JsonProcessingException, InterruptedException {
@@ -117,17 +119,29 @@ public class LogParser implements Runnable {
 
         String jsonMsg = mapper.writeValueAsString(hashedMsg);
 
-        outputQueue.put(jsonMsg);
+        dispatcher.putInQueue(jsonMsg);
 
-    }
-
-    public BlockingQueue<String> getInputQueue() {
-        return inputQueue;
     }
 
     public String getName() {
         return name;
     }
 
+    public void putInQueue(String message) throws InterruptedException {
 
+        inputQueue.put(message);
+
+        if (logger.isWarnEnabled()) {
+            int length = inputQueue.size();
+            float percentFull = length / config.getLogParserQueueDepth();
+
+            if (percentFull > config.getQueueDepthWarningThreshold())
+                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
+                                "queue length:[%d] " +
+                                "Percent:[%f] " +
+                                "Threshold:[%f]",
+                        config.getLogParserQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
+        }
+
+    }
 }

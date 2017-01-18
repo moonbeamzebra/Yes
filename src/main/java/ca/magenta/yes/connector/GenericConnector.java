@@ -22,9 +22,6 @@ public class GenericConnector extends TCPServer {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
 
-
-    private BlockingQueue<String> outputQueue;
-
     private final LogParser logParser;
     private final Thread logParserThread;
 
@@ -39,7 +36,6 @@ public class GenericConnector extends TCPServer {
         logger.info(String.format("GenericConnector started on port [%d] for partion [%s]", genericConnectorPort,partition));
 
         logParser = new LogParser(partition, config, realTimeProcessorMgmt, partition);
-        outputQueue = logParser.getInputQueue();
         logParserThread = new Thread(logParser, "LogParser");
         logParserThread.start();
 
@@ -58,18 +54,15 @@ public class GenericConnector extends TCPServer {
             logger.error("InterruptedException", e);
         }
 
-        outputQueue = null;
         logger.info(String.format("LogParser [%s] stopped",logParser.getName()));
-
-
-
 
     }
 
 
     public void run(Socket data) {
+        BufferedReader in = null;
         try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(data.getInputStream()));
+            in = new BufferedReader(new InputStreamReader(data.getInputStream()));
 
             InetAddress clientAddress = data.getInetAddress();
             int port = data.getPort();
@@ -81,18 +74,27 @@ public class GenericConnector extends TCPServer {
             while ( (! shouldStop) && (inputLine = in.readLine()) != null) {
                 logger.debug(String.format("Client[%b]: [%s]", shouldStop, inputLine));
                 try {
-                    outputQueue.put(inputLine);
+                    logParser.putInQueue(inputLine);
                 } catch (InterruptedException e) {
                     if (! shouldStop)
                         logger.error("InterruptedException", e);
                 }
             }
 
-            in.close();
-
         } catch (IOException e) {
-            logger.error("IOException", e);
+            if (! shouldStop)
+                logger.error("IOException", e);
+        } catch (Throwable e) {
+            logger.error("Throwable", e);
+        }
+        if ( in != null ) {
+            try {
+                in.close();
+                data.close();
+                logger.info("IN stream closed");
+            } catch (IOException e) {
+                logger.error("IOException", e);
+            }
         }
     }
-
 }
