@@ -33,6 +33,8 @@ public abstract class IndexSubscriber implements Runnable {
 
     public static Logger logger = Logger.getLogger(IndexSubscriber.class);
 
+    private final int MAX_QUERY_SIZE = 1000;
+
     private String name = null;
     private final String searchString;
 
@@ -78,7 +80,9 @@ public abstract class IndexSubscriber implements Runnable {
                     Analyzer analyzer = new StandardAnalyzer();
                     QueryParser queryParser = new QueryParser("message", analyzer);
                     Query query = queryParser.parse(searchString);
-                    TopDocs results = searcher.search(query, 1000);
+                    TopDocs results = searcher.search(query, MAX_QUERY_SIZE);
+                    if (results.totalHits >= MAX_QUERY_SIZE)
+                        logger.warn("Search too wide");
                     if (logger.isDebugEnabled())
                         logger.debug("Number of hits: " + results.totalHits);
                     for (ScoreDoc scoreDoc : results.scoreDocs) {
