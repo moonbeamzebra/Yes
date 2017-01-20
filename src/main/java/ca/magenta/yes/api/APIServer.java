@@ -35,7 +35,6 @@ public class APIServer extends TCPServer {
         try {
 
             String apiServerName = this.getClass().getSimpleName() + "-" + this.getClientCount();
-            String threadName = SubscriptionForwarder.class.getSimpleName() + "-" + this.getClientCount();
 
             InetAddress clientAddress = data.getInetAddress();
             int port = data.getPort();
@@ -59,77 +58,56 @@ public class APIServer extends TCPServer {
                 mode = control.get("mode");
                 logger.info("Mode: " + mode);
 
-            }
+                if ("realTime".equals(mode)) {
+                    String threadName = RealTimeReader.class.getSimpleName() + "-" + this.getClientCount();
+                    searchString = control.get("searchString");
+                    logger.info("searchString: " + searchString);
 
-            if ("realTime".equals(mode)) {
-                searchString = control.get("searchString");
-                logger.info("searchString: " + searchString);
+                    RealTimeReader realTimeReader = new RealTimeReader(threadName, searchString, toClient);
 
-                SubscriptionForwarder subscriptionServer = new SubscriptionForwarder(threadName, searchString, toClient);
+                    realTimeReader.startInstance();
 
-                Thread subscritionServerThread = new Thread(subscriptionServer, threadName);
-                subscritionServerThread.start();
+                    while ((!shouldStop) && (inputLine = fromClient.readLine()) != null) {
+                        logger.info("Client: " + inputLine);
 
-                while ((!shouldStop) && (inputLine = fromClient.readLine()) != null) {
-                    logger.info("Client: " + inputLine);
+                    }
 
+                    realTimeReader.stopInstance();
+
+                } else if ("longTerm".equals(mode)) {
+                    String threadName = LongTermReader.class.getSimpleName() + "-" + this.getClientCount();
+                    String olderTimeStr = control.get("olderTime");
+                    logger.info("olderTimeStr: " + olderTimeStr);
+                    String newerTimeStr = control.get("newerTime");
+                    logger.info("newerTimeStr: " + newerTimeStr);
+
+                    TimeRange periodTimeRange = new TimeRange(Long.valueOf(olderTimeStr), Long.valueOf(newerTimeStr));
+
+                    searchString = control.get("searchString");
+                    logger.info("searchString: " + searchString);
+
+                    LongTermReader longTermReader = new LongTermReader(threadName,
+                            indexBaseDirectory,
+                            periodTimeRange,
+                            searchString,
+                            toClient);
+
+                    longTermReader.startInstance();
+
+                    while ((inputLine = fromClient.readLine()) != null) {
+                        logger.info("Client: " + inputLine);
+
+                    }
+
+                    longTermReader.stopInstance();
                 }
-
-                logger.info(apiServerName + " is now disconnected from client: " + clientAddress.getHostAddress() + ":" + port);
-
-                fromClient.close();
-                toClient.close();
-                data.close();
-
-                subscriptionServer.stop();
-                subscritionServerThread.interrupt();
-                subscritionServerThread.join();
-
-                logger.info(threadName + " stopped");
-
-                setClientCount(getClientCount() - 1);
-
-            } else if ("longTerm".equals(mode)) {
-                String olderTimeStr = control.get("olderTime");
-                logger.info("olderTimeStr: " + olderTimeStr);
-                String newerTimeStr = control.get("newerTime");
-                logger.info("newerTimeStr: " + newerTimeStr);
-
-                TimeRange periodTimeRange = new TimeRange(Long.valueOf(olderTimeStr), Long.valueOf(newerTimeStr));
-
-                searchString = control.get("searchString");
-                logger.info("searchString: " + searchString);
-
-                LongTermReader longTermReader = new LongTermReader(threadName,
-                        indexBaseDirectory,
-                        periodTimeRange,
-                        searchString,
-                        toClient);
-
-                Thread longTermReaderThread = new Thread(longTermReader, threadName);
-                longTermReaderThread.start();
-
-                while ((inputLine = fromClient.readLine()) != null) {
-                    logger.info("Client: " + inputLine);
-
-                }
-
-                logger.info(apiServerName + " is now disconnected from client: " + clientAddress.getHostAddress() + ":" + port);
-
-                fromClient.close();
-                toClient.close();
-                data.close();
-
-                longTermReader.stop();
-                longTermReaderThread.interrupt();
-                longTermReaderThread.join();
-
-                logger.info(threadName + " stopped");
-
-                setClientCount(getClientCount() - 1);
-
             }
+            logger.info(apiServerName + " is now disconnected from client: " + clientAddress.getHostAddress() + ":" + port);
 
+            fromClient.close();
+            toClient.close();
+            data.close();
+            setClientCount(getClientCount() - 1);
 
             // Process the data socket here.
         } catch (SocketException e) {

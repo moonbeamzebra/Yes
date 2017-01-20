@@ -33,6 +33,8 @@ public abstract class IndexSubscriber implements Runnable {
 
     public static Logger logger = Logger.getLogger(IndexSubscriber.class);
 
+    private Thread runner = null;
+
     private final int MAX_QUERY_SIZE = 1000;
 
     private String name = null;
@@ -58,10 +60,35 @@ public abstract class IndexSubscriber implements Runnable {
         queue.put(indexNamePath);
     }
 
+    public synchronized void startInstance() throws IOException {
+        if (runner == null) {
+            runner = new Thread(this, name);
+            runner.start();
+            logger.info(String.format("%s [%s] started", this.getClass().getSimpleName(), name));
+        }
+    }
+
+    public synchronized void stopInstance() {
+        if (runner != null) {
+            stop();
+            runner.interrupt();
+            try {
+                runner.join();
+            } catch (InterruptedException e) {
+                logger.error("InterruptedException", e);
+            }
+            String rName = runner.getName();
+            runner = null;
+
+            logger.info(String.format("%s [%s] stopped", this.getClass().getSimpleName(), name));
+        }
+    }
+
     public void run() {
 
         logger.debug("New IndexSubscriber " + name + " running");
         queue = new ArrayBlockingQueue<Directory>(300000);
+        IndexReader reader = null;
         try {
             while (doRun) {
                 //Directory indexNamePath = queue.take();
@@ -69,7 +96,6 @@ public abstract class IndexSubscriber implements Runnable {
                 Directory index = queue.take();
 
                 /////////////
-                IndexReader reader = null;
                 try {
                     reader = DirectoryReader.open(index);
                     //reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
@@ -94,14 +120,13 @@ public abstract class IndexSubscriber implements Runnable {
                         this.forward(normalizedLogRecord.toJson());
                     }
 
-                    reader.close();
 
 
                     //deleteDirFile(new File(searchIndexDirectory));
                 } catch (ParseException e) {
-                    e.printStackTrace();
+                    logger.error("ParseException",e );
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    logger.error("IOException",e );
                 }
 
                 ///////////////
@@ -109,7 +134,16 @@ public abstract class IndexSubscriber implements Runnable {
 
             }
         } catch (InterruptedException e) {
-            //logger.error("InterruptedException", e);
+            if (doRun)
+                logger.error("InterruptedException", e);
+        }
+        finally {
+            try {
+                if (reader != null)
+                    reader.close();
+            } catch (IOException e) {
+                logger.error("IOException",e );
+            }
         }
         RealTimeProcessorMgmt.indexPublisher().unsubscribe(this);
         queue.clear();

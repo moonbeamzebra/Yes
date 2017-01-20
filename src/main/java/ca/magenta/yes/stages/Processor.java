@@ -175,7 +175,7 @@ public abstract class Processor implements Runnable {
                 logger.debug("Document added");
             //luceneIndexWriter.commit();
         } catch (IOException e) {
-            throw new AppException(e.getMessage(), e);
+            throw new AppException("IOException", e);
         }
 
 

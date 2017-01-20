@@ -2,7 +2,6 @@ package ca.magenta.yes.api;
 
 import ca.magenta.yes.connector.common.IndexSubscriber;
 import org.apache.log4j.Logger;
-import org.apache.lucene.store.Directory;
 
 import java.io.PrintWriter;
 
@@ -11,14 +10,14 @@ import java.io.PrintWriter;
  * @version 0.1
  * @since 2014-12-07
  */
-public class SubscriptionForwarder extends IndexSubscriber {
+public class RealTimeReader extends IndexSubscriber {
 	
 
-	public static Logger logger = Logger.getLogger(SubscriptionForwarder.class);
+	public static Logger logger = Logger.getLogger(RealTimeReader.class);
 	
 	private PrintWriter client = null;
 
-    public SubscriptionForwarder(String name, String searchString, PrintWriter client) {
+    public RealTimeReader(String name, String searchString, PrintWriter client) {
     	super(name, searchString);
     	this.client = client;
     }

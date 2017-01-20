@@ -24,6 +24,8 @@ import org.apache.lucene.store.FSDirectory;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.nio.file.Paths;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -37,6 +39,8 @@ public class LongTermReader implements Runnable {
 
     public static Logger logger = Logger.getLogger(LongTermReader.class);
 
+    private Thread runner = null;
+
     private final PrintWriter client;
 
     private final String indexBaseDirectory;
@@ -47,7 +51,7 @@ public class LongTermReader implements Runnable {
 
     private volatile boolean doRun = true;
 
-    public void stop() {
+    synchronized private void stop() {
         doRun = false;
     }
 
@@ -60,16 +64,37 @@ public class LongTermReader implements Runnable {
         this.client = client;
     }
 
+    public synchronized void startInstance() throws IOException {
+        if (runner == null) {
+            runner = new Thread(this, name);
+            runner.start();
+            logger.info(String.format("LongTermReader [%s] started", name));
+        }
+    }
+
+    public synchronized void stopInstance() {
+        if (runner != null) {
+            stop();
+            try {
+                runner.join();
+            } catch (InterruptedException e) {
+                logger.error("InterruptedException", e);
+            }
+            String rName = runner.getName();
+            runner = null;
+
+            logger.info(String.format("LongTermReader [%s] stopped", rName));
+        }
+    }
+
+
+
     public void run() {
 
         logger.debug("New LongTermReader " + name + " running");
 
         try {
             doLongTerm(indexBaseDirectory, periodTimeRange, searchString, client);
-            if (client != null) {
-                logger.debug("End of data");
-                client.println("End of data");
-            }
         } catch (IOException e) {
             logger.error("IOException", e);
         } catch (ParseException e) {
@@ -77,7 +102,7 @@ public class LongTermReader implements Runnable {
         }
     }
 
-    private static void doLongTerm(String indexBaseDirectory, TimeRange periodTimeRange, String searchString, PrintWriter client) throws IOException, ParseException {
+    synchronized  private void doLongTerm(String indexBaseDirectory, TimeRange periodTimeRange, String searchString, PrintWriter client) throws IOException, ParseException {
 
         String masterSearch = "";
 
@@ -131,10 +156,15 @@ public class LongTermReader implements Runnable {
 
         searchMasterIndex(indexBaseDirectory, masterSearch, periodTimeRange, searchString, client);
 
+        if (client != null) {
+            logger.debug("End of data");
+            client.println("End of data");
+        }
+
         return;
     }
 
-    public static void searchMasterIndex(String indexBaseDirectory,
+    private void searchMasterIndex(String indexBaseDirectory,
                                          String masterSearchString,
                                          TimeRange periodTimeRange,
                                          String searchString,
@@ -170,7 +200,7 @@ public class LongTermReader implements Runnable {
 
     }
 
-    public static void searchLongTermIndex(String indexBaseDirectory,
+    private void searchLongTermIndex(String indexBaseDirectory,
                                            String longTermIndexName,
                                            TimeRange periodTimeRange,
                                            String searchString,
