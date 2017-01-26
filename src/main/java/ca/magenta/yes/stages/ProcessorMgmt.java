@@ -2,6 +2,7 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.ThreadRunnable;
 import ca.magenta.yes.Config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public abstract class ProcessorMgmt implements Runnable {
+public abstract class ProcessorMgmt extends ThreadRunnable {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
 
@@ -22,20 +23,15 @@ public abstract class ProcessorMgmt implements Runnable {
 
     final String partition;
 
-
     private final long cuttingTime;
     final Config config;
 
 
     private final BlockingQueue<HashMap<String, Object>> inputQueue;
 
-    private volatile boolean doRun = true;
-
-    public void stopIt() {
-        doRun = false;
-    }
-
     public ProcessorMgmt(String name, String partition, long cuttingTime, Config config) {
+
+        super(name);
 
         this.name = name;
         this.partition = partition;
@@ -49,8 +45,6 @@ public abstract class ProcessorMgmt implements Runnable {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        //LongTermProcessor longTermProcessor = new LongTermProcessor("LongTermProcessor",
-        //        inputQueue);
         try {
             Processor processor = createProcessor(inputQueue);
 
@@ -101,10 +95,6 @@ public abstract class ProcessorMgmt implements Runnable {
 
     }
 
-//    public BlockingQueue<LogstashMessage> getInputQueue() {
-//        return inputQueue;
-//    }
-
     abstract void publishIndex(Processor processor,
                                String indexPath,
                                String indexPathName) throws IOException, AppException;
@@ -114,7 +104,7 @@ public abstract class ProcessorMgmt implements Runnable {
     abstract Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException;
 
 
-    public void putInQueue(HashMap<String, Object> logstashMessage) throws InterruptedException {
+    synchronized public void putInQueue(HashMap<String, Object> logstashMessage) throws InterruptedException {
 
         inputQueue.put(logstashMessage);
 

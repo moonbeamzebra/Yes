@@ -36,7 +36,6 @@ public class TCPServer implements Cloneable, Runnable {
     }
 
 
-    //private ArrayList<ca.magenta.utils.TCPServer> childTCPServers = new ArrayList<ca.magenta.utils.TCPServer>();
     private Thread runner = null;
     ServerSocket server = null;
     Socket data = null;
@@ -46,7 +45,7 @@ public class TCPServer implements Cloneable, Runnable {
 
     public synchronized void startServer() throws IOException {
         if (getRunner() == null) {
-            logger.info(String.format("TCPServer port [%d]", port));
+            logger.info(String.format("%s port [%d]",this.getClass().getSimpleName(), port));
             server = new ServerSocket(port);
             setRunner(new Thread(this, name));
             getRunner().start();
@@ -75,7 +74,7 @@ public class TCPServer implements Cloneable, Runnable {
             }
             server = null;
 
-            logger.info(String.format("TCPServer server [%s] stopped", rName));
+            logger.info(String.format("%s server [%s] stopped", this.getClass().getSimpleName(), rName));
         } else if (data != null) {
             shouldStop = true;
             getRunner().interrupt();
@@ -92,11 +91,11 @@ public class TCPServer implements Cloneable, Runnable {
             } catch (IOException e) {
                 logger.error(String.format("data IOException", e));
             }
-            logger.info("TCPServer Disconnected to client: " + clientAddress.getHostAddress() + ":" + port);
+            logger.info(String.format("%s Disconnected to client: %s:%d", this.getClass().getSimpleName(), clientAddress.getHostAddress().toString(), port));
 
             data = null;
             setRunner(null);
-            logger.info(String.format("TCPServer data socket [%s] stopped", rName));
+            logger.info(String.format("%s data socket [%s] stopped", this.getClass().getSimpleName(), rName));
         }
     }
 

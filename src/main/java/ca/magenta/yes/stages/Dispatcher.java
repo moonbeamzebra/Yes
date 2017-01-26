@@ -1,6 +1,7 @@
 package ca.magenta.yes.stages;
 
 
+import ca.magenta.utils.ThreadRunnable;
 import ca.magenta.yes.Config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public class Dispatcher implements Runnable {
+public class Dispatcher extends ThreadRunnable {
 
     private static final long printEvery = 650000;
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
@@ -22,11 +23,12 @@ public class Dispatcher implements Runnable {
     private final String partition;
     private final BlockingQueue<String> inputQueue;
     private final Config config;
-    private volatile boolean doRun = true;
     private long count = 0;
     private RealTimeProcessorMgmt realTimeProcessorMgmt;
 
     public Dispatcher(String name, Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, String partition) {
+
+        super(name);
 
         this.realTimeProcessorMgmt = realTimeProcessorMgmt;
 
@@ -38,10 +40,6 @@ public class Dispatcher implements Runnable {
         this.config = config;
     }
 
-    public void stopIt() {
-        doRun = false;
-    }
-
     public void run() {
 
         ObjectMapper mapper = new ObjectMapper();
@@ -51,8 +49,7 @@ public class Dispatcher implements Runnable {
                         config.getLongTermCuttingTime(),
                         config,
                         partition);
-        Thread longTermThread = new Thread(longTermProcessorMgmt, "LongTermProcessorMgmt");
-        longTermThread.start();
+        longTermProcessorMgmt.startInstance();
 
 //        RealTimeProcessorMgmt realTimeProcessorMgmt =
 //                new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
@@ -128,8 +125,11 @@ public class Dispatcher implements Runnable {
                 }
             }
         } catch (InterruptedException e) {
-            logger.error("InterruptedException", e);
+            if (doRun)
+                logger.error("InterruptedException", e);
         }
+
+        longTermProcessorMgmt.stopInstance();
     }
 
     public BlockingQueue<String> getInputQueue() {

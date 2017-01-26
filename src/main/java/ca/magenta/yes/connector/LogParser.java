@@ -1,5 +1,6 @@
 package ca.magenta.yes.connector;
 
+import ca.magenta.utils.ThreadRunnable;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.stages.Dispatcher;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
@@ -12,7 +13,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public class LogParser implements Runnable {
+public class LogParser extends ThreadRunnable {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
 
@@ -20,22 +21,20 @@ public class LogParser implements Runnable {
     private final String name;
     private BlockingQueue<String> inputQueue;
     private final Config config;
-    private final Dispatcher dispatcher;
+    private final RealTimeProcessorMgmt realTimeProcessorMgmt;
 
 
     private final String partition;
-
-    private volatile boolean doRun = true;
-
-    public void stopIt() {
-        doRun = false;
-    }
 
     private static final long printEvery = 100000;
 
     private long count = 0;
 
     public LogParser(String name, Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, String partition) {
+
+        super(name);
+
+        this.realTimeProcessorMgmt = realTimeProcessorMgmt;
 
         this.inputQueue = new ArrayBlockingQueue<String>(config.getLogParserQueueDepth());
 
@@ -44,51 +43,58 @@ public class LogParser implements Runnable {
 
         this.partition = partition;
 
-        dispatcher = new Dispatcher("Dispatcher", config, realTimeProcessorMgmt, this.partition);
-        Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
-        dispatcherThread.start();
+//        dispatcher = new Dispatcher("Dispatcher", config, realTimeProcessorMgmt, this.partition);
+//        Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
+//        dispatcherThread.start();
 
     }
 
     public void run() {
 
         logger.info(String.format("New LogParser running for partition [%s]", partition));
+
+        Dispatcher dispatcher = new Dispatcher("Dispatcher", config, realTimeProcessorMgmt, this.partition);
+        dispatcher.startInstance();
+
         count = 0;
         long previousNow = System.currentTimeMillis();
         long now;
         long totalTime;
         float msgPerSec;
 
-            while (doRun) {
-                String logMsg = null;
+        while (doRun) {
+            String logMsg = null;
+            try {
+                logMsg = inputQueue.take();
                 try {
-                    logMsg = inputQueue.take();
-                    try {
-                        dispatchParsingAndProcessing(logMsg);
-                    } catch (JsonProcessingException e) {
-                        logger.error("JsonProcessingException", e);
-                    }
-                } catch (InterruptedException e) {
-                    if (doRun)
-                        logger.error("InterruptedException", e);
+                    dispatchParsingAndProcessing(logMsg, dispatcher);
+                } catch (JsonProcessingException e) {
+                    logger.error("JsonProcessingException", e);
                 }
-                logger.debug("LogParser received: " + logMsg);
-
-                count++;
-
-                if ((count % printEvery) == 0) {
-                    now = System.currentTimeMillis();
-                    totalTime = now - previousNow;
-
-                    msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
-
-                    System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
-                    previousNow = now;
-                }
+            } catch (InterruptedException e) {
+                if (doRun)
+                    logger.error("InterruptedException", e);
             }
+            logger.debug("LogParser received: " + logMsg);
+
+            count++;
+
+            if ((count % printEvery) == 0) {
+                now = System.currentTimeMillis();
+                totalTime = now - previousNow;
+
+                msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
+
+                System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
+                previousNow = now;
+            }
+        }
+
+        dispatcher.stopInstance();
+
     }
 
-    private void dispatchParsingAndProcessing(String logMsg) throws JsonProcessingException, InterruptedException {
+    private void dispatchParsingAndProcessing(String logMsg, Dispatcher dispatcher) throws JsonProcessingException, InterruptedException {
 
         // device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop
 

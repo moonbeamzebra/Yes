@@ -1,5 +1,6 @@
 package ca.magenta.yes.api;
 
+import ca.magenta.utils.ThreadRunnable;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.connector.common.IndexSubscriber;
 import ca.magenta.yes.data.MasterIndexRecord;
@@ -34,12 +35,10 @@ import java.util.concurrent.ArrayBlockingQueue;
  * @version 0.1
  * @since 2014-12-07
  */
-public class LongTermReader implements Runnable {
+public class LongTermReader extends ThreadRunnable {
 
 
     public static Logger logger = Logger.getLogger(LongTermReader.class);
-
-    private Thread runner = null;
 
     private final PrintWriter client;
 
@@ -49,45 +48,18 @@ public class LongTermReader implements Runnable {
     private final TimeRange periodTimeRange;
     private final String searchString;
 
-    private volatile boolean doRun = true;
-
-    synchronized private void stop() {
-        doRun = false;
-    }
 
 
     public LongTermReader(String name, String indexBaseDirectory, TimeRange periodTimeRange, String searchString, PrintWriter client) {
+
+        super(name);
+
         this.name = name;
         this.indexBaseDirectory = indexBaseDirectory;
         this.periodTimeRange = periodTimeRange;
         this.searchString = searchString;
         this.client = client;
     }
-
-    public synchronized void startInstance() throws IOException {
-        if (runner == null) {
-            runner = new Thread(this, name);
-            runner.start();
-            logger.info(String.format("LongTermReader [%s] started", name));
-        }
-    }
-
-    public synchronized void stopInstance() {
-        if (runner != null) {
-            stop();
-            try {
-                runner.join();
-            } catch (InterruptedException e) {
-                logger.error("InterruptedException", e);
-            }
-            String rName = runner.getName();
-            runner = null;
-
-            logger.info(String.format("LongTermReader [%s] stopped", rName));
-        }
-    }
-
-
 
     public void run() {
 

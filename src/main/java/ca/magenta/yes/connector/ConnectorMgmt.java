@@ -13,14 +13,11 @@ import java.util.ArrayList;
 @Component
 public class ConnectorMgmt implements Runnable {
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
+    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    //private final GenericConnector genericConnectorA;
-    //private final GenericConnector genericConnectorB;
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
-    private final Thread realTimeThread;
 
-    ArrayList<GenericConnector> genericConnectors;
+    ArrayList<TCPGenericConnector> tcpGenericConnectors;
 
     private volatile boolean doRun = true;
 
@@ -34,24 +31,20 @@ public class ConnectorMgmt implements Runnable {
                 new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
                         config.getRealTimeCuttingTime(),
                         config, "single");
-        realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
-        realTimeThread.start();
+        realTimeProcessorMgmt.startInstance();
 
-        genericConnectors = constructConnectors(config, realTimeProcessorMgmt);
-        for (GenericConnector genericConnector : genericConnectors)
-        {
-            genericConnector.startServer();
+        tcpGenericConnectors = constructConnectors(config, realTimeProcessorMgmt);
+        for (TCPGenericConnector tcpGenericConnector : tcpGenericConnectors) {
+            tcpGenericConnector.startServer();
         }
 
 
     }
 
-    public void stopConnectors()
-    {
-        for (GenericConnector genericConnector : genericConnectors)
-        {
-            genericConnector.stopServer();
-            logger.info(String.format("GenericConnector [%s] stopped", genericConnector.getName()));
+    public void stopConnectors() {
+        for (TCPGenericConnector tcpGenericConnector : tcpGenericConnectors) {
+            tcpGenericConnector.stopServer();
+            logger.info(String.format("GenericConnector [%s] stopped", tcpGenericConnector.getName()));
         }
 
         TCPServer.stopLaunchedTCPServers();
@@ -75,36 +68,31 @@ public class ConnectorMgmt implements Runnable {
         }
     }
 
-    private ArrayList<GenericConnector> constructConnectors(Config config,
-                                                            RealTimeProcessorMgmt realTimeProcessorMgmt) throws AppException {
+    private ArrayList<TCPGenericConnector> constructConnectors(Config config,
+                                                               RealTimeProcessorMgmt realTimeProcessorMgmt) throws AppException {
 
-        ArrayList<GenericConnector> genericConnectors = new ArrayList<GenericConnector>();
-        GenericConnector genericConnector;
+        ArrayList<TCPGenericConnector> tcpGenericConnectors = new ArrayList<TCPGenericConnector>();
+        TCPGenericConnector tcpGenericConnector;
 
         String[] connectors = config.getGenericConnectorPorts().split(";");
 
-        for (String connector : connectors)
-        {
+        for (String connector : connectors) {
             String[] items = connector.trim().split(",");
 
-            if (items.length == 2)
-            {
+            if (items.length == 2) {
                 try {
                     String partition = items[0].trim();
                     int port = Integer.valueOf(items[1].trim());
-                    genericConnector = new GenericConnector(config, realTimeProcessorMgmt, port, partition);
-                    genericConnectors.add(genericConnector);
+                    tcpGenericConnector = new TCPGenericConnector(partition, config, port, realTimeProcessorMgmt);
+                    tcpGenericConnectors.add(tcpGenericConnector);
+                } catch (NumberFormatException e) {
+                    throw new AppException(String.format("Bad GenericConnector port [%s]", connector), e);
                 }
-                catch (NumberFormatException  e)
-                {
-                    throw new AppException(String.format("Bad GenericConnector port [%s]", connector),e);
-                }
-            }
-            else
+            } else
                 throw new AppException(String.format("Bad GenericConnector [%s]", config.getGenericConnectorPorts()));
         }
 
-        return genericConnectors;
+        return tcpGenericConnectors;
     }
 
 
@@ -113,16 +101,8 @@ public class ConnectorMgmt implements Runnable {
         this.stopConnectors();
 
         realTimeProcessorMgmt.stopAPIServer();
-        realTimeProcessorMgmt.stopIt();
-        realTimeThread.interrupt();
-        try {
-            realTimeThread.join(20000);
-            logger.info("RealTimeProcessorMgmt stopped");
 
-        } catch (InterruptedException e) {
-            logger.error("InterruptedException", e);
-        }
-
+        realTimeProcessorMgmt.stopInstance();
 
     }
 }

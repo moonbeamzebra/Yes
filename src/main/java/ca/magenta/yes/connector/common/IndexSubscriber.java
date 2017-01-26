@@ -1,5 +1,6 @@
 package ca.magenta.yes.connector.common;
 
+import ca.magenta.utils.ThreadRunnable;
 import ca.magenta.yes.data.NormalizedLogRecord;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.apache.lucene.analysis.Analyzer;
@@ -17,6 +18,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.log4j.Logger;
 import org.apache.lucene.store.FSDirectory;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -28,12 +30,10 @@ import java.util.concurrent.BlockingQueue;
  * @version 0.1
  * @since 2014-12-04
  */
-public abstract class IndexSubscriber implements Runnable {
+public abstract class IndexSubscriber extends ThreadRunnable {
 
 
-    public static Logger logger = Logger.getLogger(IndexSubscriber.class);
-
-    private Thread runner = null;
+    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final int MAX_QUERY_SIZE = 1000;
 
@@ -42,13 +42,10 @@ public abstract class IndexSubscriber implements Runnable {
 
     private BlockingQueue<Directory> queue = null;
 
-    private volatile boolean doRun = true;
-
-    public void stop() {
-        doRun = false;
-    }
-
     public IndexSubscriber(String name, String searchString) {
+
+        super(name);
+
         this.name = name;
         this.searchString = searchString;
         //ShortTermProcessorMgmt.indexPublisher().subscribe(this);
@@ -58,30 +55,6 @@ public abstract class IndexSubscriber implements Runnable {
     public void store(Directory indexNamePath) throws InterruptedException {
         //logger.info(String.format("IndexSubscriber receive [%s]", indexNamePath));
         queue.put(indexNamePath);
-    }
-
-    public synchronized void startInstance() throws IOException {
-        if (runner == null) {
-            runner = new Thread(this, name);
-            runner.start();
-            logger.info(String.format("%s [%s] started", this.getClass().getSimpleName(), name));
-        }
-    }
-
-    public synchronized void stopInstance() {
-        if (runner != null) {
-            stop();
-            runner.interrupt();
-            try {
-                runner.join();
-            } catch (InterruptedException e) {
-                logger.error("InterruptedException", e);
-            }
-            String rName = runner.getName();
-            runner = null;
-
-            logger.info(String.format("%s [%s] stopped", this.getClass().getSimpleName(), name));
-        }
     }
 
     public void run() {
