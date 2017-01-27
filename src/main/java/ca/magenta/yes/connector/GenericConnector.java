@@ -1,5 +1,6 @@
 package ca.magenta.yes.connector;
 
+import ca.magenta.utils.AbstractTCPServer;
 import ca.magenta.utils.AbstractTCPServerHandler;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
@@ -25,9 +26,9 @@ public class GenericConnector extends AbstractTCPServerHandler {
 
     private final LogParser logParser;
 
-    public GenericConnector(String partitionName, Config config, Socket handlerSocket, LogParser logParser) {
+    public GenericConnector(AbstractTCPServer tcpServer, String partitionName, Config config, Socket handlerSocket, LogParser logParser) {
 
-        super(partitionName, handlerSocket);
+        super(tcpServer, partitionName, handlerSocket);
 
         this.partition = partitionName;
 
@@ -111,6 +112,7 @@ public class GenericConnector extends AbstractTCPServerHandler {
             in.close();
             out.close();
             handlerSocket.close();
+            tcpServer.setClientCount(tcpServer.getClientCount() - 1);
 
             logger.info(String.format("Connection closed from %s:%s", clientIP, clientPort ));
         }

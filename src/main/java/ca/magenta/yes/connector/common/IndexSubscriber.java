@@ -59,7 +59,7 @@ public abstract class IndexSubscriber extends ThreadRunnable {
 
     public void run() {
 
-        logger.debug("New IndexSubscriber " + name + " running");
+        logger.info("New IndexSubscriber " + name + " running");
         queue = new ArrayBlockingQueue<Directory>(300000);
         IndexReader reader = null;
         try {
@@ -67,6 +67,7 @@ public abstract class IndexSubscriber extends ThreadRunnable {
                 //Directory indexNamePath = queue.take();
                 //logger.info(String.format("Received: [%s]", indexNamePath));
                 Directory index = queue.take();
+                //logger.info(String.format("Received index: [%s]", index.toString()));
 
                 /////////////
                 try {

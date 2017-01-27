@@ -18,7 +18,7 @@ import java.util.concurrent.BlockingQueue;
 public class Dispatcher extends ThreadRunnable {
 
     private static final long printEvery = 650000;
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
+    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     private final String name;
     private final String partition;
     private final BlockingQueue<String> inputQueue;
@@ -93,6 +93,7 @@ public class Dispatcher extends ThreadRunnable {
                     }
                     hashedMsg.put("srcTimestamp", Long.toString(epoch));
 
+                    //logger.info("Before putInQueue");
                     longTermProcessorMgmt.putInQueue(hashedMsg);
                     realTimeProcessorMgmt.putInQueue(hashedMsg);
                 } catch (ParseException e) {

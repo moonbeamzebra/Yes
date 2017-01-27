@@ -75,8 +75,10 @@ public class IndexPublisher implements Runnable {
     public void publish(Directory indexDir) throws InterruptedException {
         if (logger.isDebugEnabled())
             logger.debug(String.format("Received [%s]", indexDir));
+        //logger.info("subscribers.size:" + subscribers.size());
         if (!subscribers.isEmpty())
             try {
+                //logger.info("outboundQueue.put");
                 outboundQueue.put(indexDir);
             } catch (InterruptedException e) {
                 if (doRun)

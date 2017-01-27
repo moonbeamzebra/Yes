@@ -1,30 +1,24 @@
-package ca.magenta.yes.connector;
+package ca.magenta.yes.api;
 
 import ca.magenta.utils.AbstractTCPServer;
 import ca.magenta.yes.Config;
+import ca.magenta.yes.connector.GenericConnector;
+import ca.magenta.yes.connector.LogParser;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
 
-public class TCPGenericConnector extends AbstractTCPServer
+public class TCPAPIServer extends AbstractTCPServer
 {
-    private final LogParser logParser;
+    private final String indexBaseDirectory;
 
-    private final Config config;
-    private final RealTimeProcessorMgmt realTimeProcessorMgmt;
-
-    public TCPGenericConnector(String partitionName, Config config, int port, RealTimeProcessorMgmt realTimeProcessorMgmt )
+    public TCPAPIServer(String partitionName, Config config, int port, String indexBaseDirectory )
     {
         super(partitionName, port);
 
-        this.config = config;
-        this.realTimeProcessorMgmt =  realTimeProcessorMgmt;
-
-        logParser = new LogParser(partitionName, config, realTimeProcessorMgmt, partitionName);
-        logParser.startInstance();
-
+        this.indexBaseDirectory = indexBaseDirectory;
     }
 
     @Override
@@ -37,14 +31,13 @@ public class TCPGenericConnector extends AbstractTCPServer
             {
                 System.out.println( "Listening for a connection" );
 
-                // Call accept() to receive the next connection
                 Socket socket = serverSocket.accept();
                 setClientCount(getClientCount() + 1);
 
                 String nameStr = this.getName() + "-" + getClientCount();
-                GenericConnector genericConnector = new GenericConnector(this, nameStr, config, socket, logParser );
-                addTcpServerHandler(genericConnector);
-                genericConnector.start();
+                APIServer apiServer = new APIServer(this, nameStr, socket, indexBaseDirectory);
+                addTcpServerHandler(apiServer);
+                apiServer.start();
             }
             catch (SocketException e)
             {

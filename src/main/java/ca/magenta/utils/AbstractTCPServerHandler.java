@@ -10,12 +10,14 @@ abstract public class AbstractTCPServerHandler extends Thread
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
+    protected final AbstractTCPServer tcpServer;
 
     protected boolean doRun = false;
 
     protected Socket handlerSocket;
-    public AbstractTCPServerHandler(String name, Socket handlerSocket )
+    public AbstractTCPServerHandler(AbstractTCPServer tcpServer, String name, Socket handlerSocket )
     {
+        this.tcpServer = tcpServer;
         this.setName(name);
         this.handlerSocket = handlerSocket;
     }

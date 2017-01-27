@@ -25,6 +25,7 @@ public class RealTimeReader extends IndexSubscriber {
 	@Override
 	protected void forward(String message) {
 
+		//logger.info("Should be Out to client");
 		if (client != null) {
 			logger.debug("Out to client");
 			client.println(message);

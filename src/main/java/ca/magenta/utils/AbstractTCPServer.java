@@ -3,6 +3,7 @@ package ca.magenta.utils;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 abstract public class AbstractTCPServer extends Thread
 {
@@ -13,7 +14,7 @@ abstract public class AbstractTCPServer extends Thread
     private int port;
     protected boolean doRun = false;
 
-    protected ArrayList<AbstractTCPServerHandler> tcpServerHandlers = new ArrayList<AbstractTCPServerHandler>();
+    private HashSet<AbstractTCPServerHandler> tcpServerHandlers = new HashSet<AbstractTCPServerHandler>();
 
     public AbstractTCPServer(String name, int port )
     {
@@ -51,5 +52,20 @@ abstract public class AbstractTCPServer extends Thread
             requestHandler.interrupt();
         }
     }
+
+    protected void addTcpServerHandler(AbstractTCPServerHandler abstractTCPServerHandler) {
+        tcpServerHandlers.add(abstractTCPServerHandler);
+    }
+
+    public int getClientCount() {
+        return clientCount;
+    }
+
+    public void setClientCount(int clientCount) {
+        this.clientCount = clientCount;
+    }
+
+    private static int clientCount = 0;
+
 
 }

@@ -4,6 +4,7 @@ package ca.magenta.yes.stages;
 import ca.magenta.utils.AppException;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.api.APIServer;
+import ca.magenta.yes.api.TCPAPIServer;
 import ca.magenta.yes.connector.common.IndexPublisher;
 import org.slf4j.LoggerFactory;
 
@@ -14,11 +15,11 @@ import java.util.concurrent.BlockingQueue;
 
 public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
+    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private static IndexPublisher indexPublisher = new IndexPublisher("IndexPublisher");
 
-    private APIServer apiServer = null;
+    private TCPAPIServer tcpAPIServer = null;
 
 
     public RealTimeProcessorMgmt(String name, long cuttingTime, Config config, String partition) {
@@ -34,6 +35,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
                               String indexPathName)
     {
         try {
+            //logger.info("indexPublisher.publish");
             indexPublisher.publish(RealTimeProcessor.getIndexDir());
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -62,23 +64,18 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
     public void startAPIServer(Config config) {
 
-        try {
-
-            if ((apiServer == null) || ( ! apiServer.getRunner().isAlive())) {
-                apiServer = new APIServer(this.config.getApiServerPort(),"APISrvr", config.getIndexBaseDirectory());
-                logger.info("Starting APIServer...");
-                apiServer.startServer();
-                logger.info("APIServer started");
-            }
-        } catch (IOException e) {
-
-            logger.error("", e);
+        if ((tcpAPIServer == null) || ( ! tcpAPIServer.isAlive())) {
+            // String partitionName, Config config, int port, String indexBaseDirectory
+            tcpAPIServer = new TCPAPIServer(partition, config, config.getApiServerPort(),config.getIndexBaseDirectory());
+            logger.info("Starting TCPAPIServer...");
+            tcpAPIServer.startServer();
+            logger.info("TCPAPIServer started");
         }
     }
 
     public void stopAPIServer() {
         try {
-            apiServer.stopServer();
+            tcpAPIServer.stopServer();
         } catch (Exception ex) {
         }
     }
