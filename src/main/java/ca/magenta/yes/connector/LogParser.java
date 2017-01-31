@@ -1,11 +1,13 @@
 package ca.magenta.yes.connector;
 
-import ca.magenta.utils.ThreadRunnable;
+import ca.magenta.utils.AppException;
+import ca.magenta.utils.Runner;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.stages.Dispatcher;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
@@ -13,15 +15,15 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public class LogParser extends ThreadRunnable {
+public class LogParser extends Runner {
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName());
 
 
-    private final String name;
     private BlockingQueue<String> inputQueue;
     private final Config config;
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
+    private final Dispatcher dispatcher;
 
 
     private final String partition;
@@ -38,23 +40,17 @@ public class LogParser extends ThreadRunnable {
 
         this.inputQueue = new ArrayBlockingQueue<String>(config.getLogParserQueueDepth());
 
-        this.name = name;
         this.config = config;
 
         this.partition = partition;
 
-//        dispatcher = new Dispatcher("Dispatcher", config, realTimeProcessorMgmt, this.partition);
-//        Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
-//        dispatcherThread.start();
+        dispatcher = new Dispatcher(this.partition, config, realTimeProcessorMgmt, this.partition);
 
     }
 
     public void run() {
 
-        logger.info(String.format("New LogParser running for partition [%s]", partition));
-
-        Dispatcher dispatcher = new Dispatcher("Dispatcher", config, realTimeProcessorMgmt, this.partition);
-        dispatcher.startInstance();
+        logger.info(String.format("LogParser start running for partition [%s]", partition));
 
         count = 0;
         long previousNow = System.currentTimeMillis();
@@ -90,9 +86,25 @@ public class LogParser extends ThreadRunnable {
             }
         }
 
-        dispatcher.stopInstance();
+        logger.info(String.format("LogParser stop running for partition [%s]", partition));
 
     }
+
+    @Override
+    public synchronized void startInstance() throws AppException {
+
+        dispatcher.startInstance();
+        super.startInstance();
+    }
+
+    @Override
+    public synchronized void stopInstance() {
+
+        super.stopInstance();
+
+        dispatcher.stopInstance();
+    }
+
 
     private void dispatchParsingAndProcessing(String logMsg, Dispatcher dispatcher) throws JsonProcessingException, InterruptedException {
 
@@ -127,10 +139,6 @@ public class LogParser extends ThreadRunnable {
 
         dispatcher.putInQueue(jsonMsg);
 
-    }
-
-    public String getName() {
-        return name;
     }
 
     public void putInQueue(String message) throws InterruptedException {

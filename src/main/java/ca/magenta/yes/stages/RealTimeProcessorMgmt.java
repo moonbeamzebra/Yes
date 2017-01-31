@@ -3,12 +3,10 @@ package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.yes.Config;
-import ca.magenta.yes.api.APIServer;
 import ca.magenta.yes.api.TCPAPIServer;
 import ca.magenta.yes.connector.common.IndexPublisher;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
@@ -25,9 +23,19 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     public RealTimeProcessorMgmt(String name, long cuttingTime, Config config, String partition) {
         super(name, partition, cuttingTime, config);
 
-        startAPIServer(config);
-
     }
+
+    @Override
+    public synchronized void startInstance() throws AppException {
+        super.startInstance();
+        startAPIServer(config);
+    }
+
+    public synchronized void stopInstance() {
+        stopAPIServer();
+        super.stopInstance();
+    }
+
 
     @Override
     synchronized void publishIndex(Processor RealTimeProcessor,
@@ -62,7 +70,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
 
-    public void startAPIServer(Config config) {
+    private void startAPIServer(Config config) throws AppException {
 
         if ((tcpAPIServer == null) || ( ! tcpAPIServer.isAlive())) {
             // String partitionName, Config config, int port, String indexBaseDirectory
@@ -73,7 +81,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
         }
     }
 
-    public void stopAPIServer() {
+    private void stopAPIServer() {
         try {
             tcpAPIServer.stopServer();
         } catch (Exception ex) {

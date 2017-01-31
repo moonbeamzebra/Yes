@@ -8,7 +8,6 @@ import java.util.HashSet;
 abstract public class AbstractTCPServer extends Thread
 {
 
-    //protected final String name;
 
     protected ServerSocket serverSocket;
     private int port;
@@ -22,8 +21,7 @@ abstract public class AbstractTCPServer extends Thread
         this.port = port;
     }
 
-    public void startServer()
-    {
+    public void startServer() throws AppException {
         try
         {
             serverSocket = new ServerSocket( port );
@@ -35,7 +33,7 @@ abstract public class AbstractTCPServer extends Thread
         }
     }
 
-    public void stopServer()
+    synchronized public void stopServer()
     {
         doRun = false;
         this.interrupt();
@@ -47,25 +45,24 @@ abstract public class AbstractTCPServer extends Thread
 
         for (AbstractTCPServerHandler requestHandler : tcpServerHandlers)
         {
-            requestHandler.stopIt();
-            requestHandler.closeSocket();
-            requestHandler.interrupt();
+            if ( requestHandler != null ) {
+                requestHandler.stopIt();
+                requestHandler.closeSocket();
+                requestHandler.interrupt();
+            }
         }
     }
 
-    protected void addTcpServerHandler(AbstractTCPServerHandler abstractTCPServerHandler) {
+    synchronized protected void addTcpServerHandler(AbstractTCPServerHandler abstractTCPServerHandler) {
         tcpServerHandlers.add(abstractTCPServerHandler);
     }
 
-    public int getClientCount() {
-        return clientCount;
+    public synchronized void removeTcpServerHandler(AbstractTCPServerHandler abstractTCPServerHandler) {
+        tcpServerHandlers.remove(abstractTCPServerHandler);
     }
 
-    public void setClientCount(int clientCount) {
-        this.clientCount = clientCount;
+    synchronized public int getClientCount() {
+        return tcpServerHandlers.size();
     }
-
-    private static int clientCount = 0;
-
 
 }

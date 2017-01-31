@@ -2,9 +2,8 @@ package ca.magenta.yes.api;
 
 import ca.magenta.utils.AbstractTCPServer;
 import ca.magenta.yes.Config;
-import ca.magenta.yes.connector.GenericConnector;
-import ca.magenta.yes.connector.LogParser;
-import ca.magenta.yes.stages.RealTimeProcessorMgmt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -12,6 +11,9 @@ import java.net.SocketException;
 
 public class TCPAPIServer extends AbstractTCPServer
 {
+
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+
     private final String indexBaseDirectory;
 
     public TCPAPIServer(String partitionName, Config config, int port, String indexBaseDirectory )
@@ -29,10 +31,8 @@ public class TCPAPIServer extends AbstractTCPServer
         {
             try
             {
-                System.out.println( "Listening for a connection" );
 
                 Socket socket = serverSocket.accept();
-                setClientCount(getClientCount() + 1);
 
                 String nameStr = this.getName() + "-" + getClientCount();
                 APIServer apiServer = new APIServer(this, nameStr, socket, indexBaseDirectory);
@@ -42,14 +42,12 @@ public class TCPAPIServer extends AbstractTCPServer
             catch (SocketException e)
             {
                 if (doRun) {
-                    System.err.println("SocketException");
-                    e.printStackTrace();
+                    logger.error("SocketException", e);
                 }
             }
             catch (IOException e)
             {
-                System.err.println( "IOException" );
-                e.printStackTrace();
+                logger.error("IOException", e);
             }
         }
     }

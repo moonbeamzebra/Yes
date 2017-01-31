@@ -1,9 +1,7 @@
 package ca.magenta.yes;
 
+import ca.magenta.utils.AppException;
 import ca.magenta.yes.connector.ConnectorMgmt;
-import ca.magenta.yes.connector.GenericConnector;
-import ca.magenta.yes.connector.LogstashConnector;
-import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,10 +20,11 @@ public class Application {
     final ConnectorMgmt connectorMgmt;
 
 
-    public Application(ConnectorMgmt connectorMgmt)  {
+    public Application(ConnectorMgmt connectorMgmt) throws AppException {
         this.connectorMgmt = connectorMgmt;
 
-        Thread connectorMgmtThread = new Thread( this.connectorMgmt, "connectorMgmt");
+        this.connectorMgmt.startInstance();
+
     }
 
     public static void main(String[] args) throws IOException {
@@ -39,7 +38,7 @@ public class Application {
 
 
                 ConnectorMgmt connectorMgmt = (ConnectorMgmt) event.getApplicationContext().getBean("connectorMgmt");
-                connectorMgmt.stop();
+                connectorMgmt.stopInstance();
 
                 logger.info(String.format("ContextClosedEvent: [%s]", event.toString()));
 

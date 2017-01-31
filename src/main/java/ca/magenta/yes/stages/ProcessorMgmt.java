@@ -2,7 +2,7 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
-import ca.magenta.utils.ThreadRunnable;
+import ca.magenta.utils.Runner;
 import ca.magenta.yes.Config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
@@ -14,12 +14,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public abstract class ProcessorMgmt extends ThreadRunnable {
+public abstract class ProcessorMgmt extends Runner {
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
-
-
-    private final String name;
+    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     final String partition;
 
@@ -33,7 +30,6 @@ public abstract class ProcessorMgmt extends ThreadRunnable {
 
         super(name);
 
-        this.name = name;
         this.partition = partition;
         this.cuttingTime = cuttingTime;
         this.inputQueue = new ArrayBlockingQueue<HashMap<String, Object>>(config.getProcessorQueueDepth());

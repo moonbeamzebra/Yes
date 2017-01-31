@@ -1,6 +1,8 @@
 package ca.magenta.yes.stages;
 
 
+import ca.magenta.utils.AppException;
+import ca.magenta.utils.Runner;
 import ca.magenta.utils.ThreadRunnable;
 import ca.magenta.yes.Config;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,16 +17,16 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public class Dispatcher extends ThreadRunnable {
+public class Dispatcher extends Runner {
 
     private static final long printEvery = 650000;
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
-    private final String name;
     private final String partition;
     private final BlockingQueue<String> inputQueue;
     private final Config config;
     private long count = 0;
     private RealTimeProcessorMgmt realTimeProcessorMgmt;
+    private final LongTermProcessorMgmt longTermProcessorMgmt;
 
     public Dispatcher(String name, Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, String partition) {
 
@@ -33,30 +35,21 @@ public class Dispatcher extends ThreadRunnable {
         this.realTimeProcessorMgmt = realTimeProcessorMgmt;
 
         this.inputQueue = new ArrayBlockingQueue<String>(config.getDispatcherQueueDepth());
-        this.name = name;
 
         this.partition = partition;
 
         this.config = config;
+
+        longTermProcessorMgmt =
+                new LongTermProcessorMgmt("LongTermProcessorMgmt",
+                        config.getLongTermCuttingTime(),
+                        config,
+                        partition);
     }
 
     public void run() {
 
         ObjectMapper mapper = new ObjectMapper();
-
-        LongTermProcessorMgmt longTermProcessorMgmt =
-                new LongTermProcessorMgmt("LongTermProcessorMgmt",
-                        config.getLongTermCuttingTime(),
-                        config,
-                        partition);
-        longTermProcessorMgmt.startInstance();
-
-//        RealTimeProcessorMgmt realTimeProcessorMgmt =
-//                new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
-//                        config.getRealTimeCuttingTime(),
-//                        config);
-//        Thread realTimeThread = new Thread(realTimeProcessorMgmt, "RealTimeProcessorMgmt");
-//        realTimeThread.start();
 
         logger.info(String.format("New Dispatcher running for partition [%s]", partition));
         count = 0;
@@ -152,6 +145,22 @@ public class Dispatcher extends ThreadRunnable {
                                 "Threshold:[%f]",
                         config.getDispatcherQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
         }
+
+    }
+
+    @Override
+    public synchronized void startInstance() throws AppException {
+
+        longTermProcessorMgmt.startInstance();
+
+        super.startInstance();
+    }
+
+    @Override
+    public synchronized void stopInstance() {
+        super.stopInstance();
+
+        longTermProcessorMgmt.stopInstance();
 
     }
 

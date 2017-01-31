@@ -23,7 +23,7 @@ abstract public class ThreadRunnable implements Runnable {
         doRun = false;
     }
 
-    public synchronized void startInstance() {
+    public synchronized void startInstance() throws AppException {
         if (runner == null) {
             runner = new Thread(this, runnerName);
             runner.start();

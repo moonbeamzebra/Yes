@@ -1,7 +1,7 @@
 package ca.magenta.yes.connector;
 
 import ca.magenta.utils.AppException;
-import ca.magenta.utils.TCPServer;
+import ca.magenta.utils.Runner;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.slf4j.LoggerFactory;
@@ -11,26 +11,30 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 @Component
-public class ConnectorMgmt implements Runnable {
+public class ConnectorMgmt extends Runner {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
+    private final Config config;
 
     ArrayList<TCPGenericConnector> tcpGenericConnectors;
 
-    private volatile boolean doRun = true;
+    public ConnectorMgmt(Config config) {
 
-    public void stopIt() {
-        doRun = false;
-    }
+        super("single");
 
-    public ConnectorMgmt(Config config) throws IOException, AppException {
+        this.config = config;
 
         realTimeProcessorMgmt =
                 new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
                         config.getRealTimeCuttingTime(),
                         config, "single");
+    }
+
+    @Override
+    public synchronized void startInstance() throws AppException {
+
         realTimeProcessorMgmt.startInstance();
 
         tcpGenericConnectors = constructConnectors(config, realTimeProcessorMgmt);
@@ -38,22 +42,31 @@ public class ConnectorMgmt implements Runnable {
             tcpGenericConnector.startServer();
         }
 
-
+        super.startInstance();
     }
 
-    public void stopConnectors() {
+    @Override
+    public synchronized void stopInstance() {
+
+        this.stopConnectors();
+
+        realTimeProcessorMgmt.stopInstance();
+
+        super.stopInstance();
+    }
+
+
+    private void stopConnectors() {
         for (TCPGenericConnector tcpGenericConnector : tcpGenericConnectors) {
             tcpGenericConnector.stopServer();
             logger.info(String.format("GenericConnector [%s] stopped", tcpGenericConnector.getName()));
         }
 
-        TCPServer.stopLaunchedTCPServers();
-
     }
 
     public void run() {
 
-        logger.info("New ConnectorMgmt running");
+        logger.info(String.format("%s [%s] started", this.getClass().getSimpleName(), this.getName()));
         long previousNow = System.currentTimeMillis();
         long now;
         long totalTime;
@@ -61,11 +74,14 @@ public class ConnectorMgmt implements Runnable {
         try {
 
             while (doRun) {
-                wait();
+                // TODO monitor tcpGenericConnectors here
+                sleep(10000);
             }
         } catch (InterruptedException e) {
-            logger.error("InterruptedException", e);
+            if (doRun)
+                logger.error("InterruptedException", e);
         }
+        logger.info(String.format("%s [%s] stopped", this.getClass().getSimpleName(), this.getName()));
     }
 
     private ArrayList<TCPGenericConnector> constructConnectors(Config config,
@@ -96,13 +112,4 @@ public class ConnectorMgmt implements Runnable {
     }
 
 
-    public void stop() {
-
-        this.stopConnectors();
-
-        realTimeProcessorMgmt.stopAPIServer();
-
-        realTimeProcessorMgmt.stopInstance();
-
-    }
 }
