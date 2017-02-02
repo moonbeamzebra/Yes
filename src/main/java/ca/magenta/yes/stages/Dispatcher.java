@@ -6,6 +6,7 @@ import ca.magenta.utils.Runner;
 import ca.magenta.utils.ThreadRunnable;
 import ca.magenta.yes.Config;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -20,19 +21,18 @@ import java.util.concurrent.BlockingQueue;
 public class Dispatcher extends Runner {
 
     private static final long printEvery = 650000;
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     private final String partition;
     private final BlockingQueue<String> inputQueue;
     private final Config config;
     private long count = 0;
-    private RealTimeProcessorMgmt realTimeProcessorMgmt;
+    private final RealTimeProcessorMgmt realTimeProcessorMgmt;
     private final LongTermProcessorMgmt longTermProcessorMgmt;
 
-    public Dispatcher(String name, Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, String partition) {
+    public Dispatcher(String name, Config config, String partition) {
 
         super(name);
 
-        this.realTimeProcessorMgmt = realTimeProcessorMgmt;
 
         this.inputQueue = new ArrayBlockingQueue<String>(config.getDispatcherQueueDepth());
 
@@ -45,6 +45,9 @@ public class Dispatcher extends Runner {
                         config.getLongTermCuttingTime(),
                         config,
                         partition);
+
+        realTimeProcessorMgmt = new RealTimeProcessorMgmt("RealTimeProcessorMgmt", config.getRealTimeCuttingTime(), config, partition);
+
     }
 
     public void run() {
@@ -152,6 +155,7 @@ public class Dispatcher extends Runner {
     public synchronized void startInstance() throws AppException {
 
         longTermProcessorMgmt.startInstance();
+        realTimeProcessorMgmt.startInstance();
 
         super.startInstance();
     }
@@ -160,6 +164,7 @@ public class Dispatcher extends Runner {
     public synchronized void stopInstance() {
         super.stopInstance();
 
+        realTimeProcessorMgmt.stopInstance();
         longTermProcessorMgmt.stopInstance();
 
     }

@@ -44,7 +44,8 @@ public abstract class ProcessorMgmt extends Runner {
         try {
             Processor processor = createProcessor(inputQueue);
 
-            logger.info(String.format("New [%s] running", this.getClass().getSimpleName()));
+            logger.info(String.format("[%s] started for partition [%s]", this.getClass().getSimpleName(), partition));
+
             try {
 
                 while (doRun || !inputQueue.isEmpty()) {
@@ -88,6 +89,8 @@ public abstract class ProcessorMgmt extends Runner {
         } catch (AppException e) {
             logger.error("AppException", e);
         }
+
+        logger.info(String.format("[%s] stopped for partition [%s]", this.getClass().getSimpleName(), partition));
 
     }
 

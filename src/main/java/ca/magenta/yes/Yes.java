@@ -113,8 +113,9 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                 System.out.println(entry);
                 break;
             case RAW:
-                System.out.println(String.format("[%s] %s",
+                System.out.println(String.format("[%s][%s] %s",
                         normalizedLogRecord.prettyRxTimestamp(),
+                        normalizedLogRecord.getPartition(),
                         normalizedLogRecord.getMessage()));
                 break;
             case TWO_LINER:

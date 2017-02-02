@@ -3,6 +3,7 @@ package ca.magenta.yes.connector;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.Config;
+import ca.magenta.yes.Globals;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -10,12 +11,10 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.ArrayList;
 
-@Component
 public class ConnectorMgmt extends Runner {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private final RealTimeProcessorMgmt realTimeProcessorMgmt;
     private final Config config;
 
     ArrayList<TCPGenericConnector> tcpGenericConnectors;
@@ -25,19 +24,12 @@ public class ConnectorMgmt extends Runner {
         super("single");
 
         this.config = config;
-
-        realTimeProcessorMgmt =
-                new RealTimeProcessorMgmt("RealTimeProcessorMgmt",
-                        config.getRealTimeCuttingTime(),
-                        config, "single");
     }
 
     @Override
     public synchronized void startInstance() throws AppException {
 
-        realTimeProcessorMgmt.startInstance();
-
-        tcpGenericConnectors = constructConnectors(config, realTimeProcessorMgmt);
+        tcpGenericConnectors = constructConnectors(config);
         for (TCPGenericConnector tcpGenericConnector : tcpGenericConnectors) {
             tcpGenericConnector.startServer();
         }
@@ -49,8 +41,6 @@ public class ConnectorMgmt extends Runner {
     public synchronized void stopInstance() {
 
         this.stopConnectors();
-
-        realTimeProcessorMgmt.stopInstance();
 
         super.stopInstance();
     }
@@ -84,8 +74,7 @@ public class ConnectorMgmt extends Runner {
         logger.info(String.format("%s [%s] stopped", this.getClass().getSimpleName(), this.getName()));
     }
 
-    private ArrayList<TCPGenericConnector> constructConnectors(Config config,
-                                                               RealTimeProcessorMgmt realTimeProcessorMgmt) throws AppException {
+    private ArrayList<TCPGenericConnector> constructConnectors(Config config) throws AppException {
 
         ArrayList<TCPGenericConnector> tcpGenericConnectors = new ArrayList<TCPGenericConnector>();
         TCPGenericConnector tcpGenericConnector;
@@ -99,7 +88,7 @@ public class ConnectorMgmt extends Runner {
                 try {
                     String partition = items[0].trim();
                     int port = Integer.valueOf(items[1].trim());
-                    tcpGenericConnector = new TCPGenericConnector(partition, config, port, realTimeProcessorMgmt);
+                    tcpGenericConnector = new TCPGenericConnector(partition, config, port);
                     tcpGenericConnectors.add(tcpGenericConnector);
                 } catch (NumberFormatException e) {
                     throw new AppException(String.format("Bad GenericConnector port [%s]", connector), e);

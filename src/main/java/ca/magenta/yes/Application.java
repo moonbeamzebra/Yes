@@ -17,13 +17,11 @@ public class Application {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Application.class.getPackage().getName());
 
 
-    final ConnectorMgmt connectorMgmt;
 
 
-    public Application(ConnectorMgmt connectorMgmt) throws AppException {
-        this.connectorMgmt = connectorMgmt;
+    public Application(Globals globals) throws AppException {
 
-        this.connectorMgmt.startInstance();
+        Globals.startEverything();
 
     }
 
@@ -36,9 +34,7 @@ public class Application {
             @Override
             public void onApplicationEvent(ContextClosedEvent event) {
 
-
-                ConnectorMgmt connectorMgmt = (ConnectorMgmt) event.getApplicationContext().getBean("connectorMgmt");
-                connectorMgmt.stopInstance();
+                Globals.stopEverything();
 
                 logger.info(String.format("ContextClosedEvent: [%s]", event.toString()));
 

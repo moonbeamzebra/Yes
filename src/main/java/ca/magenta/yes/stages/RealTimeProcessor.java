@@ -8,6 +8,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.RAMDirectory;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -17,7 +18,7 @@ import java.util.concurrent.BlockingQueue;
 
 public class RealTimeProcessor extends Processor {
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RealTimeProcessor.class.getPackage().getName());
+    private static final Logger logger = LoggerFactory.getLogger(RealTimeProcessor.class.getName());
 
     public RealTimeProcessor(String name, String partition, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
         super(name, partition, inputQueue);

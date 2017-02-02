@@ -20,16 +20,14 @@ public class TCPGenericConnector extends AbstractTCPServer
     private final LogParser logParser;
 
     private final Config config;
-    private final RealTimeProcessorMgmt realTimeProcessorMgmt;
 
-    public TCPGenericConnector(String partitionName, Config config, int port, RealTimeProcessorMgmt realTimeProcessorMgmt )
+    public TCPGenericConnector(String partitionName, Config config, int port )
     {
         super(partitionName, port);
 
         this.config = config;
-        this.realTimeProcessorMgmt =  realTimeProcessorMgmt;
 
-        logParser = new LogParser(partitionName, config, realTimeProcessorMgmt, partitionName);
+        logParser = new LogParser(partitionName, config, partitionName);
 
     }
 

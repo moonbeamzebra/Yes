@@ -29,7 +29,6 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
         super(name, partition, cuttingTime, config);
 
 
-        logger.info(String.format("New LongTermProcessorMgmt running for partition [%s]", partition));
 
         masterIndexPathName = config.getIndexBaseDirectory() +
                 File.separator +

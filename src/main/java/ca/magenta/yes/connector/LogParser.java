@@ -22,7 +22,6 @@ public class LogParser extends Runner {
 
     private BlockingQueue<String> inputQueue;
     private final Config config;
-    private final RealTimeProcessorMgmt realTimeProcessorMgmt;
     private final Dispatcher dispatcher;
 
 
@@ -32,11 +31,10 @@ public class LogParser extends Runner {
 
     private long count = 0;
 
-    public LogParser(String name, Config config, RealTimeProcessorMgmt realTimeProcessorMgmt, String partition) {
+    public LogParser(String name, Config config, String partition) {
 
         super(name);
 
-        this.realTimeProcessorMgmt = realTimeProcessorMgmt;
 
         this.inputQueue = new ArrayBlockingQueue<String>(config.getLogParserQueueDepth());
 
@@ -44,7 +42,7 @@ public class LogParser extends Runner {
 
         this.partition = partition;
 
-        dispatcher = new Dispatcher(this.partition, config, realTimeProcessorMgmt, this.partition);
+        dispatcher = new Dispatcher(this.partition, config, this.partition);
 
     }
 
