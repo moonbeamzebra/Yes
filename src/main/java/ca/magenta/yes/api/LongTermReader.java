@@ -1,11 +1,9 @@
 package ca.magenta.yes.api;
 
-import ca.magenta.utils.ThreadRunnable;
+import ca.magenta.utils.Runner;
 import ca.magenta.utils.TimeRange;
-import ca.magenta.yes.connector.common.IndexSubscriber;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedLogRecord;
-import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
@@ -19,23 +17,19 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.nio.file.Paths;
-import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * @author jean-paul.laberge <jplaberge@magenta.ca>
  * @version 0.1
  * @since 2014-12-07
  */
-public class LongTermReader extends ThreadRunnable {
+public class LongTermReader extends Runner {
 
 
     public static Logger logger = Logger.getLogger(LongTermReader.class);
@@ -44,7 +38,6 @@ public class LongTermReader extends ThreadRunnable {
 
     private final String indexBaseDirectory;
 
-    private final String name;
     private final TimeRange periodTimeRange;
     private final String searchString;
 
@@ -54,7 +47,6 @@ public class LongTermReader extends ThreadRunnable {
 
         super(name);
 
-        this.name = name;
         this.indexBaseDirectory = indexBaseDirectory;
         this.periodTimeRange = periodTimeRange;
         this.searchString = searchString;
@@ -63,7 +55,7 @@ public class LongTermReader extends ThreadRunnable {
 
     public void run() {
 
-        logger.debug("New LongTermReader " + name + " running");
+        logger.debug("New LongTermReader " + this.getName() + " running");
 
         try {
             doLongTerm(indexBaseDirectory, periodTimeRange, searchString, client);

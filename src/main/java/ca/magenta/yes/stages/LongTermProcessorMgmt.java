@@ -10,6 +10,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.document.*;
 import org.apache.lucene.store.FSDirectory;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -21,14 +22,12 @@ import java.util.concurrent.BlockingQueue;
 
 public class LongTermProcessorMgmt extends ProcessorMgmt {
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermProcessorMgmt.class.getPackage().getName());
+    private static final Logger logger = LoggerFactory.getLogger(LongTermProcessorMgmt.class.getPackage().getName());
 
     private final String masterIndexPathName;
 
     public LongTermProcessorMgmt(String name, long cuttingTime, Config config, String partition) {
         super(name, partition, cuttingTime, config);
-
-
 
         masterIndexPathName = config.getIndexBaseDirectory() +
                 File.separator +

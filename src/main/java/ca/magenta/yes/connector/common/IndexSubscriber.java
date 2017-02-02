@@ -1,10 +1,9 @@
 package ca.magenta.yes.connector.common;
 
-import ca.magenta.utils.ThreadRunnable;
+import ca.magenta.utils.Runner;
 import ca.magenta.yes.data.NormalizedLogRecord;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -16,12 +15,9 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
-import org.apache.log4j.Logger;
-import org.apache.lucene.store.FSDirectory;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -30,14 +26,13 @@ import java.util.concurrent.BlockingQueue;
  * @version 0.1
  * @since 2014-12-04
  */
-public abstract class IndexSubscriber extends ThreadRunnable {
+public abstract class IndexSubscriber extends Runner {
 
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final int MAX_QUERY_SIZE = 1000;
 
-    private String name = null;
     private final String searchString;
 
     private BlockingQueue<Directory> queue = null;
@@ -46,7 +41,6 @@ public abstract class IndexSubscriber extends ThreadRunnable {
 
         super(name);
 
-        this.name = name;
         this.searchString = searchString;
         //ShortTermProcessorMgmt.indexPublisher().subscribe(this);
         RealTimeProcessorMgmt.indexPublisher().subscribe(this);
@@ -59,7 +53,7 @@ public abstract class IndexSubscriber extends ThreadRunnable {
 
     public void run() {
 
-        logger.info("New IndexSubscriber " + name + " running");
+        logger.info("New IndexSubscriber " + this.getName() + " running");
         queue = new ArrayBlockingQueue<Directory>(300000);
         IndexReader reader = null;
         try {
@@ -122,13 +116,8 @@ public abstract class IndexSubscriber extends ThreadRunnable {
         RealTimeProcessorMgmt.indexPublisher().unsubscribe(this);
         queue.clear();
         queue = null;
-        logger.debug("IndexSubscriber " + name + " stops running; queue emptied");
+        logger.debug("IndexSubscriber " + this.getName() + " stops running; queue emptied");
     }
 
     protected abstract void forward(String message);
-
-    public String getName() {
-        return name;
-    }
-
 }

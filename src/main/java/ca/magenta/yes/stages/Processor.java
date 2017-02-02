@@ -6,6 +6,7 @@ import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.Directory;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -16,7 +17,7 @@ import java.util.concurrent.BlockingQueue;
 
 public abstract class Processor implements Runnable {
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Processor.class.getPackage().getName());
+    private static final Logger logger = LoggerFactory.getLogger(Processor.class.getPackage().getName());
 
 
     private final String name;
@@ -32,8 +33,6 @@ public abstract class Processor implements Runnable {
     private volatile boolean doRun = true;
 
     private RunTimeStamps runTimeStamps;
-    //    private long olderTimestamp = System.currentTimeMillis();
-//    private long newerTimestamp = System.currentTimeMillis();
     private final long startTime;
     private long hiWaterMarkQueueLength = 0;
     long previousNow = System.currentTimeMillis();
@@ -67,20 +66,13 @@ public abstract class Processor implements Runnable {
         thisRunCount = 0;
         reportCount = 0;
         runTimeStamps = new RunTimeStamps();
-//        olderTimestamp = Long.MAX_VALUE;
-//        newerTimestamp = 0;
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
                 HashMap<String, Object> message = inputQueue.take();
                 long srcTimestamp = Long.valueOf((String) message.get("srcTimestamp"));
-                //long srcTimestamp = (long) message.get("srcTimestamp");
                 long rxTimestamp = Long.valueOf((String) message.get("rxTimestamp"));
                 runTimeStamps.compute(srcTimestamp, rxTimestamp);
-//                if (timestamp < olderTimestamp)
-//                    olderTimestamp = timestamp;
-//                if (timestamp > newerTimestamp)
-//                    newerTimestamp = timestamp;
                 if (logger.isDebugEnabled())
                     logger.debug("Processor received: " + message);
                 try {
@@ -110,7 +102,6 @@ public abstract class Processor implements Runnable {
     synchronized void commitAndClose() throws IOException {
         luceneIndexWriter.commit();
         luceneIndexWriter.close();
-        //indexDir.close();
 
     }
 
@@ -173,7 +164,6 @@ public abstract class Processor implements Runnable {
             luceneIndexWriter.addDocument(document);
             if (logger.isDebugEnabled())
                 logger.debug("Document added");
-            //luceneIndexWriter.commit();
         } catch (IOException e) {
             throw new AppException("IOException", e);
         }

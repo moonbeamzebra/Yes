@@ -3,7 +3,6 @@ package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
-import ca.magenta.utils.ThreadRunnable;
 import ca.magenta.yes.Config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;

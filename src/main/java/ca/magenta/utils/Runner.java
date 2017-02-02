@@ -19,6 +19,7 @@ abstract public class Runner extends Thread {
     }
 
     public synchronized void startInstance() throws AppException {
+        doRun = true;
         this.start();
         logger.debug(String.format("%s [%s] started", this.getClass().getSimpleName(), this.getName()));
     }

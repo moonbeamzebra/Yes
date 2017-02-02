@@ -3,12 +3,8 @@ package ca.magenta.yes.connector;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.Config;
-import ca.magenta.yes.Globals;
-import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 public class ConnectorMgmt extends Runner {
