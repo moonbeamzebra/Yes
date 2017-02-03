@@ -1,19 +1,25 @@
 package ca.magenta.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 abstract public class AbstractTCPServer extends Thread
 {
 
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName());
 
     protected ServerSocket serverSocket;
     private int port;
     protected boolean doRun = false;
 
-    private HashSet<AbstractTCPServerHandler> tcpServerHandlers = new HashSet<AbstractTCPServerHandler>();
+    private HashMap<String, AbstractTCPServerHandler> tcpServerHandlers = new HashMap<String, AbstractTCPServerHandler>();
 
     public AbstractTCPServer(String name, int port )
     {
@@ -43,8 +49,9 @@ abstract public class AbstractTCPServer extends Thread
             e.printStackTrace();
         }
 
-        for (AbstractTCPServerHandler requestHandler : tcpServerHandlers)
+        for (Map.Entry<String, AbstractTCPServerHandler> requestHandlerSet : tcpServerHandlers.entrySet())
         {
+            AbstractTCPServerHandler requestHandler = requestHandlerSet.getValue();
             if ( requestHandler != null ) {
                 requestHandler.stopIt();
                 requestHandler.closeSocket();
@@ -53,12 +60,12 @@ abstract public class AbstractTCPServer extends Thread
         }
     }
 
-    synchronized protected void addTcpServerHandler(AbstractTCPServerHandler abstractTCPServerHandler) {
-        tcpServerHandlers.add(abstractTCPServerHandler);
+    protected void addTcpServerHandler(AbstractTCPServerHandler abstractTCPServerHandler) {
+        tcpServerHandlers.put(abstractTCPServerHandler.getName(), abstractTCPServerHandler);
     }
 
-    public synchronized void removeTcpServerHandler(AbstractTCPServerHandler abstractTCPServerHandler) {
-        tcpServerHandlers.remove(abstractTCPServerHandler);
+    public void removeTcpServerHandler(AbstractTCPServerHandler abstractTCPServerHandler) {
+        tcpServerHandlers.remove(abstractTCPServerHandler.getName());
     }
 
     synchronized public int getClientCount() {

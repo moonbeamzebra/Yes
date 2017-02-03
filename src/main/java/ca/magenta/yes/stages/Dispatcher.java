@@ -168,6 +168,17 @@ public class Dispatcher extends Runner {
 
     }
 
+    public synchronized void letDrain() {
 
+        logger.info(String.format("[%s]:Test queue emptiness [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
+        while (!inputQueue.isEmpty()) {
+            logger.info(String.format("[%s]:Let drain [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                logger.error("InterruptedException", e);
+            }
+        }
+    }
 
 }

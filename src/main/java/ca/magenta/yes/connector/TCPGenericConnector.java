@@ -33,19 +33,23 @@ public class TCPGenericConnector extends AbstractTCPServer
 
     @Override
     public void startServer() throws AppException {
-        //Start drains
+        //Start drain
         logParser.startInstance();
 
+        //Start source
         super.startServer();
     }
 
     @Override
     synchronized public void stopServer()
     {
+        // Stop source
         super.stopServer();
 
-        //Stop drains
+        logParser.letDrain();
 
+        //Stop drain
+        logParser.stopInstance();
 
     }
 
