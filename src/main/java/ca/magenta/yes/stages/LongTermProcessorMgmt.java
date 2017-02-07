@@ -2,13 +2,15 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
-import ca.magenta.yes.Config;
+import ca.magenta.yes.Globals;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.document.*;
 import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -26,10 +27,10 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
 
     private final String masterIndexPathName;
 
-    public LongTermProcessorMgmt(String name, long cuttingTime, Config config, String partition) {
-        super(name, partition, cuttingTime, config);
+    public LongTermProcessorMgmt(String name, long cuttingTime, String partition) {
+        super(name, partition, cuttingTime);
 
-        masterIndexPathName = config.getIndexBaseDirectory() +
+        masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
                 File.separator +
                 "master.lucene";
 
@@ -109,7 +110,7 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
         logger.info(String.format("Done"));
     }
 
-    Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException {
+    Processor createProcessor(BlockingQueue<Object> queue) throws AppException {
 
         return new LongTermProcessor("LongTermProcessor", partition, queue);
 

@@ -79,4 +79,9 @@ public class Globals {
     public static IndexPublisher getIndexPublisher() {
         return indexPublisher;
     }
+
+    public static Config getConfig() {
+
+        return config;
+    }
 }

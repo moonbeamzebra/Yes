@@ -21,7 +21,7 @@ public class LongTermProcessor extends Processor {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermProcessor.class.getPackage().getName());
 
-    public LongTermProcessor(String name, String partition, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
+    public LongTermProcessor(String name, String partition, BlockingQueue<Object> inputQueue) throws AppException {
         super(name, partition, inputQueue);
     }
 

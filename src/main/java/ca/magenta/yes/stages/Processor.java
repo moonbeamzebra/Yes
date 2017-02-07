@@ -24,7 +24,7 @@ public abstract class Processor implements Runnable {
     final String partition;
 
 
-    private BlockingQueue<HashMap<String, Object>> inputQueue;
+    private BlockingQueue<Object> inputQueue;
 
 
     Directory indexDir;
@@ -49,7 +49,7 @@ public abstract class Processor implements Runnable {
     private static final long printEvery = 100000;
 
 
-    public Processor(String name, String partition, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
+    public Processor(String name, String partition, BlockingQueue<Object> inputQueue) throws AppException {
 
         this.name = name;
         this.partition = partition;
@@ -69,7 +69,7 @@ public abstract class Processor implements Runnable {
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
-                HashMap<String, Object> message = inputQueue.take();
+                HashMap<String, Object> message = takeFromQueue();
                 long srcTimestamp = Long.valueOf((String) message.get("srcTimestamp"));
                 long rxTimestamp = Long.valueOf((String) message.get("rxTimestamp"));
                 runTimeStamps.compute(srcTimestamp, rxTimestamp);
@@ -171,10 +171,6 @@ public abstract class Processor implements Runnable {
 
     }
 
-    public void setInputQueue(BlockingQueue<HashMap<String, Object>> inputQueue) {
-        this.inputQueue = inputQueue;
-    }
-
     public abstract void createIndex(String indexPath) throws AppException;
 
     public RunTimeStamps getRunTimeStamps() {
@@ -251,5 +247,10 @@ public abstract class Processor implements Runnable {
             this.runEndTimestamp = runEndTimestamp;
         }
     }
+
+    private HashMap<String, Object> takeFromQueue() throws InterruptedException {
+        return (HashMap<String, Object>) inputQueue.take();
+    }
+
 
 }

@@ -1,9 +1,8 @@
 package ca.magenta.yes.stages;
 
-
 import ca.magenta.utils.AppException;
-import ca.magenta.utils.Runner;
-import ca.magenta.yes.Config;
+import ca.magenta.utils.QueueProcessor;
+import ca.magenta.yes.Globals;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,39 +12,23 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
+public class Dispatcher extends QueueProcessor {
 
-public class Dispatcher extends Runner {
-
-    private static final long printEvery = 650000;
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
-    private final String partition;
-    private final BlockingQueue<String> inputQueue;
-    private final Config config;
-    private long count = 0;
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
     private final LongTermProcessorMgmt longTermProcessorMgmt;
 
-    public Dispatcher(String name, Config config, String partition) {
+    public Dispatcher(String name, String partition) {
 
-        super(name);
-
-
-        this.inputQueue = new ArrayBlockingQueue<String>(config.getDispatcherQueueDepth());
-
-        this.partition = partition;
-
-        this.config = config;
+        super(name, partition, Globals.getConfig().getDispatcherQueueDepth(), 650000);
 
         longTermProcessorMgmt =
                 new LongTermProcessorMgmt("LongTermProcessorMgmt",
-                        config.getLongTermCuttingTime(),
-                        config,
+                        Globals.getConfig().getLongTermCuttingTime(),
                         partition);
 
-        realTimeProcessorMgmt = new RealTimeProcessorMgmt("RealTimeProcessorMgmt", config.getRealTimeCuttingTime(), config, partition);
+        realTimeProcessorMgmt = new RealTimeProcessorMgmt("RealTimeProcessorMgmt", Globals.getConfig().getRealTimeCuttingTime(), partition);
 
     }
 
@@ -66,8 +49,8 @@ public class Dispatcher extends Runner {
         long maxQueueLength = 0;
         try {
 
-            while (doRun || !inputQueue.isEmpty()) {
-                String jsonMsg = inputQueue.take();
+            while (doRun) {
+                String jsonMsg = takeFromQueue();
                 logger.debug("Dispatcher received: " + jsonMsg);
                 HashMap<String, Object> hashedMsg = null;
                 try {
@@ -128,27 +111,14 @@ public class Dispatcher extends Runner {
         longTermProcessorMgmt.stopInstance();
     }
 
-    public BlockingQueue<String> getInputQueue() {
-        return inputQueue;
-    }
-
     public void putInQueue(String jsonMsg) throws InterruptedException {
 
-        inputQueue.put(jsonMsg);
-
-        if (logger.isWarnEnabled()) {
-            int length = inputQueue.size();
-            float percentFull = length / config.getDispatcherQueueDepth();
-
-            if (percentFull > config.getQueueDepthWarningThreshold())
-                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
-                                "queue length:[%d] " +
-                                "Percent:[%f] " +
-                                "Threshold:[%f]",
-                        config.getDispatcherQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
-        }
-
+        this.putInQueueImpl(jsonMsg,  Globals.getConfig().getQueueDepthWarningThreshold());
     }
+
+     private String takeFromQueue() throws InterruptedException {
+         return (String) inputQueue.take();
+     }
 
     @Override
     public synchronized void startInstance() throws AppException {
@@ -167,18 +137,4 @@ public class Dispatcher extends Runner {
         longTermProcessorMgmt.stopInstance();
 
     }
-
-    public synchronized void letDrain() {
-
-        logger.info(String.format("[%s]:Test queue emptiness [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
-        while (!inputQueue.isEmpty()) {
-            logger.info(String.format("[%s]:Let drain [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                logger.error("InterruptedException", e);
-            }
-        }
-    }
-
 }

@@ -1,8 +1,10 @@
 package ca.magenta.yes.connector;
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.QueueProcessor;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.Config;
+import ca.magenta.yes.Globals;
 import ca.magenta.yes.stages.Dispatcher;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,35 +17,17 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public class LogParser extends Runner {
+public class LogParser extends QueueProcessor {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName());
 
-
-    private BlockingQueue<String> inputQueue;
-    private final Config config;
     private final Dispatcher dispatcher;
-
-
-    private final String partition;
-
-    private static final long printEvery = 100000;
-
-    private long count = 0;
 
     public LogParser(String name, Config config, String partition) {
 
-        super(name);
+        super(name, partition, Globals.getConfig().getLogParserQueueDepth(), 100000);
 
-
-        this.inputQueue = new ArrayBlockingQueue<String>(config.getLogParserQueueDepth());
-
-        this.config = config;
-
-        this.partition = partition;
-
-        dispatcher = new Dispatcher(this.partition, config, this.partition);
-
+        dispatcher = new Dispatcher(this.partition, this.partition);
     }
 
     public void run() {
@@ -59,7 +43,7 @@ public class LogParser extends Runner {
         while (doRun) {
             String logMsg = null;
             try {
-                logMsg = inputQueue.take();
+                logMsg = takeFromQueue();
                 try {
                     dispatchParsingAndProcessing(logMsg, dispatcher);
                 } catch (JsonProcessingException e) {
@@ -146,35 +130,46 @@ public class LogParser extends Runner {
 
     }
 
+    private String takeFromQueue() throws InterruptedException {
+        return (String) inputQueue.take();
+    }
+
     public void putInQueue(String message) throws InterruptedException {
 
-        inputQueue.put(message);
-
-        if (logger.isWarnEnabled()) {
-            int length = inputQueue.size();
-            float percentFull = length / config.getLogParserQueueDepth();
-
-            if (percentFull > config.getQueueDepthWarningThreshold())
-                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
-                                "queue length:[%d] " +
-                                "Percent:[%f] " +
-                                "Threshold:[%f]",
-                        config.getLogParserQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
-        }
-
+        this.putInQueueImpl(message,  Globals.getConfig().getQueueDepthWarningThreshold());
     }
 
-    public synchronized void letDrain() {
 
-        logger.info(String.format("[%s]:Test queue emptiness [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
-        while (!inputQueue.isEmpty()) {
-            logger.info(String.format("[%s]:Let drain [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                logger.error("InterruptedException", e);
-            }
-        }
-    }
+
+//    public void putInQueue(String message) throws InterruptedException {
+//
+//        inputQueue.put(message);
+//
+//        if (logger.isWarnEnabled()) {
+//            int length = inputQueue.size();
+//            float percentFull = length / config.getLogParserQueueDepth();
+//
+//            if (percentFull > config.getQueueDepthWarningThreshold())
+//                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
+//                                "queue length:[%d] " +
+//                                "Percent:[%f] " +
+//                                "Threshold:[%f]",
+//                        config.getLogParserQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
+//        }
+//
+//    }
+
+//    public synchronized void letDrain() {
+//
+//        logger.info(String.format("[%s]:Test queue emptiness [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
+//        while (!inputQueue.isEmpty()) {
+//            logger.info(String.format("[%s]:Let drain [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
+//            try {
+//                Thread.sleep(200);
+//            } catch (InterruptedException e) {
+//                logger.error("InterruptedException", e);
+//            }
+//        }
+//    }
 
 }

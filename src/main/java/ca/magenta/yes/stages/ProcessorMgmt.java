@@ -2,8 +2,10 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.QueueProcessor;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.Config;
+import ca.magenta.yes.Globals;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
 
@@ -14,27 +16,17 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public abstract class ProcessorMgmt extends Runner {
+public abstract class ProcessorMgmt extends QueueProcessor {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    final String partition;
-
     private final long cuttingTime;
-    final Config config;
 
+    public ProcessorMgmt(String name, String partition, long cuttingTime) {
 
-    private final BlockingQueue<HashMap<String, Object>> inputQueue;
+        super( name, partition, Globals.getConfig().getProcessorQueueDepth(), 650000);
 
-    public ProcessorMgmt(String name, String partition, long cuttingTime, Config config) {
-
-        super(name);
-
-        this.partition = partition;
         this.cuttingTime = cuttingTime;
-        this.inputQueue = new ArrayBlockingQueue<HashMap<String, Object>>(config.getProcessorQueueDepth());
-        this.config = config;
-
     }
 
     public void run() {
@@ -47,8 +39,8 @@ public abstract class ProcessorMgmt extends Runner {
             logger.info(String.format("[%s] started for partition [%s]", this.getClass().getSimpleName(), partition));
 
 
-            while ( doRun ) {
-                String indexPath = config.getIndexBaseDirectory() + File.separator;
+            while ( doRun || (!inputQueue.isEmpty()) ) {
+                String indexPath = Globals.getConfig().getIndexBaseDirectory() + File.separator;
                 String indexPathName = indexPath +
                         this.getClass().getSimpleName() + "." +
                         java.util.UUID.randomUUID();
@@ -66,18 +58,9 @@ public abstract class ProcessorMgmt extends Runner {
                 }
                 if ( ! doRun )
                 {
-                    logger.info(String.format("[%s]:Test queue emptiness [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
-                    // Let processor drains
-                    while (!inputQueue.isEmpty()) {
-                        logger.info(String.format("[%s]:Let drain [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
-                        try {
-                            Thread.sleep(200);
-                        } catch (InterruptedException e) {
-                            logger.error("InterruptedException", e);
-                        }
-                    }
+                    // The still running processor take care of draining the queue
+                    this.letDrain();
                 }
-
 
                 if (logger.isDebugEnabled())
                     logger.debug("Time to rotate...stop the thread");
@@ -120,24 +103,28 @@ public abstract class ProcessorMgmt extends Runner {
 
     abstract void deleteUnusedIndex(String indexPathName);
 
-    abstract Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException;
+    abstract Processor createProcessor(BlockingQueue<Object>  queue) throws AppException;
 
 
-    synchronized public void putInQueue(HashMap<String, Object> logstashMessage) throws InterruptedException {
+    synchronized public void putInQueue(HashMap<String, Object> message) throws InterruptedException {
 
-        inputQueue.put(logstashMessage);
 
-        if (logger.isWarnEnabled()) {
-            int length = inputQueue.size();
-            float percentFull = length / config.getProcessorQueueDepth();
+            this.putInQueueImpl(message,  Globals.getConfig().getQueueDepthWarningThreshold());
 
-            if (percentFull > config.getQueueDepthWarningThreshold())
-                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
-                                "queue length:[%d] " +
-                                "Percent:[%f] " +
-                                "Threshold:[%f]",
-                        config.getProcessorQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
-        }
+
+//        inputQueue.put(message);
+
+//        if (logger.isWarnEnabled()) {
+//            int length = inputQueue.size();
+//            float percentFull = length / config.getProcessorQueueDepth();
+//
+//            if (percentFull > config.getQueueDepthWarningThreshold())
+//                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
+//                                "queue length:[%d] " +
+//                                "Percent:[%f] " +
+//                                "Threshold:[%f]",
+//                        config.getProcessorQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
+//        }
 
     }
 }

@@ -20,7 +20,7 @@ public class RealTimeProcessor extends Processor {
 
     private static final Logger logger = LoggerFactory.getLogger(RealTimeProcessor.class.getName());
 
-    public RealTimeProcessor(String name, String partition, BlockingQueue<HashMap<String, Object>> inputQueue) throws AppException {
+    public RealTimeProcessor(String name, String partition, BlockingQueue<Object> inputQueue) throws AppException {
         super(name, partition, inputQueue);
     }
 

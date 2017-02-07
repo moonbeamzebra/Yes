@@ -19,8 +19,8 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     private static IndexPublisher indexPublisher = Globals.getIndexPublisher();
 
 
-    public RealTimeProcessorMgmt(String name, long cuttingTime, Config config, String partition) {
-        super(name, partition, cuttingTime, config);
+    public RealTimeProcessorMgmt(String name, long cuttingTime, String partition) {
+        super(name, partition, cuttingTime);
 
 
     }
@@ -56,7 +56,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
     @Override
-    Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException {
+    Processor createProcessor(BlockingQueue<Object> queue) throws AppException {
 
         return new RealTimeProcessor("RealTimeProcessor", partition, queue);
 
