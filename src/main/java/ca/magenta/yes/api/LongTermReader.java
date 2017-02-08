@@ -13,10 +13,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.FSDirectory;
 
 import java.io.File;
@@ -145,18 +142,36 @@ public class LongTermReader extends Runner {
         Analyzer analyzer = new StandardAnalyzer();
         QueryParser queryParser = new QueryParser("message", analyzer);
         Query query = queryParser.parse(masterSearchString);
-        TopDocs results = searcher.search(query, 1000);
-        //System.out.println("Number of hits: " + results.totalHits);
-        for (ScoreDoc scoreDoc : results.scoreDocs) {
-            //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
-            Document doc = searcher.doc(scoreDoc.doc);
-            MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
-            //String key = String.format("{timestamp : %s, device : %s, source : %s, dest : %s, port : %s }",doc.get("timestamp"),doc.get("device"),doc.get("source"),doc.get("dest"),doc.get("port") );
-            //System.out.println("Found:" + doc.toString());
-            //System.out.println("Found:" + masterIndexRecord.toString());
-            searchLongTermIndex(indexBaseDirectory, masterIndexRecord.getLongTermIndexName(), periodTimeRange, searchString, client);
 
+        int maxTotalHits = 1000;
+
+        ScoreDoc lastScoreDoc = null;
+        int totalRead = maxTotalHits; // just to let enter in the following loop
+        while ( (totalRead >= maxTotalHits) ) {
+            TopDocs results;
+
+            results = searcher.searchAfter(lastScoreDoc, query, maxTotalHits, new Sort(new SortField("olderRxTimestamp",SortField.Type.LONG, false)));
+
+            int totalHits = results.totalHits;
+            totalRead = results.scoreDocs.length;
+            System.out.println("detail Number of hits: " + totalHits);
+            System.out.println("detail total read: " + totalRead);
+            System.out.println("lastScoreDoc : [" + lastScoreDoc + "]");
+
+            for (ScoreDoc scoreDoc : results.scoreDocs) {
+                lastScoreDoc = scoreDoc;
+                //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
+                Document doc = searcher.doc(scoreDoc.doc);
+                MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
+                //String key = String.format("{timestamp : %s, device : %s, source : %s, dest : %s, port : %s }",doc.get("timestamp"),doc.get("device"),doc.get("source"),doc.get("dest"),doc.get("port") );
+                //System.out.println("Found:" + doc.toString());
+                //System.out.println("Found:" + masterIndexRecord.toString());
+                searchLongTermIndex(indexBaseDirectory, masterIndexRecord.getLongTermIndexName(), periodTimeRange, searchString, client);
+
+            }
         }
+
+        System.out.println("lastScoreDoc : [" + lastScoreDoc + "]");
 
         reader.close();
 
@@ -188,27 +203,49 @@ public class LongTermReader extends Runner {
         IndexSearcher searcher = new IndexSearcher(reader);
 
 
+
         Analyzer analyzer = new KeywordAnalyzer();
         //Analyzer analyzer = new StandardAnalyzer();
         QueryParser queryParser = new QueryParser("message", analyzer);
         Query query = queryParser.parse(completeSearchStr);
-        TopDocs results = searcher.search(query, 1000);
-        //System.out.println("Number of hits: " + results.totalHits);
-        for (ScoreDoc scoreDoc : results.scoreDocs) {
-            //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
-            Document doc = searcher.doc(scoreDoc.doc);
-            //String key = String.format("{timestamp : %s, device : %s, source : %s, dest : %s, port : %s }",doc.get("timestamp"),doc.get("device"),doc.get("source"),doc.get("dest"),doc.get("port") );
-            //System.out.println("Found:" + doc.toString());
-            NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
-            //System.out.println("Found:" + normalizedLogRecord.toString());
 
-            if (client != null) {
-                logger.debug("Out to client");
-                client.println(normalizedLogRecord.toJson());
+
+        int maxTotalHits = 5;
+
+        ScoreDoc lastScoreDoc = null;
+        int totalRead = maxTotalHits; // just to let enter in the following loop
+        while ( (totalRead >= maxTotalHits) ) {
+            TopDocs results;
+
+            //results = searcher.searchAfter(lastScoreDoc, query, maxTotalHits);
+            results = searcher.searchAfter(lastScoreDoc, query, maxTotalHits, new Sort(new SortField("rxTimestamp",SortField.Type.STRING, false)));
+
+
+            int totalHits = results.totalHits;
+            totalRead = results.scoreDocs.length;
+            System.out.println("detail Number of hits: " + totalHits);
+            System.out.println("detail total read: " + totalRead);
+            System.out.println("lastScoreDoc : [" + lastScoreDoc + "]");
+
+            for (ScoreDoc scoreDoc : results.scoreDocs) {
+                lastScoreDoc = scoreDoc;
+
+                //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
+                Document doc = searcher.doc(scoreDoc.doc);
+                //String key = String.format("{timestamp : %s, device : %s, source : %s, dest : %s, port : %s }",doc.get("timestamp"),doc.get("device"),doc.get("source"),doc.get("dest"),doc.get("port") );
+                //System.out.println("Found:" + doc.toString());
+                NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
+                //System.out.println("Found:" + normalizedLogRecord.toString());
+
+                if (client != null) {
+                    logger.debug("Out to client");
+                    client.println(normalizedLogRecord.toJson());
+                }
+
+
             }
-
-
         }
+        System.out.println("lastScoreDoc : [" + lastScoreDoc + "]");
 
         reader.close();
 

@@ -7,6 +7,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -64,7 +65,8 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
 
         Document document = new Document();
 
-        document.add(new StringField("olderTxTimestamp", Long.toString(runTimeStamps.getOlderSrcTimestamp()), Field.Store.YES));
+        //JPL document.add(new StringField("olderTxTimestamp", Long.toString(runTimeStamps.getOlderSrcTimestamp()), Field.Store.YES, Field.));
+        document.add(new SortedNumericDocValuesField("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
 //        document.add(new LongPoint("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
 //        document.add(new StoredField("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
         document.add(new StringField("newerTxTimestamp", Long.toString(runTimeStamps.getNewerSrcTimestamp()), Field.Store.YES));
