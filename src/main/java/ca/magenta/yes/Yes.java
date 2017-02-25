@@ -2,8 +2,12 @@ package ca.magenta.yes;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.api.LongTermReader;
 import ca.magenta.yes.data.NormalizedLogRecord;
 import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
+import org.apache.lucene.search.Query;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
@@ -53,12 +57,9 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
 
         if (rc == 0) {
 
-            if (realTime)
-            {
+            if (realTime) {
                 doRealTime();
-            }
-            else if (longTerm)
-            {
+            } else if (longTerm) {
                 doLongTerm(periodTimeRange, searchString);
             }
 
@@ -83,17 +84,24 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             String entry;
             boolean doRun = true;
 
+            String lastMessage = "";
             while (doRun && (entry = fromServer.readLine()) != null) {
-                if ( ! ("End of data".equals(entry)) ) {
+                if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
                     printEntry(entry);
-                }
-                else
+                } else {
+                    lastMessage = entry;
                     doRun = false;
+                }
 
             }
 
             fromServer.close();
             apiServer.close();
+
+            if (lastMessage.length() > LongTermReader.END_DATA_STRING.length()) {
+                logger.error(String.format("%s", lastMessage));
+            }
+
         } catch (Throwable t) {
             t.printStackTrace();
         }
@@ -107,8 +115,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             normalizedLogRecord = NormalizedLogRecord.fromJson(entry);
 
         // DEFAULT, RAW, JSON, TWO_LINER
-        switch (outputOption)
-        {
+        switch (outputOption) {
             case JSON:
                 System.out.println(entry);
                 break;
@@ -304,7 +311,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                         logger.error("Bad apiServerPort: [" + apiServerPortStr + "]");
                         rc = 1;
                     }
-                // --raw|--json|--2liner
+                    // --raw|--json|--2liner
                 } else if (a_sArgs[i].toLowerCase().equals("--raw")) {
                     outputOption = OutputOption.RAW;
                     logger.info("Output: RAW");
@@ -343,15 +350,12 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             }
         }
 
-        if  (   ( (realTime != true) && (longTerm != true) ) ||
-                (  realTime == longTerm)
-            )
-        {
+        if (((realTime != true) && (longTerm != true)) ||
+                (realTime == longTerm)
+                ) {
             System.err.println("Select Real Time OR Long Term mode");
             rc = 1;
-        }
-        else
-        {
+        } else {
             if (realTime) {
                 if ((apiServerAddr == null) ||
                         (apiServerPort == -1) ||
@@ -359,18 +363,17 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                     System.err.println("In Real Time mode; apiServerAddr, apiServerPort and searchString most be specified");
                     rc = 1;
                 }
-            }
-            else if (longTerm)
-            {
+            } else if (longTerm) {
                 if ((apiServerAddr == null) ||
                         (apiServerPort == -1) ||
                         (periodTimeRange == null) ||
                         (searchString == null)) {
-                    System.err.println("In Long Term mode; masterIndexPath, periodString and searchString most be specified");
+                    System.err.println("In Long Term mode; apiServerAddr, apiServerPort, periodString and searchString most be specified");
                     rc = 1;
                 }
             }
         }
+
 
         if (rc != 0) {
             System.err.println("Usage:");
@@ -417,15 +420,26 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             System.err.println("    Yes --time=FROM2016-12-30T08:33:25.352-TO2016-12-30T08:43:25.352 -apiServerAddr=127.0.0.1 -apiServerPort=9595 'error'");
 
             rc = 1;
-        } else
+        } else {
             logger.info("searchString: [" + searchString + "]");
+            if ( "*".endsWith(searchString.trim()))
+                searchString = "*:*";
 
+            StandardQueryParser queryParserHelper = new StandardQueryParser();
+            try {
+                Query stringQuery = queryParserHelper.parse(searchString, "message");
+            } catch (QueryNodeException e) {
+                System.err.println(String.format("Bad Lucene search string : [%s]", e.getMessage()));
+                System.err.println(String.format(
+                "SEE: https://lucene.apache.org/core/6_2_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#package.description"));
+                rc = 1;
+            }
+        }
 
         return rc;
     }
 
-    private enum OutputOption
-    {
+    private enum OutputOption {
         DEFAULT, RAW, JSON, TWO_LINER
     }
 

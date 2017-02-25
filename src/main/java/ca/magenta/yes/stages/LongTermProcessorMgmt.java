@@ -5,10 +5,7 @@ import ca.magenta.utils.AppException;
 import ca.magenta.yes.Globals;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
@@ -65,27 +62,29 @@ public class LongTermProcessorMgmt extends ProcessorMgmt {
 
         Document document = new Document();
 
-        //JPL document.add(new StringField("olderTxTimestamp", Long.toString(runTimeStamps.getOlderSrcTimestamp()), Field.Store.YES, Field.));
         document.add(new SortedNumericDocValuesField("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
-//        document.add(new LongPoint("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
-//        document.add(new StoredField("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
-        document.add(new StringField("newerTxTimestamp", Long.toString(runTimeStamps.getNewerSrcTimestamp()), Field.Store.YES));
-//        document.add(new LongPoint("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
-//        document.add(new StoredField("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
+        document.add(new LongPoint("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
+        document.add(new StoredField("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
 
-        document.add(new StringField("olderRxTimestamp", Long.toString(runTimeStamps.getOlderRxTimestamp()), Field.Store.YES));
-//        document.add(new LongPoint("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));
-//        document.add(new StoredField("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));
-        document.add(new StringField("newerRxTimestamp", Long.toString(runTimeStamps.getNewerRxTimestamp()), Field.Store.YES));
-//        document.add(new LongPoint("newerRxTimestamp", runTimeStamps.getNewerRxTimestamp()));
-//        document.add(new StoredField("newerRxTimestamp", runTimeStamps.getNewerRxTimestamp()));
+        document.add(new SortedNumericDocValuesField("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
+        document.add(new LongPoint("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
+        document.add(new StoredField("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
 
-        document.add(new StringField("runStartTimestamp", Long.toString(runTimeStamps.getRunStartTimestamp()), Field.Store.YES));
-//        document.add(new LongPoint("runStartTimestamp", runTimeStamps.getRunStartTimestamp()));
-//        document.add(new StoredField("runStartTimestamp", runTimeStamps.getRunStartTimestamp()));
-        document.add(new StringField("runEndTimestamp", Long.toString(runTimeStamps.getRunEndTimestamp()), Field.Store.YES));
-//        document.add(new LongPoint("runEndTimestamp", runTimeStamps.getRunEndTimestamp()));
-//        document.add(new StoredField("runEndTimestamp", runTimeStamps.getRunEndTimestamp()));
+        document.add(new SortedNumericDocValuesField("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));
+        document.add(new LongPoint("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));
+        document.add(new StoredField("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));
+
+        document.add(new SortedNumericDocValuesField("newerRxTimestamp", runTimeStamps.getNewerRxTimestamp()));
+        document.add(new LongPoint("newerRxTimestamp", runTimeStamps.getNewerRxTimestamp()));
+        document.add(new StoredField("newerRxTimestamp", runTimeStamps.getNewerRxTimestamp()));
+
+        document.add(new SortedNumericDocValuesField("runStartTimestamp", runTimeStamps.getRunStartTimestamp()));
+        document.add(new LongPoint("runStartTimestamp", runTimeStamps.getRunStartTimestamp()));
+        document.add(new StoredField("runStartTimestamp", runTimeStamps.getRunStartTimestamp()));
+
+        document.add(new SortedNumericDocValuesField("runEndTimestamp", runTimeStamps.getRunEndTimestamp()));
+        document.add(new LongPoint("runEndTimestamp", runTimeStamps.getRunEndTimestamp()));
+        document.add(new StoredField("runEndTimestamp", runTimeStamps.getRunEndTimestamp()));
 
         document.add(new StringField("longTermIndexName", newFileName, Field.Store.YES));
 

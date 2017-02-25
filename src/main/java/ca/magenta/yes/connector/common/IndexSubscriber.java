@@ -10,10 +10,9 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +56,15 @@ public abstract class IndexSubscriber extends Runner {
         queue = new ArrayBlockingQueue<Directory>(300000);
         IndexReader reader = null;
         try {
+            StandardQueryParser queryParserHelper = new StandardQueryParser();
+            Query stringQuery = queryParserHelper.parse(searchString, "message");
+
+            // Sorted by ascending index = same order as it comes
+            Sort sort = new Sort(new SortField("name", SortField.FIELD_DOC.getType(), false));
+
+            // Sorted by ascending rxTimestamp
+            //Sort sort = new Sort(new SortedNumericSortField("rxTimestamp",SortField.Type.LONG, false));
+
             while (doRun) {
                 //Directory indexNamePath = queue.take();
                 //logger.info(String.format("Received: [%s]", indexNamePath));
@@ -70,11 +78,12 @@ public abstract class IndexSubscriber extends Runner {
                     IndexSearcher searcher = new IndexSearcher(reader);
 
 
+
                     //Analyzer analyzer = new KeywordAnalyzer();
-                    Analyzer analyzer = new StandardAnalyzer();
-                    QueryParser queryParser = new QueryParser("message", analyzer);
-                    Query query = queryParser.parse(searchString);
-                    TopDocs results = searcher.search(query, MAX_QUERY_SIZE);
+                    //Analyzer analyzer = new StandardAnalyzer();
+                    //QueryParser queryParser = new QueryParser("message", analyzer);
+                    //Query query = queryParser.parse(searchString);
+                    TopDocs results = searcher.search(stringQuery, MAX_QUERY_SIZE, sort);
                     if (results.totalHits >= MAX_QUERY_SIZE)
                         logger.warn("Search too wide");
                     if (logger.isDebugEnabled())
@@ -91,8 +100,6 @@ public abstract class IndexSubscriber extends Runner {
 
 
                     //deleteDirFile(new File(searchIndexDirectory));
-                } catch (ParseException e) {
-                    logger.error("ParseException",e );
                 } catch (IOException e) {
                     logger.error("IOException",e );
                 }
@@ -104,6 +111,9 @@ public abstract class IndexSubscriber extends Runner {
         } catch (InterruptedException e) {
             if (doRun)
                 logger.error("InterruptedException", e);
+        } catch (QueryNodeException e) {
+            if (doRun)
+                logger.error("QueryNodeException", e);
         }
         finally {
             try {

@@ -70,8 +70,10 @@ public abstract class Processor implements Runnable {
 
             while (doRun || !inputQueue.isEmpty()) {
                 HashMap<String, Object> message = takeFromQueue();
-                long srcTimestamp = Long.valueOf((String) message.get("srcTimestamp"));
-                long rxTimestamp = Long.valueOf((String) message.get("rxTimestamp"));
+                //long srcTimestamp = Long.valueOf((String) message.get("srcTimestamp"));
+                //long rxTimestamp = Long.valueOf((String) message.get("rxTimestamp"));
+                long srcTimestamp = (long) message.get("srcTimestamp");
+                long rxTimestamp = (long ) message.get("rxTimestamp");
                 runTimeStamps.compute(srcTimestamp, rxTimestamp);
                 if (logger.isDebugEnabled())
                     logger.debug("Processor received: " + message);
@@ -146,10 +148,13 @@ public abstract class Processor implements Runnable {
                     document.add(new TextField("message", (String) fieldE.getValue(), Field.Store.YES));
                 } else if (fieldE.getValue() instanceof Integer) {
                     document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
+                    document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Integer) fieldE.getValue()));
                     document.add(new StoredField(fieldE.getKey(), (Integer) fieldE.getValue()));
                 } else if (fieldE.getValue() instanceof Long) {
                     document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
+                    document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Long) fieldE.getValue()));
                     document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
+                    //logger.info(String.format("ADDED:[%s];[%d]",fieldE.getKey(), (Long) fieldE.getValue()));
                 } else {
                     FieldType newType = new FieldType();
                     newType.setTokenized(false);

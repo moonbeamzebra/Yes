@@ -60,7 +60,8 @@ public class Dispatcher extends QueueProcessor {
 
 
                     long epoch = System.currentTimeMillis();
-                    hashedMsg.put("rxTimestamp", Long.toString(epoch));
+                    //hashedMsg.put("rxTimestamp", Long.toString(epoch));
+                    hashedMsg.put("rxTimestamp", epoch);
                     String str = (String) hashedMsg.get("@timestamp");
                     if (str != null) {
                         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -69,7 +70,8 @@ public class Dispatcher extends QueueProcessor {
                         epoch = date.getTime();
                         //logger.info(String.format("timestamp:[%d]", epoch));
                     }
-                    hashedMsg.put("srcTimestamp", Long.toString(epoch));
+                    //hashedMsg.put("srcTimestamp", Long.toString(epoch));
+                    hashedMsg.put("srcTimestamp", epoch);
 
                     //logger.info("Before putInQueue");
                     longTermProcessorMgmt.putInQueue(hashedMsg);
