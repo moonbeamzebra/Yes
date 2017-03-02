@@ -2,22 +2,31 @@ package ca.magenta.yes;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.yes.api.TCPAPIServer;
-import ca.magenta.yes.connector.ConnectorMgmt;
+import ca.magenta.yes.connector.ConnectorManager;
 import ca.magenta.yes.connector.common.IndexPublisher;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class Globals {
 
-    private static Config config = null;
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Application.class.getPackage().getName());
 
-    private static ConnectorMgmt connectorMgmt = null;
-    //private static RealTimeProcessorMgmt realTimeProcessorMgmt = null;
+
+    public static void setConfig(Config config) {
+        Globals.config = config;
+    }
+
+    private static Config config;
+
+    private static ConnectorManager connectorManager = null;
     private static IndexPublisher indexPublisher = null;
     private static TCPAPIServer tcpAPIServer = null;
 
 
     public Globals(Config config) {
+
+        logger.info("Globals created");
 
         Globals.config = config;
     }
@@ -26,15 +35,14 @@ public class Globals {
 
         startIndexPublisher();
         startAPIServer();
-        startConnectorMgmt();
+        startConnectorManager();
 
     }
 
 
+    static void stopEverything() {
 
-    public static void stopEverything() {
-
-        stopConnectorMgmt();
+        stopConnectorManager();
         stopAPIServer();
         stopIndexPublisher();
 
@@ -53,27 +61,27 @@ public class Globals {
     }
 
     private static void startAPIServer() throws AppException {
-        if ((tcpAPIServer == null) || ( ! tcpAPIServer.isAlive())) {
-            // String partitionName, Config config, int port, String indexBaseDirectory
-            tcpAPIServer = new TCPAPIServer("single", config, config.getApiServerPort(),config.getIndexBaseDirectory());
+        if ((tcpAPIServer == null) || (!tcpAPIServer.isAlive())) {
+            tcpAPIServer = new TCPAPIServer("single", config.getApiServerPort(), config.getIndexBaseDirectory());
             tcpAPIServer.startServer();
         }
     }
+
     private static void stopAPIServer() {
         tcpAPIServer.stopServer();
     }
 
-    private static void startConnectorMgmt() throws AppException {
+    private static void startConnectorManager() throws AppException {
 
-        connectorMgmt =  new ConnectorMgmt(config);
+        connectorManager = new ConnectorManager(config);
 
-        connectorMgmt.startInstance();
+        connectorManager.startInstance();
 
     }
 
-    private  static void stopConnectorMgmt() {
+    private static void stopConnectorManager() {
 
-        connectorMgmt.stopInstance();
+        connectorManager.stopInstance();
     }
 
     public static IndexPublisher getIndexPublisher() {

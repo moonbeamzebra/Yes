@@ -21,7 +21,7 @@ public class QueueProcessor extends Runner {
         this.partition = partition;
         this.queueDepth = queueDepth;
         this.printEvery = printEvery;
-        this.inputQueue = new ArrayBlockingQueue<Object>(this.queueDepth );
+        this.inputQueue = new ArrayBlockingQueue<>(this.queueDepth);
     }
 
     protected void putInQueueImpl(Object obj, float queueDepthWarningThreshold) throws InterruptedException {
@@ -33,7 +33,7 @@ public class QueueProcessor extends Runner {
             float percentFull = length / queueDepth;
 
             if (percentFull > queueDepthWarningThreshold)
-                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
+                logger.warn(String.format("Queue length threshold bypassed max:[%d]; " +
                                 "queue length:[%d] " +
                                 "Percent:[%f] " +
                                 "Threshold:[%f]",

@@ -11,9 +11,6 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by jplaberge on 2016-12-31.
- */
 public class NormalizedLogRecord {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
@@ -24,10 +21,11 @@ public class NormalizedLogRecord {
 
     public NormalizedLogRecord(Document logRecordDoc) {
 
-        data = new HashMap<String, Object>();
+        data = new HashMap<>();
 
         for (IndexableField field : logRecordDoc.getFields()) {
-            //logger.info(String.format("field:[%s]; [%s]", field.name(), field.fieldType().toString()));
+            if (logger.isDebugEnabled())
+                logger.debug(String.format("field:[%s]; [%s]", field.name(), field.fieldType().toString()));
             switch (field.name()) {
                 case "srcTimestamp":
                 case "rxTimestamp":
@@ -40,11 +38,11 @@ public class NormalizedLogRecord {
 
     }
 
-    public NormalizedLogRecord() {
-        data = new HashMap<String, Object>();
-    }
+//    public NormalizedLogRecord() {
+//        data = new HashMap<String, Object>();
+//    }
 
-    public NormalizedLogRecord(HashMap<String, Object> data) {
+    private NormalizedLogRecord(HashMap<String, Object> data) {
         this.data = data;
     }
 
@@ -56,13 +54,12 @@ public class NormalizedLogRecord {
         sb.append('{');
 
         int n = 0;
-        for (Map.Entry<String, Object> entry : data.entrySet())
-        {
-            if (n!=0) sb.append(',');
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            if (n != 0) sb.append(',');
             n++;
             sb.append(entry.getKey());
             sb.append('=');
-            sb.append(entry.getKey().toString());
+            sb.append(entry.getKey());
         }
 
         sb.append("}");
@@ -76,26 +73,21 @@ public class NormalizedLogRecord {
 
         sb.append(prettyRxTimestamp());
 
-        for (Map.Entry<String, Object> entry : data.entrySet())
-        {
-            if ( ! "rxTimestamp".equals(entry.getKey())) {
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            if (!"rxTimestamp".equals(entry.getKey())) {
                 sb.append(',');
-                sb.append(entry.getKey().toString());
+                sb.append(entry.getKey());
                 sb.append("='");
                 sb.append(entry.getValue());
                 sb.append("'");
             }
         }
 
-        if (withOriginalMessage)
-        {
-            if (oneLiner)
-            {
-                sb.append( ", message='" + getMessage() + "'");
-            }
-            else
-            {
-                sb.append( "\n  " + getMessage());
+        if (withOriginalMessage) {
+            if (oneLiner) {
+                sb.append(", message='").append(getMessage()).append("'");
+            } else {
+                sb.append("\n  ").append(getMessage());
             }
         }
 
@@ -106,7 +98,7 @@ public class NormalizedLogRecord {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        return  mapper.writeValueAsString(data);
+        return mapper.writeValueAsString(data);
     }
 
     public static NormalizedLogRecord fromJson(String jSon) throws IOException {
@@ -119,7 +111,7 @@ public class NormalizedLogRecord {
 
     }
 
-    public long getRxTimestamp() {
+    private long getRxTimestamp() {
         return (long) data.get("rxTimestamp");
     }
 

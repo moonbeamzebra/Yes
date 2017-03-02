@@ -2,13 +2,11 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
-import ca.magenta.yes.Config;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.connector.common.IndexPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -58,7 +56,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     @Override
     Processor createProcessor(BlockingQueue<Object> queue) throws AppException {
 
-        return new RealTimeProcessor("RealTimeProcessor", partition, queue);
+        return new RealTimeProcessor(partition, queue);
 
     }
 

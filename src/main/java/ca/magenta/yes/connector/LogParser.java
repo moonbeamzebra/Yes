@@ -2,19 +2,14 @@ package ca.magenta.yes.connector;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
-import ca.magenta.utils.Runner;
-import ca.magenta.yes.Config;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.stages.Dispatcher;
-import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
 
 public class LogParser extends QueueProcessor {
@@ -23,7 +18,7 @@ public class LogParser extends QueueProcessor {
 
     private final Dispatcher dispatcher;
 
-    public LogParser(String name, Config config, String partition) {
+    LogParser(String name, String partition) {
 
         super(name, partition, Globals.getConfig().getLogParserQueueDepth(), 100000);
 
@@ -99,7 +94,7 @@ public class LogParser extends QueueProcessor {
 
         // device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop
 
-        HashMap<String, Object> hashedMsg = new HashMap<String, Object>();
+        HashMap<String, Object> hashedMsg = new HashMap<>();
 
         hashedMsg.put("message", logMsg);
         hashedMsg.put("type", "pseudoCheckpoint");
@@ -108,7 +103,8 @@ public class LogParser extends QueueProcessor {
         String[] items = logMsg.split("\\|");
 
         for (String item : items) {
-            //logger.info(String.format("ITEM:[%s]", item));
+            if (logger.isDebugEnabled())
+                logger.debug(String.format("ITEM:[%s]", item));
             int pos = item.indexOf("=");
             if (pos != -1) {
                 String key = item.substring(0, pos);
@@ -134,42 +130,8 @@ public class LogParser extends QueueProcessor {
         return (String) inputQueue.take();
     }
 
-    public void putInQueue(String message) throws InterruptedException {
+    void putInQueue(String message) throws InterruptedException {
 
-        this.putInQueueImpl(message,  Globals.getConfig().getQueueDepthWarningThreshold());
+        this.putInQueueImpl(message, Globals.getConfig().getQueueDepthWarningThreshold());
     }
-
-
-
-//    public void putInQueue(String message) throws InterruptedException {
-//
-//        inputQueue.put(message);
-//
-//        if (logger.isWarnEnabled()) {
-//            int length = inputQueue.size();
-//            float percentFull = length / config.getLogParserQueueDepth();
-//
-//            if (percentFull > config.getQueueDepthWarningThreshold())
-//                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
-//                                "queue length:[%d] " +
-//                                "Percent:[%f] " +
-//                                "Threshold:[%f]",
-//                        config.getLogParserQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
-//        }
-//
-//    }
-
-//    public synchronized void letDrain() {
-//
-//        logger.info(String.format("[%s]:Test queue emptiness [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
-//        while (!inputQueue.isEmpty()) {
-//            logger.info(String.format("[%s]:Let drain [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition));
-//            try {
-//                Thread.sleep(200);
-//            } catch (InterruptedException e) {
-//                logger.error("InterruptedException", e);
-//            }
-//        }
-//    }
-
 }

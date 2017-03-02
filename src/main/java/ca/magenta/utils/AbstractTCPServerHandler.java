@@ -5,8 +5,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.Socket;
 
-abstract public class AbstractTCPServerHandler extends Thread
-{
+abstract public class AbstractTCPServerHandler extends Thread {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
@@ -15,20 +14,18 @@ abstract public class AbstractTCPServerHandler extends Thread
     protected boolean doRun = false;
 
     protected Socket handlerSocket;
-    public AbstractTCPServerHandler(AbstractTCPServer tcpServer, String name, Socket handlerSocket )
-    {
+
+    public AbstractTCPServerHandler(AbstractTCPServer tcpServer, String name, Socket handlerSocket) {
         this.tcpServer = tcpServer;
         this.setName(name);
         this.handlerSocket = handlerSocket;
     }
 
-    public void stopIt()
-    {
+    void stopIt() {
         doRun = false;
     }
 
-    public void closeSocket()
-    {
+    void closeSocket() {
         try {
             handlerSocket.close();
         } catch (IOException e) {

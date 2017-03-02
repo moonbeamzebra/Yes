@@ -7,17 +7,11 @@ import ca.magenta.yes.data.NormalizedLogRecord;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
-import org.apache.lucene.search.Query;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.Socket;
 
-/**
- * @author moonbeam <jplaberge@magenta.ca>
- * @version 0.1
- * @since 2014-12-03
- */
 public class Yes {
 
 /*
@@ -43,17 +37,14 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
     private static int apiServerPort = -1;
     private static boolean longTerm = false;
     private static OutputOption outputOption = OutputOption.DEFAULT;
-    //private static String masterIndexPath = null;
     private static TimeRange periodTimeRange = null;
 
-    public static final void main(String[] args) throws IOException, ParseException {
-
-        int rc = 0;
+    public static void main(String[] args) throws IOException, ParseException {
 
         logger.info("");
         logger.info("Running Yes version " + version);
 
-        rc = parseParam(args);
+        int rc = parseParam(args);
 
         if (rc == 0) {
 
@@ -111,7 +102,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
 
         NormalizedLogRecord normalizedLogRecord = null;
 
-        if (outputOption != outputOption.JSON)
+        if (outputOption != OutputOption.JSON)
             normalizedLogRecord = NormalizedLogRecord.fromJson(entry);
 
         // DEFAULT, RAW, JSON, TWO_LINER
@@ -160,149 +151,17 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
         }
     }
 
-//    private static void doLongTermOld(TimeRange periodTimeRange, String searchString) throws IOException, ParseException {
-//
-//        String masterSearch = "";
-//
-//        // Files containing range at the end : left part
-//        // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
-//        String masterSearchLeftPart = String.format("olderRxTimestamp:[%d TO %d] AND newerRxTimestamp:[%d TO %d]",
-//                0,
-//                periodTimeRange.getOlderTime(),
-//                periodTimeRange.getOlderTime(),
-//                Long.MAX_VALUE);
-//        //logger.info("masterSearchLeftPart");
-//        //searchIndex(masterSearchLeftPart);
-//
-//
-//        // Range completely enclose the files range: middle part
-//        // OlderTimeRange <= olderRxTimestamp AND newerRxTimestamp <= NewerTimeRange
-//        String masterSearchMiddlePart = String.format("olderRxTimestamp:[%d TO %d] AND newerRxTimestamp:[%d TO %d]",
-//                periodTimeRange.getOlderTime(),
-//                Long.MAX_VALUE,
-//                0,
-//                periodTimeRange.getNewerTime());
-//        //logger.info("masterSearchMiddlePart");
-//        //searchIndex(masterSearchMiddlePart);
-//
-//
-//        // Files containing range at the beginning : right part
-//        // olderRxTimestamp <= NewerTimeRange <= newerRxTimestamp
-//        String masterSearchRightPart = String.format("olderRxTimestamp:[%d TO %d] AND newerRxTimestamp:[%d TO %d]",
-//                0,
-//                periodTimeRange.getNewerTime(),
-//                periodTimeRange.getNewerTime(),
-//                Long.MAX_VALUE);
-//        //logger.info("masterSearchRightPart");
-//        //searchIndex(masterSearchRightPart);
-//
-//        // File range completely enclose the range: narrow part
-//        // olderRxTimestamp <= OlderTimeRange AND NewerTimeRange <= newerRxTimestamp
-//        String masterSearchNarrowPart = String.format("olderRxTimestamp:[%d TO %d] AND newerRxTimestamp:[%d TO %d]",
-//                0,
-//                periodTimeRange.getOlderTime(),
-//                periodTimeRange.getNewerTime(),
-//                Long.MAX_VALUE);
-//        //logger.info("masterSearchNarrowPart");
-//        //searchIndex(masterSearchNarrowPart);
-//
-//        masterSearch = String.format("(%s) OR (%s) OR (%s) OR (%s)",
-//                masterSearchLeftPart,
-//                masterSearchMiddlePart,
-//                masterSearchRightPart,
-//                masterSearchNarrowPart);
-//
-//        searchMasterIndex(masterSearch, periodTimeRange, searchString);
-//
-//        return;
-//    }
-
-//    public static void searchMasterIndex(String masterSearchString, TimeRange periodTimeRange, String searchString) throws IOException, ParseException, ParseException {
-//
-//        String indexNamePath = masterIndexPath + File.separator + "master.lucene";
-//
-//        System.out.println("Searching for '" + masterSearchString + "' in " +  indexNamePath);
-//        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
-//        IndexSearcher searcher = new IndexSearcher(reader);
-//
-//
-//        Analyzer analyzer = new KeywordAnalyzer();
-//        //Analyzer analyzer = new StandardAnalyzer();
-//        QueryParser queryParser = new QueryParser("message", analyzer);
-//        Query query = queryParser.parse(masterSearchString);
-//        TopDocs results = searcher.search(query, 1000);
-//        System.out.println("Number of hits: " + results.totalHits);
-//        for (ScoreDoc scoreDoc : results.scoreDocs) {
-//            //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
-//            Document doc = searcher.doc(scoreDoc.doc);
-//            MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
-//            //String key = String.format("{timestamp : %s, device : %s, source : %s, dest : %s, port : %s }",doc.get("timestamp"),doc.get("device"),doc.get("source"),doc.get("dest"),doc.get("port") );
-//            //System.out.println("Found:" + doc.toString());
-//            System.out.println("Found:" + masterIndexRecord.toString());
-//            searchLongTermIndex(masterIndexRecord.getLongTermIndexName(), periodTimeRange, searchString);
-//
-//        }
-//
-//        reader.close();
-//
-//        //deleteDirFile(new File(searchIndexDirectory));
-//
-//    }
-
-//    public static void searchLongTermIndex(String longTermIndexName, TimeRange periodTimeRange, String searchString) throws IOException, ParseException, ParseException {
-//
-//        String timeRangeStr = String.format("rxTimestamp:[%d TO %d]",
-//                periodTimeRange.getOlderTime(),
-//                periodTimeRange.getNewerTime());
-//
-//        String completeSearchStr = String.format("(%s) AND (%s)",
-//                timeRangeStr,
-//                searchString);
-//
-//        //completeSearchStr = timeRangeStr;
-//        //completeSearchStr = searchString;
-//
-//        String indexNamePath = masterIndexPath + File.separator + longTermIndexName;
-//
-//        System.out.println("Searching for '" + completeSearchStr + "' in " +  indexNamePath);
-//        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
-//        IndexSearcher searcher = new IndexSearcher(reader);
-//
-//
-//        Analyzer analyzer = new KeywordAnalyzer();
-//        //Analyzer analyzer = new StandardAnalyzer();
-//        QueryParser queryParser = new QueryParser("message", analyzer);
-//        Query query = queryParser.parse(completeSearchStr);
-//        TopDocs results = searcher.search(query, 1000);
-//        System.out.println("Number of hits: " + results.totalHits);
-//        for (ScoreDoc scoreDoc : results.scoreDocs) {
-//            //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
-//            Document doc = searcher.doc(scoreDoc.doc);
-//            //String key = String.format("{timestamp : %s, device : %s, source : %s, dest : %s, port : %s }",doc.get("timestamp"),doc.get("device"),doc.get("source"),doc.get("dest"),doc.get("port") );
-//            //System.out.println("Found:" + doc.toString());
-//            NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
-//            System.out.println("Found:" + normalizedLogRecord.toString());
-//
-//
-//        }
-//
-//        reader.close();
-//
-//        //deleteDirFile(new File(searchIndexDirectory));
-//
-//    }
-
 
     private static int parseParam(String a_sArgs[]) {
         int rc = 0;
 
         if (a_sArgs.length > 0) {
-            for (int i = 0; i < a_sArgs.length; i++) {
-                if (a_sArgs[i].startsWith("-apiServerAddr=")) {
-                    apiServerAddr = a_sArgs[i].substring(15);
+            for (String a_sArg : a_sArgs) {
+                if (a_sArg.startsWith("-apiServerAddr=")) {
+                    apiServerAddr = a_sArg.substring(15);
                     logger.info("apiServerAddr: [" + apiServerAddr + "]");
-                } else if (a_sArgs[i].startsWith("-apiServerPort=")) {
-                    String apiServerPortStr = a_sArgs[i].substring(15);
+                } else if (a_sArg.startsWith("-apiServerPort=")) {
+                    String apiServerPortStr = a_sArg.substring(15);
                     try {
                         apiServerPort = Integer.parseInt(apiServerPortStr);
                         logger.info("apiServerPort: [" + apiServerPort + "]");
@@ -312,21 +171,21 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                         rc = 1;
                     }
                     // --raw|--json|--2liner
-                } else if (a_sArgs[i].toLowerCase().equals("--raw")) {
+                } else if (a_sArg.toLowerCase().equals("--raw")) {
                     outputOption = OutputOption.RAW;
                     logger.info("Output: RAW");
-                } else if (a_sArgs[i].toLowerCase().equals("--json")) {
+                } else if (a_sArg.toLowerCase().equals("--json")) {
                     outputOption = OutputOption.JSON;
                     logger.info("Output: JSON");
-                } else if (a_sArgs[i].toLowerCase().equals("--2liner")) {
+                } else if (a_sArg.toLowerCase().equals("--2liner")) {
                     outputOption = OutputOption.TWO_LINER;
                     logger.info("Output: 2LINER");
-                } else if (a_sArgs[i].toLowerCase().equals("-f")) {
+                } else if (a_sArg.toLowerCase().equals("-f")) {
                     realTime = true;
                     logger.info("Real Time Mode");
-                } else if (a_sArgs[i].startsWith("--time=")) {
+                } else if (a_sArg.startsWith("--time=")) {
                     logger.info("Long Term Mode");
-                    String periodString = a_sArgs[i].substring(7);
+                    String periodString = a_sArg.substring(7);
                     logger.info("periodString: [" + periodString + "]");
                     try {
                         periodTimeRange = TimeRange.returnTimeRangeBackwardFromNow(periodString);
@@ -336,12 +195,8 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                         logger.error(String.format("Bad periodString format: [%s]", e.getMessage()));
                         rc = 1;
                     }
-                }
-//                else if (a_sArgs[i].startsWith("-")) {
-//                    rc = 1;
-//                }
-                else {
-                    String searchStringPart = a_sArgs[i];
+                } else {
+                    String searchStringPart = a_sArg;
                     if (searchString == null)
                         searchString = searchStringPart;
                     else
@@ -350,7 +205,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             }
         }
 
-        if (((realTime != true) && (longTerm != true)) ||
+        if (((!realTime) && (!longTerm)) ||
                 (realTime == longTerm)
                 ) {
             System.err.println("Select Real Time OR Long Term mode");
@@ -422,16 +277,15 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             rc = 1;
         } else {
             logger.info("searchString: [" + searchString + "]");
-            if ( "*".endsWith(searchString.trim()))
+            if ("*".endsWith(searchString.trim()))
                 searchString = "*:*";
 
             StandardQueryParser queryParserHelper = new StandardQueryParser();
             try {
-                Query stringQuery = queryParserHelper.parse(searchString, "message");
+                queryParserHelper.parse(searchString, "message");
             } catch (QueryNodeException e) {
                 System.err.println(String.format("Bad Lucene search string : [%s]", e.getMessage()));
-                System.err.println(String.format(
-                "SEE: https://lucene.apache.org/core/6_2_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#package.description"));
+                System.err.println("SEE: https://lucene.apache.org/core/6_2_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#package.description");
                 rc = 1;
             }
         }

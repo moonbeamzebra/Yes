@@ -7,30 +7,25 @@ import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-/**
- * @author jean-paul.laberge <jplaberge@magenta.ca>
- * @version 0.1
- * @since 2014-11-29
- */
 public class IndexPublisher implements Runnable {
 
     public static Logger logger = Logger.getLogger(IndexPublisher.class);
 
     private String name = null;
 
-    private HashSet<IndexSubscriber> subscribers = new HashSet<IndexSubscriber>();
+    private HashSet<IndexSubscriber> subscribers = new HashSet<>();
 
-    private BlockingQueue<Directory> outboundQueue = new ArrayBlockingQueue<Directory>(300000);
+    private BlockingQueue<Directory> outboundQueue = new ArrayBlockingQueue<>(300000);
 
     private Thread thread = null;
 
     private volatile boolean doRun = true;
 
-    public void stop() {
-        doRun = false;
-    }
+//    public void stop() {
+//        doRun = false;
+//    }
 
-    public void start() {
+    private void start() {
         thread = new Thread(this, name);
         thread.start();
         logger.debug(thread.toString() + " started");
@@ -89,7 +84,7 @@ public class IndexPublisher implements Runnable {
             logger.debug("No subscribers for: " + indexDir);
     }
 
-    synchronized public void subscribe(IndexSubscriber subscriber) {
+    synchronized void subscribe(IndexSubscriber subscriber) {
 
         subscribers.add(subscriber);
         if (logger.isDebugEnabled())
@@ -97,7 +92,7 @@ public class IndexPublisher implements Runnable {
 
     }
 
-    synchronized public void unsubscribe(IndexSubscriber subscriber) {
+    synchronized void unsubscribe(IndexSubscriber subscriber) {
 
         subscribers.remove(subscriber);
         if (logger.isDebugEnabled())

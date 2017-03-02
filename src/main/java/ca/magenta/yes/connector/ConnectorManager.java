@@ -7,15 +7,15 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
-public class ConnectorMgmt extends Runner {
+public class ConnectorManager extends Runner {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final Config config;
 
-    ArrayList<TCPGenericConnector> tcpGenericConnectors;
+    private ArrayList<TCPGenericConnector> tcpGenericConnectors;
 
-    public ConnectorMgmt(Config config) {
+    public ConnectorManager(Config config) {
 
         super("single");
 
@@ -53,10 +53,7 @@ public class ConnectorMgmt extends Runner {
     public void run() {
 
         logger.info(String.format("%s [%s] started", this.getClass().getSimpleName(), this.getName()));
-        long previousNow = System.currentTimeMillis();
-        long now;
-        long totalTime;
-        float msgPerSec;
+        //long previousNow = System.currentTimeMillis();
         try {
 
             while (doRun) {
@@ -72,7 +69,7 @@ public class ConnectorMgmt extends Runner {
 
     private ArrayList<TCPGenericConnector> constructConnectors(Config config) throws AppException {
 
-        ArrayList<TCPGenericConnector> tcpGenericConnectors = new ArrayList<TCPGenericConnector>();
+        ArrayList<TCPGenericConnector> tcpGenericConnectors = new ArrayList<>();
         TCPGenericConnector tcpGenericConnector;
 
         String[] connectors = config.getGenericConnectorPorts().split(";");

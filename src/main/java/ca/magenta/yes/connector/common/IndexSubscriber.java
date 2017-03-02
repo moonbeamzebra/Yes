@@ -3,13 +3,9 @@ package ca.magenta.yes.connector.common;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.data.NormalizedLogRecord;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.*;
@@ -20,11 +16,6 @@ import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-/**
- * @author jean-paul.laberge <jplaberge@magenta.ca>
- * @version 0.1
- * @since 2014-12-04
- */
 public abstract class IndexSubscriber extends Runner {
 
 
@@ -41,19 +32,19 @@ public abstract class IndexSubscriber extends Runner {
         super(name);
 
         this.searchString = searchString;
-        //ShortTermProcessorMgmt.indexPublisher().subscribe(this);
         RealTimeProcessorMgmt.indexPublisher().subscribe(this);
     }
 
     public void store(Directory indexNamePath) throws InterruptedException {
-        //logger.info(String.format("IndexSubscriber receive [%s]", indexNamePath));
+        if (logger.isDebugEnabled())
+            logger.debug(String.format("IndexSubscriber receive [%s]", indexNamePath));
         queue.put(indexNamePath);
     }
 
     public void run() {
 
         logger.info("New IndexSubscriber " + this.getName() + " running");
-        queue = new ArrayBlockingQueue<Directory>(300000);
+        queue = new ArrayBlockingQueue<>(300000);
         IndexReader reader = null;
         try {
             StandardQueryParser queryParserHelper = new StandardQueryParser();
@@ -66,47 +57,26 @@ public abstract class IndexSubscriber extends Runner {
             //Sort sort = new Sort(new SortedNumericSortField("rxTimestamp",SortField.Type.LONG, false));
 
             while (doRun) {
-                //Directory indexNamePath = queue.take();
-                //logger.info(String.format("Received: [%s]", indexNamePath));
                 Directory index = queue.take();
-                //logger.info(String.format("Received index: [%s]", index.toString()));
 
-                /////////////
                 try {
                     reader = DirectoryReader.open(index);
-                    //reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
                     IndexSearcher searcher = new IndexSearcher(reader);
 
-
-
-                    //Analyzer analyzer = new KeywordAnalyzer();
-                    //Analyzer analyzer = new StandardAnalyzer();
-                    //QueryParser queryParser = new QueryParser("message", analyzer);
-                    //Query query = queryParser.parse(searchString);
                     TopDocs results = searcher.search(stringQuery, MAX_QUERY_SIZE, sort);
                     if (results.totalHits >= MAX_QUERY_SIZE)
                         logger.warn("Search too wide");
                     if (logger.isDebugEnabled())
                         logger.debug("Number of hits: " + results.totalHits);
                     for (ScoreDoc scoreDoc : results.scoreDocs) {
-                        //System.out.println(String.format("scoreDocs:[%s]",scoreDocs.toString()));
                         Document doc = searcher.doc(scoreDoc.doc);
                         NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
-                        //System.out.println("Found:" + normalizedLogRecord.toString());
 
                         this.forward(normalizedLogRecord.toJson());
                     }
-
-
-
-                    //deleteDirFile(new File(searchIndexDirectory));
                 } catch (IOException e) {
-                    logger.error("IOException",e );
+                    logger.error("IOException", e);
                 }
-
-                ///////////////
-
-
             }
         } catch (InterruptedException e) {
             if (doRun)
@@ -114,13 +84,12 @@ public abstract class IndexSubscriber extends Runner {
         } catch (QueryNodeException e) {
             if (doRun)
                 logger.error("QueryNodeException", e);
-        }
-        finally {
+        } finally {
             try {
                 if (reader != null)
                     reader.close();
             } catch (IOException e) {
-                logger.error("IOException",e );
+                logger.error("IOException", e);
             }
         }
         RealTimeProcessorMgmt.indexPublisher().unsubscribe(this);

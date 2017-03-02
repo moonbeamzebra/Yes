@@ -20,8 +20,7 @@ public abstract class Processor implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(Processor.class.getPackage().getName());
 
 
-    private final String name;
-    final String partition;
+    private final String partition;
 
 
     private BlockingQueue<Object> inputQueue;
@@ -35,23 +34,22 @@ public abstract class Processor implements Runnable {
     private RunTimeStamps runTimeStamps;
     private final long startTime;
     private long hiWaterMarkQueueLength = 0;
-    long previousNow = System.currentTimeMillis();
+    private long previousNow = System.currentTimeMillis();
 
     private long count = 0;
     private long thisRunCount = 0;
     private long reportCount = 0;
 
 
-    synchronized public void stopIt() {
+    synchronized void stopIt() {
         doRun = false;
     }
 
     private static final long printEvery = 100000;
 
 
-    public Processor(String name, String partition, BlockingQueue<Object> inputQueue) throws AppException {
+    Processor(String partition, BlockingQueue<Object> inputQueue) throws AppException {
 
-        this.name = name;
         this.partition = partition;
         this.inputQueue = inputQueue;
 
@@ -70,10 +68,8 @@ public abstract class Processor implements Runnable {
 
             while (doRun || !inputQueue.isEmpty()) {
                 HashMap<String, Object> message = takeFromQueue();
-                //long srcTimestamp = Long.valueOf((String) message.get("srcTimestamp"));
-                //long rxTimestamp = Long.valueOf((String) message.get("rxTimestamp"));
                 long srcTimestamp = (long) message.get("srcTimestamp");
-                long rxTimestamp = (long ) message.get("rxTimestamp");
+                long rxTimestamp = (long) message.get("rxTimestamp");
                 runTimeStamps.compute(srcTimestamp, rxTimestamp);
                 if (logger.isDebugEnabled())
                     logger.debug("Processor received: " + message);
@@ -135,14 +131,6 @@ public abstract class Processor implements Runnable {
 
             Document document = new Document();
 
-            //			<xs:element name="device" type="xs:string" />
-            //			<xs:element name="source" type="xs:string" />
-            //			<xs:element name="dest" type="xs:string" />
-            //			<xs:element name="port" type="xs:string" />
-            //			<xs:element name="action" type="xs:string" />
-            //			<xs:element name="customer" type="xs:string" />
-            //			<xs:element name="message" type="xs:string" />
-            //			<xs:element name="type" type="xs:string" />
             for (Map.Entry<String, Object> fieldE : message.entrySet()) {
                 if ("message".equals(fieldE.getKey())) {
                     document.add(new TextField("message", (String) fieldE.getValue(), Field.Store.YES));
@@ -154,14 +142,16 @@ public abstract class Processor implements Runnable {
                     document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
                     document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Long) fieldE.getValue()));
                     document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
-                    //logger.info(String.format("ADDED:[%s];[%d]",fieldE.getKey(), (Long) fieldE.getValue()));
+                    if (logger.isDebugEnabled()) {
+                        long longValue = (Long) fieldE.getValue();
+                        logger.debug(String.format("ADDED:[%s];[%d]", fieldE.getKey(), longValue));
+                    }
                 } else {
                     FieldType newType = new FieldType();
                     newType.setTokenized(false);
                     newType.setStored(true);
                     newType.setIndexOptions(IndexOptions.DOCS);
-                    Field f = new Field (fieldE.getKey(), (String) fieldE.getValue(), newType);
-                    //document.add(f);
+                    //Field f = new Field(fieldE.getKey(), (String) fieldE.getValue(), newType);
                     document.add(new StringField(fieldE.getKey(), (String) fieldE.getValue(), Field.Store.YES));
                 }
             }
@@ -178,15 +168,15 @@ public abstract class Processor implements Runnable {
 
     public abstract void createIndex(String indexPath) throws AppException;
 
-    public RunTimeStamps getRunTimeStamps() {
+    RunTimeStamps getRunTimeStamps() {
         return runTimeStamps;
     }
 
-    public long getThisRunCount() {
+    long getThisRunCount() {
         return thisRunCount;
     }
 
-    synchronized public Directory getIndexDir() {
+    synchronized Directory getIndexDir() {
         return indexDir;
     }
 
@@ -211,7 +201,7 @@ public abstract class Processor implements Runnable {
             newerRxTimestamp = 0;
         }
 
-        public void compute(long srcTimestamp, long rxTimestamp) {
+        void compute(long srcTimestamp, long rxTimestamp) {
 
             if (srcTimestamp < olderSrcTimestamp)
                 olderSrcTimestamp = srcTimestamp;
@@ -224,37 +214,45 @@ public abstract class Processor implements Runnable {
                 newerRxTimestamp = rxTimestamp;
         }
 
-        public long getOlderSrcTimestamp() {
+        long getOlderSrcTimestamp() {
             return olderSrcTimestamp;
         }
 
-        public long getNewerSrcTimestamp() {
+        long getNewerSrcTimestamp() {
             return newerSrcTimestamp;
         }
 
-        public long getOlderRxTimestamp() {
+        long getOlderRxTimestamp() {
             return olderRxTimestamp;
         }
 
-        public long getNewerRxTimestamp() {
+        long getNewerRxTimestamp() {
             return newerRxTimestamp;
         }
 
-        public long getRunStartTimestamp() {
+        long getRunStartTimestamp() {
             return runStartTimestamp;
         }
 
-        public long getRunEndTimestamp() {
+        long getRunEndTimestamp() {
             return runEndTimestamp;
         }
 
-        public void setRunEndTimestamp(long runEndTimestamp) {
+        void setRunEndTimestamp(long runEndTimestamp) {
             this.runEndTimestamp = runEndTimestamp;
         }
     }
 
     private HashMap<String, Object> takeFromQueue() throws InterruptedException {
-        return (HashMap<String, Object>) inputQueue.take();
+
+        Object obj = inputQueue.take();
+        if (obj instanceof HashMap) {
+
+            return (HashMap<String, Object>) obj;
+        } else {
+            logger.error(String.format("Unexpected value type: want HashMap; got [%s]", obj.getClass().getSimpleName()));
+            return null;
+        }
     }
 
 

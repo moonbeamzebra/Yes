@@ -1,7 +1,6 @@
 package ca.magenta.yes;
 
 import ca.magenta.utils.AppException;
-import ca.magenta.yes.connector.ConnectorMgmt;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,8 +14,6 @@ import java.io.IOException;
 public class Application {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Application.class.getPackage().getName());
-
-
 
 
     public Application(Globals globals) throws AppException {

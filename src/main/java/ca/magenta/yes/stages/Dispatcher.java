@@ -45,35 +45,33 @@ public class Dispatcher extends QueueProcessor {
         long totalTimeSinceStart;
         float msgPerSec;
         float msgPerSecSinceStart;
-        long queueLength = 0;
+        long queueLength;
         long maxQueueLength = 0;
         try {
 
             while (doRun) {
                 String jsonMsg = takeFromQueue();
                 logger.debug("Dispatcher received: " + jsonMsg);
-                HashMap<String, Object> hashedMsg = null;
+                HashMap<String, Object> hashedMsg;
                 try {
 
                     hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
                     logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
 
-
                     long epoch = System.currentTimeMillis();
-                    //hashedMsg.put("rxTimestamp", Long.toString(epoch));
                     hashedMsg.put("rxTimestamp", epoch);
                     String str = (String) hashedMsg.get("@timestamp");
                     if (str != null) {
                         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-                        Date date = null;
-                        date = df.parse(str);
+                        Date date = df.parse(str);
                         epoch = date.getTime();
-                        //logger.info(String.format("timestamp:[%d]", epoch));
+                        if (logger.isDebugEnabled())
+                            logger.debug(String.format("timestamp:[%d]", epoch));
                     }
-                    //hashedMsg.put("srcTimestamp", Long.toString(epoch));
                     hashedMsg.put("srcTimestamp", epoch);
 
-                    //logger.info("Before putInQueue");
+                    if (logger.isDebugEnabled())
+                        logger.debug("Before putInQueue");
                     longTermProcessorMgmt.putInQueue(hashedMsg);
                     realTimeProcessorMgmt.putInQueue(hashedMsg);
                 } catch (ParseException e) {
@@ -115,12 +113,12 @@ public class Dispatcher extends QueueProcessor {
 
     public void putInQueue(String jsonMsg) throws InterruptedException {
 
-        this.putInQueueImpl(jsonMsg,  Globals.getConfig().getQueueDepthWarningThreshold());
+        this.putInQueueImpl(jsonMsg, Globals.getConfig().getQueueDepthWarningThreshold());
     }
 
-     private String takeFromQueue() throws InterruptedException {
-         return (String) inputQueue.take();
-     }
+    private String takeFromQueue() throws InterruptedException {
+        return (String) inputQueue.take();
+    }
 
     @Override
     public synchronized void startInstance() throws AppException {

@@ -1,46 +1,33 @@
 package ca.magenta.utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
-abstract public class AbstractTCPServer extends Thread
-{
-
-    private final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName());
+abstract public class AbstractTCPServer extends Thread {
 
     protected ServerSocket serverSocket;
     private int port;
     protected boolean doRun = false;
 
-    private HashMap<String, AbstractTCPServerHandler> tcpServerHandlers = new HashMap<String, AbstractTCPServerHandler>();
+    private HashMap<String, AbstractTCPServerHandler> tcpServerHandlers = new HashMap<>();
 
-    public AbstractTCPServer(String name, int port )
-    {
+    public AbstractTCPServer(String name, int port) {
         this.setName(name);
         this.port = port;
     }
 
     public void startServer() throws AppException {
-        try
-        {
-            serverSocket = new ServerSocket( port );
+        try {
+            serverSocket = new ServerSocket(port);
             this.start();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    synchronized public void stopServer()
-    {
+    synchronized public void stopServer() {
         doRun = false;
         this.interrupt();
         try {
@@ -49,10 +36,9 @@ abstract public class AbstractTCPServer extends Thread
             e.printStackTrace();
         }
 
-        for (Map.Entry<String, AbstractTCPServerHandler> requestHandlerSet : tcpServerHandlers.entrySet())
-        {
+        for (Map.Entry<String, AbstractTCPServerHandler> requestHandlerSet : tcpServerHandlers.entrySet()) {
             AbstractTCPServerHandler requestHandler = requestHandlerSet.getValue();
-            if ( requestHandler != null ) {
+            if (requestHandler != null) {
                 requestHandler.stopIt();
                 requestHandler.closeSocket();
                 requestHandler.interrupt();

@@ -25,10 +25,6 @@ public class Config {
 
 
     @NotNull
-    private int logstashConnectorPort;
-
-
-    @NotNull
     private String genericConnectorPorts;
 
 
@@ -61,14 +57,6 @@ public class Config {
 
     @NotNull
     private String environment;
-
-    public int getLogstashConnectorPort() {
-        return logstashConnectorPort;
-    }
-
-    public void setLogstashConnectorPort(int logstashConnectorPort) {
-        this.logstashConnectorPort = logstashConnectorPort;
-    }
 
     public String getGenericConnectorPorts() {
         return genericConnectorPorts;

@@ -2,9 +2,6 @@ package ca.magenta.yes.data;
 
 import org.apache.lucene.document.Document;
 
-/**
- * Created by jplaberge on 2016-12-31.
- */
 public class MasterIndexRecord {
 
     private final long olderTxTimestamp;
