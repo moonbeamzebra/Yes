@@ -38,10 +38,6 @@ public class NormalizedLogRecord {
 
     }
 
-//    public NormalizedLogRecord() {
-//        data = new HashMap<String, Object>();
-//    }
-
     private NormalizedLogRecord(HashMap<String, Object> data) {
         this.data = data;
     }
