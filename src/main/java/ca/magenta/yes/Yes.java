@@ -1,8 +1,8 @@
 package ca.magenta.yes;
 
+import ca.magenta.client.YesClient;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
-import ca.magenta.yes.api.LongTermReader;
 import ca.magenta.yes.data.NormalizedLogRecord;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
@@ -36,7 +36,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
     private static String apiServerAddr = null;
     private static int apiServerPort = -1;
     private static boolean longTerm = false;
-    private static OutputOption outputOption = OutputOption.DEFAULT;
+    private static YesClient.OutputOption outputOption = YesClient.OutputOption.DEFAULT;
     private static TimeRange periodTimeRange = null;
 
     public static void main(String[] args) throws IOException, ParseException {
@@ -48,82 +48,84 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
 
         if (rc == 0) {
 
+            YesClient yesClient = new YesClient(apiServerAddr, apiServerPort);
+
             if (realTime) {
                 doRealTime();
             } else if (longTerm) {
-                doLongTerm(periodTimeRange, searchString);
+                yesClient.showLongTermEntries(periodTimeRange, searchString, outputOption);
             }
 
         }
     }
 
-    private static void doLongTerm(TimeRange periodTimeRange, String searchString) {
-        try {
+//    private static void doLongTerm(TimeRange periodTimeRange, String searchString) {
+//        try {
+//
+//            Socket apiServer = new Socket(apiServerAddr, apiServerPort);
+//            PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
+//
+//            String control = String.format("{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\"}",
+//                    periodTimeRange.getOlderTime(),
+//                    periodTimeRange.getNewerTime(),
+//                    searchString);
+//
+//            toServer.println(control);
+//
+//            BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
+//
+//            String entry;
+//            boolean doRun = true;
+//
+//            String lastMessage = "";
+//            while (doRun && (entry = fromServer.readLine()) != null) {
+//                if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
+//                    YesClient.printEntry(entry,outputOption);
+//                } else {
+//                    lastMessage = entry;
+//                    doRun = false;
+//                }
+//
+//            }
+//
+//            fromServer.close();
+//            apiServer.close();
+//
+//            if (lastMessage.length() > LongTermReader.END_DATA_STRING.length()) {
+//                logger.error(String.format("%s", lastMessage));
+//            }
+//
+//        } catch (Throwable t) {
+//            t.printStackTrace();
+//        }
+//    }
 
-            Socket apiServer = new Socket(apiServerAddr, apiServerPort);
-            PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
-
-            String control = String.format("{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\"}",
-                    periodTimeRange.getOlderTime(),
-                    periodTimeRange.getNewerTime(),
-                    searchString);
-
-            toServer.println(control);
-
-            BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
-
-            String entry;
-            boolean doRun = true;
-
-            String lastMessage = "";
-            while (doRun && (entry = fromServer.readLine()) != null) {
-                if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
-                    printEntry(entry);
-                } else {
-                    lastMessage = entry;
-                    doRun = false;
-                }
-
-            }
-
-            fromServer.close();
-            apiServer.close();
-
-            if (lastMessage.length() > LongTermReader.END_DATA_STRING.length()) {
-                logger.error(String.format("%s", lastMessage));
-            }
-
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
-    }
-
-    private static void printEntry(String entry) throws IOException {
-
-        NormalizedLogRecord normalizedLogRecord = null;
-
-        if (outputOption != OutputOption.JSON)
-            normalizedLogRecord = NormalizedLogRecord.fromJson(entry);
-
-        // DEFAULT, RAW, JSON, TWO_LINER
-        switch (outputOption) {
-            case JSON:
-                System.out.println(entry);
-                break;
-            case RAW:
-                System.out.println(String.format("[%s][%s] %s",
-                        normalizedLogRecord.prettyRxTimestamp(),
-                        normalizedLogRecord.getPartition(),
-                        normalizedLogRecord.getMessage()));
-                break;
-            case TWO_LINER:
-                System.out.println(normalizedLogRecord.toTTYString(true, false));
-                break;
-
-            case DEFAULT:
-                System.out.println(normalizedLogRecord.toTTYString(false, true));
-        }
-    }
+//    private static void printEntry(String entry) throws IOException {
+//
+//        NormalizedLogRecord normalizedLogRecord = null;
+//
+//        if (outputOption != OutputOption.JSON)
+//            normalizedLogRecord = NormalizedLogRecord.fromJson(entry);
+//
+//        // DEFAULT, RAW, JSON, TWO_LINER
+//        switch (outputOption) {
+//            case JSON:
+//                System.out.println(entry);
+//                break;
+//            case RAW:
+//                System.out.println(String.format("[%s][%s] %s",
+//                        normalizedLogRecord.prettyRxTimestamp(),
+//                        normalizedLogRecord.getPartition(),
+//                        normalizedLogRecord.getMessage()));
+//                break;
+//            case TWO_LINER:
+//                System.out.println(normalizedLogRecord.toTTYString(true, false));
+//                break;
+//
+//            case DEFAULT:
+//                System.out.println(normalizedLogRecord.toTTYString(false, true));
+//        }
+//    }
 
     private static void doRealTime() {
         try {
@@ -140,7 +142,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             String entry;
 
             while ((entry = fromServer.readLine()) != null) {
-                printEntry(entry);
+                YesClient.printEntry(NormalizedLogRecord.fromJson(entry), outputOption);
 
             }
 
@@ -172,13 +174,13 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                     }
                     // --raw|--json|--2liner
                 } else if (a_sArg.toLowerCase().equals("--raw")) {
-                    outputOption = OutputOption.RAW;
+                    outputOption = YesClient.OutputOption.RAW;
                     logger.info("Output: RAW");
                 } else if (a_sArg.toLowerCase().equals("--json")) {
-                    outputOption = OutputOption.JSON;
+                    outputOption = YesClient.OutputOption.JSON;
                     logger.info("Output: JSON");
                 } else if (a_sArg.toLowerCase().equals("--2liner")) {
-                    outputOption = OutputOption.TWO_LINER;
+                    outputOption = YesClient.OutputOption.TWO_LINER;
                     logger.info("Output: 2LINER");
                 } else if (a_sArg.toLowerCase().equals("-f")) {
                     realTime = true;
@@ -293,9 +295,9 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
         return rc;
     }
 
-    private enum OutputOption {
-        DEFAULT, RAW, JSON, TWO_LINER
-    }
+//    private enum OutputOption {
+//        DEFAULT, RAW, JSON, TWO_LINER
+//    }
 
 
 }
