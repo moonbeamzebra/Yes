@@ -67,7 +67,7 @@ public class NormalizedLogRecord {
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append(prettyRxTimestamp());
+        sb.append(getPrettyRxTimestamp());
 
         for (Map.Entry<String, Object> entry : data.entrySet()) {
             if (!"rxTimestamp".equals(entry.getKey())) {
@@ -111,7 +111,7 @@ public class NormalizedLogRecord {
         return (long) data.get("rxTimestamp");
     }
 
-    public String prettyRxTimestamp() {
+    public String getPrettyRxTimestamp() {
         return DATE_FORMAT.format(getRxTimestamp());
     }
 

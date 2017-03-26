@@ -2,16 +2,23 @@ package ca.magenta.yes;
 
 //import ca.magenta.yes.backend.Contact;
 //import ca.magenta.yes.components.TimelineData;
+import ca.magenta.utils.AppException;
+import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.client.YesClient;
 import ca.magenta.yes.data.NormalizedLogRecord;
 import ca.magenta.yes.ui.*;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.shared.ui.ValueChangeMode;
+import com.vaadin.shared.ui.grid.HeightMode;
 import com.vaadin.spring.annotation.SpringUI;
 import com.vaadin.ui.*;
 import com.vaadin.ui.themes.ValoTheme;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 /* User Interface written in Java.
  *
@@ -23,6 +30,12 @@ import org.springframework.util.StringUtils;
 
 @SpringUI
 public class YesManUI extends UI {
+
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(YesManUI.class.getPackage().getName());
+
+    private YesClient yesClient = new YesClient("127.0.0.1",9595);
+
+    private TimeRange timeRange = null;
 
     /*
     * Hundreds of widgets. Vaadin's user interface components are just Java
@@ -64,12 +77,25 @@ public class YesManUI extends UI {
     @Autowired
     public YesManUI(CustomerRepository repo, CustomerEditor editor) {
 
+        try
+        {
+            timeRange = TimeRange.returnTimeRangeBackwardFromNow("last1y");
+        }
+        catch (AppException e)
+        {
+            e.printStackTrace();
+        }
+
+        // See https://vaadin.com/blog/-/blogs/using-vaadin-grid
+        // See https://vaadin.com/docs/-/part/framework/datamodel/datamodel-providers.html
+
         this.repo = repo;
         this.editor = editor;
 
         this.filter = new TextField();
         //this.grid = new Grid<>(Customer.class);
-        this.eventList = new Grid<>(Customer.class);
+        this.eventList = new Grid<>(NormalizedLogRecord.class);
+        //this.eventList = new Grid<>(Customer.class);
         this.addNewBtn = new Button("New record", FontAwesome.PLUS);
 
         // ContactForm is an example of a custom component class
@@ -115,12 +141,30 @@ public class YesManUI extends UI {
 
         //eventList.setContainerDataSource(new BeanItemContainer<>(Contact.class));
 
+//        private long getRxTimestamp() {
+//            return (long) data.get("rxTimestamp");
+//        }
+//
+//    public String getPrettyRxTimestamp() {
+//        return DATE_FORMAT.format(getRxTimestamp());
+//    }
+//
+//    public String getPartition() {
+//        return data.get("partition").toString();
+//    }
+//
+//    public String getMessage() {
+//
+//    }
         filter.setPlaceholder("Filter by partition");
-        eventList.setColumns("id", "firstName", "lastName");
-        eventList.setColumnOrder("firstName", "lastName");
+//        eventList.addColumn(getPrettyRxTimestamp()).setCaption("PrettyRxTimestamp");
+//        eventList.addColumn("partition");
+//        eventList.addColumn("message");
+        eventList.setColumns("prettyRxTimestamp", "partition", "message");
+        eventList.setColumnOrder("prettyRxTimestamp");
         //eventList.setColumns("rxTimestamp", "partition", "message");
         //eventList.setColumnOrder("rxTimestamp");
-        eventList.removeColumn("id");
+        //eventList.removeColumn("id");
         eventList.setSelectionMode(Grid.SelectionMode.SINGLE);
         filter.setValueChangeMode(ValueChangeMode.LAZY);
         filter.addValueChangeListener(e -> listCustomers(e.getValue()));
@@ -213,10 +257,15 @@ public class YesManUI extends UI {
     // tag::listContacts[]
     public void listCustomers(String filterText) {
         if (StringUtils.isEmpty(filterText)) {
-            eventList.setItems(repo.findAll());
+
+            logger.info(String.format("ROW COUNT: [%s]",Double.toString(eventList.getHeightByRows())));
+
+            eventList.setItems(yesClient.findAll(timeRange,"*"));
         }
         else {
-            eventList.setItems(repo.findByLastNameStartsWithIgnoreCase(filterText));
+            eventList.setHeightMode(HeightMode.ROW);
+            logger.info(String.format("ROW COUNT: [%s]",Double.toString(eventList.getHeightByRows())));
+            eventList.setItems(yesClient.findAll(timeRange,filterText));
         }
     }
     // end::listContacts[]

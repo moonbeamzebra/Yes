@@ -1,6 +1,6 @@
 package ca.magenta.yes;
 
-import ca.magenta.client.YesClient;
+import ca.magenta.yes.client.YesClient;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.data.NormalizedLogRecord;
@@ -114,7 +114,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
 //                break;
 //            case RAW:
 //                System.out.println(String.format("[%s][%s] %s",
-//                        normalizedLogRecord.prettyRxTimestamp(),
+//                        normalizedLogRecord.getPrettyRxTimestamp(),
 //                        normalizedLogRecord.getPartition(),
 //                        normalizedLogRecord.getMessage()));
 //                break;
