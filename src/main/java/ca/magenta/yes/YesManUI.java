@@ -5,7 +5,7 @@ package ca.magenta.yes;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.client.YesClient;
-import ca.magenta.yes.data.NormalizedLogRecord;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.ui.*;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.VaadinRequest;
@@ -17,8 +17,6 @@ import com.vaadin.ui.themes.ValoTheme;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
 
 /* User Interface written in Java.
  *
@@ -94,7 +92,7 @@ public class YesManUI extends UI {
 
         this.filter = new TextField();
         //this.grid = new Grid<>(Customer.class);
-        this.eventList = new Grid<>(NormalizedLogRecord.class);
+        this.eventList = new Grid<>(NormalizedMsgRecord.class);
         //this.eventList = new Grid<>(Customer.class);
         this.addNewBtn = new Button("New record", FontAwesome.PLUS);
 

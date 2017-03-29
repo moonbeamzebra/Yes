@@ -1,7 +1,7 @@
 package ca.magenta.yes.connector.common;
 
 import ca.magenta.utils.Runner;
-import ca.magenta.yes.data.NormalizedLogRecord;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -48,7 +48,7 @@ public abstract class IndexSubscriber extends Runner {
         IndexReader reader = null;
         try {
             StandardQueryParser queryParserHelper = new StandardQueryParser();
-            Query stringQuery = queryParserHelper.parse(searchString, "message");
+            Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
             // Sorted by ascending index = same order as it comes
             Sort sort = new Sort(new SortField("name", SortField.FIELD_DOC.getType(), false));
@@ -70,7 +70,7 @@ public abstract class IndexSubscriber extends Runner {
                         logger.debug("Number of hits: " + results.totalHits);
                     for (ScoreDoc scoreDoc : results.scoreDocs) {
                         Document doc = searcher.doc(scoreDoc.doc);
-                        NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
+                        NormalizedMsgRecord normalizedLogRecord = new NormalizedMsgRecord(doc);
 
                         this.forward(normalizedLogRecord.toJson());
                     }

@@ -3,7 +3,7 @@ package ca.magenta.yes.api;
 import ca.magenta.utils.Runner;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.data.MasterIndexRecord;
-import ca.magenta.yes.data.NormalizedLogRecord;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.apache.log4j.Logger;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.LongPoint;
@@ -167,11 +167,11 @@ public class LongTermReader extends Runner {
                                        PrintWriter client) throws IOException, QueryNodeException {
 
         StandardQueryParser queryParserHelper = new StandardQueryParser();
-        Query stringQuery = queryParserHelper.parse(searchString, "message");
+        Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
 
         BooleanQuery bCompleteSearchStr = new BooleanQuery.Builder().
-                add(LongPoint.newRangeQuery("rxTimestamp", periodTimeRange.getOlderTime(), periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME, periodTimeRange.getOlderTime(), periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
                 add(stringQuery, BooleanClause.Occur.MUST).
                 build();
 
@@ -184,7 +184,7 @@ public class LongTermReader extends Runner {
 
         int maxTotalHits = 5;
 
-        Sort sort = new Sort(new SortedNumericSortField("rxTimestamp",SortField.Type.LONG, false));
+        Sort sort = new Sort(new SortedNumericSortField(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME,SortField.Type.LONG, false));
 
         ScoreDoc lastScoreDoc = null;
         int totalRead = maxTotalHits; // just to let enter in the following loop
@@ -199,7 +199,7 @@ public class LongTermReader extends Runner {
                 lastScoreDoc = scoreDoc;
 
                 Document doc = searcher.doc(scoreDoc.doc);
-                NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
+                NormalizedMsgRecord normalizedLogRecord = new NormalizedMsgRecord(doc);
 
                 if (client != null) {
                     if (logger.isDebugEnabled())

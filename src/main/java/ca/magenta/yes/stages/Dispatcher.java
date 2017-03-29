@@ -3,6 +3,7 @@ package ca.magenta.yes.stages;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.Globals;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,24 +59,12 @@ public class Dispatcher extends QueueProcessor {
                     hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
                     logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
 
-                    long epoch = System.currentTimeMillis();
-                    hashedMsg.put("rxTimestamp", epoch);
-                    String str = (String) hashedMsg.get("@timestamp");
-                    if (str != null) {
-                        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-                        Date date = df.parse(str);
-                        epoch = date.getTime();
-                        if (logger.isDebugEnabled())
-                            logger.debug(String.format("timestamp:[%d]", epoch));
-                    }
-                    hashedMsg.put("srcTimestamp", epoch);
+                    NormalizedMsgRecord.initiateTimestampsInMsgHash(hashedMsg);
 
                     if (logger.isDebugEnabled())
                         logger.debug("Before putInQueue");
                     longTermProcessorMgmt.putInQueue(hashedMsg);
                     realTimeProcessorMgmt.putInQueue(hashedMsg);
-                } catch (ParseException e) {
-                    logger.error("ParseException", e);
                 } catch (IOException e) {
                     logger.error("IOException", e);
                 }

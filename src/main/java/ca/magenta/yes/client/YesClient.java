@@ -2,7 +2,7 @@ package ca.magenta.yes.client;
 
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.api.LongTermReader;
-import ca.magenta.yes.data.NormalizedLogRecord;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
@@ -48,7 +48,7 @@ public class YesClient {
             String lastMessage = "";
             while (doRun && (entry = fromServer.readLine()) != null) {
                 if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
-                    YesClient.printEntry(NormalizedLogRecord.fromJson(entry), outputOption);
+                    YesClient.printEntry(NormalizedMsgRecord.fromJson(entry), outputOption);
                 } else {
                     lastMessage = entry;
                     doRun = false;
@@ -68,9 +68,9 @@ public class YesClient {
         }
     }
 
-    public List<NormalizedLogRecord> findAll(TimeRange periodTimeRange, String searchString) {
+    public List<NormalizedMsgRecord> findAll(TimeRange periodTimeRange, String searchString) {
 
-        List<NormalizedLogRecord> list = new ArrayList<>();
+        List<NormalizedMsgRecord> list = new ArrayList<>();
 
 
         try {
@@ -93,7 +93,7 @@ public class YesClient {
             String lastMessage = "";
             while (doRun && (entry = fromServer.readLine()) != null) {
                 if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
-                    list.add(NormalizedLogRecord.fromJson(entry));
+                    list.add(NormalizedMsgRecord.fromJson(entry));
                 } else {
                     lastMessage = entry;
                     doRun = false;
@@ -116,7 +116,7 @@ public class YesClient {
     }
 
 
-    public static void printEntry(NormalizedLogRecord normalizedLogRecord, OutputOption outputOption) throws IOException {
+    public static void printEntry(NormalizedMsgRecord normalizedLogRecord, OutputOption outputOption) throws IOException {
 
         // DEFAULT, RAW, JSON, TWO_LINER
         switch (outputOption) {

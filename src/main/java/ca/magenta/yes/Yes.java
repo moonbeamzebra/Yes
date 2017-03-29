@@ -3,7 +3,7 @@ package ca.magenta.yes;
 import ca.magenta.yes.client.YesClient;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
-import ca.magenta.yes.data.NormalizedLogRecord;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
@@ -102,10 +102,10 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
 
 //    private static void printEntry(String entry) throws IOException {
 //
-//        NormalizedLogRecord normalizedLogRecord = null;
+//        NormalizedMsgRecord normalizedLogRecord = null;
 //
 //        if (outputOption != OutputOption.JSON)
-//            normalizedLogRecord = NormalizedLogRecord.fromJson(entry);
+//            normalizedLogRecord = NormalizedMsgRecord.fromJson(entry);
 //
 //        // DEFAULT, RAW, JSON, TWO_LINER
 //        switch (outputOption) {
@@ -142,7 +142,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             String entry;
 
             while ((entry = fromServer.readLine()) != null) {
-                YesClient.printEntry(NormalizedLogRecord.fromJson(entry), outputOption);
+                YesClient.printEntry(NormalizedMsgRecord.fromJson(entry), outputOption);
 
             }
 

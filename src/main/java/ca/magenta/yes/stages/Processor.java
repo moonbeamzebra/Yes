@@ -2,8 +2,7 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
-import org.apache.lucene.document.*;
-import org.apache.lucene.index.IndexOptions;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
@@ -11,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -68,8 +66,8 @@ public abstract class Processor implements Runnable {
 
             while (doRun || !inputQueue.isEmpty()) {
                 HashMap<String, Object> message = takeFromQueue();
-                long srcTimestamp = (long) message.get("srcTimestamp");
-                long rxTimestamp = (long) message.get("rxTimestamp");
+                long srcTimestamp = (long) message.get(NormalizedMsgRecord.SOURCE_TIMESTAMP_FIELD_NAME);
+                long rxTimestamp = (long) message.get(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME);
                 runTimeStamps.compute(srcTimestamp, rxTimestamp);
                 if (logger.isDebugEnabled())
                     logger.debug("Processor received: " + message);
@@ -127,43 +125,10 @@ public abstract class Processor implements Runnable {
 
     synchronized private void storeInLucene(HashMap<String, Object> message) throws AppException {
 
-        try {
+        NormalizedMsgRecord.store(message, luceneIndexWriter);
 
-            Document document = new Document();
-
-            for (Map.Entry<String, Object> fieldE : message.entrySet()) {
-                if ("message".equals(fieldE.getKey())) {
-                    document.add(new TextField("message", (String) fieldE.getValue(), Field.Store.YES));
-                } else if (fieldE.getValue() instanceof Integer) {
-                    document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
-                    document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Integer) fieldE.getValue()));
-                    document.add(new StoredField(fieldE.getKey(), (Integer) fieldE.getValue()));
-                } else if (fieldE.getValue() instanceof Long) {
-                    document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
-                    document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Long) fieldE.getValue()));
-                    document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
-                    if (logger.isDebugEnabled()) {
-                        long longValue = (Long) fieldE.getValue();
-                        logger.debug(String.format("ADDED:[%s];[%d]", fieldE.getKey(), longValue));
-                    }
-                } else {
-                    FieldType newType = new FieldType();
-                    newType.setTokenized(false);
-                    newType.setStored(true);
-                    newType.setIndexOptions(IndexOptions.DOCS);
-                    //Field f = new Field(fieldE.getKey(), (String) fieldE.getValue(), newType);
-                    document.add(new StringField(fieldE.getKey(), (String) fieldE.getValue(), Field.Store.YES));
-                }
-            }
-
-            luceneIndexWriter.addDocument(document);
-            if (logger.isDebugEnabled())
-                logger.debug("Document added");
-        } catch (IOException e) {
-            throw new AppException("IOException", e);
-        }
-
-
+        if (logger.isDebugEnabled())
+            logger.debug("Document added");
     }
 
     public abstract void createIndex(String indexPath) throws AppException;

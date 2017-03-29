@@ -1,7 +1,6 @@
 package ca.magenta.yes;
 
 import ca.magenta.utils.AppException;
-import ca.magenta.yes.data.NormalizedLogRecord;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -74,7 +73,7 @@ public class SearchIndex {
             Document doc2 = searcher.doc(scoreDoc.doc);
             //String key = String.format("{timestamp : %s, device : %s, source : %s, dest : %s, port : %s }",doc.get("timestamp"),doc.get("device"),doc.get("source"),doc.get("dest"),doc.get("port") );
             //System.out.println("Found:" + doc.toString());
-            //NormalizedLogRecord normalizedLogRecord = new NormalizedLogRecord(doc);
+            //NormalizedMsgRecord normalizedLogRecord = new NormalizedMsgRecord(doc);
             //System.out.println("Found:" + normalizedLogRecord.toString());
 
 

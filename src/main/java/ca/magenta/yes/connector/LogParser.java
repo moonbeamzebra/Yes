@@ -3,6 +3,7 @@ package ca.magenta.yes.connector;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.Globals;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.stages.Dispatcher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -92,14 +93,12 @@ public class LogParser extends QueueProcessor {
 
     private void dispatchParsingAndProcessing(String logMsg, Dispatcher dispatcher) throws JsonProcessingException, InterruptedException {
 
+        String msgType =  "pseudoCheckpoint";
+
+        HashMap<String, Object> hashedMsg = NormalizedMsgRecord.initiateMsgHash(logMsg, msgType, partition);
+
+        // Let's parse pseudo Checkpoint logs
         // device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop
-
-        HashMap<String, Object> hashedMsg = new HashMap<>();
-
-        hashedMsg.put("message", logMsg);
-        hashedMsg.put("type", "pseudoCheckpoint");
-        hashedMsg.put("partition", partition);
-
         String[] items = logMsg.split("\\|");
 
         for (String item : items) {
@@ -110,7 +109,8 @@ public class LogParser extends QueueProcessor {
                 String key = item.substring(0, pos);
                 String value = item.substring(pos + 1);
 
-                //logger.info(String.format("KEY:[%s]; VALUE:[%s]", key, value));
+                if (logger.isDebugEnabled())
+                    logger.debug(String.format("KEY:[%s]; VALUE:[%s]", key, value));
 
                 hashedMsg.put(key, value);
 
