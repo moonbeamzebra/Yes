@@ -4,7 +4,6 @@ import ca.magenta.utils.AppException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.document.*;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexableField;
 import org.slf4j.LoggerFactory;
@@ -18,11 +17,12 @@ import java.util.Map;
 
 public class NormalizedMsgRecord {
 
-    public static final String RECEIVE_TIMESTAMP_FIELD_NAME = "_yes_RxTimestamp";
-    public static final String SOURCE_TIMESTAMP_FIELD_NAME = "_yes_SrcTimestamp";
-    public static final String MESSAGE_FIELD_NAME = "_yes_Message";
-    public static final String PARTITION_FIELD_NAME = "_yes_Partition";
-    public static final String MSG_TYPE_FIELD_NAME = "_yes_MsgType";
+    public static final String UID_FIELD_NAME = "_yes_uid";
+    public static final String RECEIVE_TIMESTAMP_FIELD_NAME = "_yes_rxTimestamp";
+    public static final String SOURCE_TIMESTAMP_FIELD_NAME = "_yes_srcTimestamp";
+    public static final String MESSAGE_FIELD_NAME = "_yes_message";
+    public static final String PARTITION_FIELD_NAME = "_yes_partition";
+    public static final String MSG_TYPE_FIELD_NAME = "_yes_msgType";
     public static final String LOGSTASH_TIMESTAMP = "@timestamp";
     public static final SimpleDateFormat LOGSTASH_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
@@ -47,6 +47,42 @@ public class NormalizedMsgRecord {
                 default:
                     data.put(field.name(), logRecordDoc.get(field.name()));
             }
+        }
+    }
+
+    public static void store(HashMap<String, Object> message, IndexWriter luceneIndexWriter) throws AppException {
+        Document document = new Document();
+
+        for (Map.Entry<String, Object> fieldE : message.entrySet()) {
+            if (NormalizedMsgRecord.MESSAGE_FIELD_NAME.equals(fieldE.getKey())) {
+                document.add(new TextField(NormalizedMsgRecord.MESSAGE_FIELD_NAME, (String) fieldE.getValue(), Field.Store.YES));
+            } else if (NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME.equals(fieldE.getKey())) {
+                LuceneTools.luceneStoreSortedDoc(document,  UID_FIELD_NAME, generateUID((long) fieldE.getValue()));
+                LuceneTools.luceneStoreSortedDoc(document,  RECEIVE_TIMESTAMP_FIELD_NAME, toStringTimestamp((long) fieldE.getValue()));
+            } else if (NormalizedMsgRecord.SOURCE_TIMESTAMP_FIELD_NAME.equals(fieldE.getKey())) {
+                LuceneTools.luceneStoreSortedDoc(document, SOURCE_TIMESTAMP_FIELD_NAME, toStringTimestamp((long) fieldE.getValue()));
+            }
+            else if (fieldE.getValue() instanceof Integer) {
+                document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
+                document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Integer) fieldE.getValue()));
+                document.add(new StoredField(fieldE.getKey(), (Integer) fieldE.getValue()));
+            } else if (fieldE.getValue() instanceof Long) {
+                document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
+                document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Long) fieldE.getValue()));
+                document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
+                if (logger.isDebugEnabled()) {
+                    long longValue = (Long) fieldE.getValue();
+                    logger.debug(String.format("ADDED:[%s];[%d]", fieldE.getKey(), longValue));
+                }
+            } else {
+                LuceneTools.luceneStoreNonTokenizedString(document, fieldE.getKey(), (String) fieldE.getValue());
+            }
+        }
+
+        try {
+            luceneIndexWriter.addDocument(document);
+        } catch (IOException e) {
+            throw new AppException(e.getClass().getSimpleName(), e);
         }
 
     }
@@ -138,8 +174,19 @@ public class NormalizedMsgRecord {
 
 
 
-    private static int breakerSequence = -1;
 
+    private static String generateUID(long timestamp)
+    {
+        return String.format("%s-%s",  toStringTimestamp(timestamp), generateBreakerSequence());
+    }
+
+    public static String toStringTimestamp(long epoch)
+    {
+        return String.format("%013d", epoch);
+    }
+
+
+    private static int breakerSequence = -1;
     synchronized public static String generateBreakerSequence()
     {
         if (breakerSequence == Integer.MAX_VALUE)
@@ -150,10 +197,10 @@ public class NormalizedMsgRecord {
         return String.format("%08X",breakerSequence);
     }
 
-    public static String toStringTimestamp(long epoch)
-    {
-        return String.format("%020d", epoch);
-    }
+    //public static String toStringTimestamp(long epoch)
+//    {
+//        return String.format("%020d", epoch);
+//    }
 
     public static HashMap<String, Object> initiateMsgHash(String logMsg, String msgType, String partition) {
 
@@ -167,41 +214,6 @@ public class NormalizedMsgRecord {
 
     }
 
-    public static void store(HashMap<String, Object> message, IndexWriter luceneIndexWriter) throws AppException {
-        Document document = new Document();
-
-        for (Map.Entry<String, Object> fieldE : message.entrySet()) {
-            if (NormalizedMsgRecord.MESSAGE_FIELD_NAME.equals(fieldE.getKey())) {
-                document.add(new TextField(NormalizedMsgRecord.MESSAGE_FIELD_NAME, (String) fieldE.getValue(), Field.Store.YES));
-            } else if (fieldE.getValue() instanceof Integer) {
-                document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
-                document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Integer) fieldE.getValue()));
-                document.add(new StoredField(fieldE.getKey(), (Integer) fieldE.getValue()));
-            } else if (fieldE.getValue() instanceof Long) {
-                document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
-                document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Long) fieldE.getValue()));
-                document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
-                if (logger.isDebugEnabled()) {
-                    long longValue = (Long) fieldE.getValue();
-                    logger.debug(String.format("ADDED:[%s];[%d]", fieldE.getKey(), longValue));
-                }
-            } else {
-                FieldType newType = new FieldType();
-                newType.setTokenized(false);
-                newType.setStored(true);
-                newType.setIndexOptions(IndexOptions.DOCS);
-                //Field f = new Field(fieldE.getKey(), (String) fieldE.getValue(), newType);
-                document.add(new StringField(fieldE.getKey(), (String) fieldE.getValue(), Field.Store.YES));
-            }
-        }
-
-        try {
-            luceneIndexWriter.addDocument(document);
-        } catch (IOException e) {
-            throw new AppException(e.getClass().getSimpleName(), e);
-        }
-
-    }
 
     public static void initiateTimestampsInMsgHash(HashMap<String, Object> hashedMsg) {
 

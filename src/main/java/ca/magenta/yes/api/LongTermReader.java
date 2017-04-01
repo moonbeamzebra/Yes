@@ -5,10 +5,14 @@ import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.apache.log4j.Logger;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.BooleanQuery;
@@ -39,16 +43,23 @@ public class LongTermReader extends Runner {
 
     private final TimeRange periodTimeRange;
     private final String searchString;
+    private final boolean reverse;
 
 
 
-    LongTermReader(String name, String indexBaseDirectory, TimeRange periodTimeRange, String searchString, PrintWriter client) {
+    LongTermReader(String name,
+                   String indexBaseDirectory,
+                   TimeRange periodTimeRange,
+                   String searchString,
+                   boolean reverse,
+                   PrintWriter client) {
 
         super(name);
 
         this.indexBaseDirectory = indexBaseDirectory;
         this.periodTimeRange = periodTimeRange;
         this.searchString = searchString;
+        this.reverse = reverse;
         this.client = client;
     }
 
@@ -59,7 +70,7 @@ public class LongTermReader extends Runner {
         String errorMessage = "";
 
         try {
-            doLongTerm(indexBaseDirectory, periodTimeRange, searchString, client);
+            doLongTerm(indexBaseDirectory, periodTimeRange, searchString, reverse, client);
         } catch (IOException e) {
             logger.error("IOException", e);
             errorMessage = " ERROR: " + e.getMessage();
@@ -80,7 +91,11 @@ public class LongTermReader extends Runner {
 
     }
 
-    synchronized  private void doLongTerm(String indexBaseDirectory, TimeRange periodTimeRange, String searchString, PrintWriter client) throws IOException, QueryNodeException {
+    synchronized  private void doLongTerm(String indexBaseDirectory,
+                                          TimeRange periodTimeRange,
+                                          String searchString,
+                                          boolean reverse,
+                                          PrintWriter client) throws IOException, QueryNodeException, ParseException {
 
         // Files containing range at the end : left part
         // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
@@ -122,14 +137,15 @@ public class LongTermReader extends Runner {
         logger.info("Search In MasterIndex search string: " + bMasterSearch.toString());
 
 
-        searchInMasterIndex(indexBaseDirectory, bMasterSearch, periodTimeRange, searchString, client);
+        searchInMasterIndex(indexBaseDirectory, bMasterSearch, periodTimeRange, searchString, reverse, client);
     }
 
     private void searchInMasterIndex(String indexBaseDirectory,
                                      Query indexQuery,
                                      TimeRange periodTimeRange,
                                      String searchString,
-                                     PrintWriter client) throws IOException, QueryNodeException {
+                                     boolean reverse,
+                                     PrintWriter client) throws IOException, QueryNodeException, ParseException {
 
         String indexNamePath = indexBaseDirectory + File.separator + "master.lucene";
 
@@ -152,7 +168,12 @@ public class LongTermReader extends Runner {
                 lastScoreDoc = scoreDoc;
                 Document doc = searcher.doc(scoreDoc.doc);
                 MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
-                searchInLongTermIndex(indexBaseDirectory, masterIndexRecord.getLongTermIndexName(), periodTimeRange, searchString, client);
+                searchInLongTermIndex(indexBaseDirectory,
+                        masterIndexRecord.getLongTermIndexName(),
+                        periodTimeRange,
+                        searchString,
+                        reverse,
+                        client);
 
             }
         }
@@ -164,34 +185,43 @@ public class LongTermReader extends Runner {
                                        String longTermIndexName,
                                        TimeRange periodTimeRange,
                                        String searchString,
-                                       PrintWriter client) throws IOException, QueryNodeException {
+                                       boolean reverse,
+                                       PrintWriter client) throws IOException, QueryNodeException, ParseException {
 
-        StandardQueryParser queryParserHelper = new StandardQueryParser();
-        Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
-
-
-        BooleanQuery bCompleteSearchStr = new BooleanQuery.Builder().
-                add(LongPoint.newRangeQuery(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME, periodTimeRange.getOlderTime(), periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
-                add(stringQuery, BooleanClause.Occur.MUST).
-                build();
+//        StandardQueryParser queryParserHelper = new StandardQueryParser();
+//        Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
         String indexNamePath = indexBaseDirectory + File.separator + longTermIndexName;
 
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
         IndexSearcher searcher = new IndexSearcher(reader);
 
-        logger.info("completeSearchStr: " + bCompleteSearchStr.toString());
+        String completeSearchStr = String.format("[%s TO %s] AND %s",
+                NormalizedMsgRecord.toStringTimestamp(periodTimeRange.getOlderTime()),
+                NormalizedMsgRecord.toStringTimestamp(periodTimeRange.getNewerTime()),
+                searchString);
+
+        logger.info("completeSearchStr: " + completeSearchStr);
+
+//        Analyzer analyzer = new KeywordAnalyzer();
+//        //Analyzer analyzer = new StandardAnalyzer();
+//        QueryParser queryParser = new QueryParser(NormalizedMsgRecord.MESSAGE_FIELD_NAME, analyzer);
+//        Query query = queryParser.parse(searchString);
+
+        StandardQueryParser queryParserHelper = new StandardQueryParser();
+        Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
         int maxTotalHits = 5;
 
-        Sort sort = new Sort(new SortedNumericSortField(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME,SortField.Type.LONG, false));
+        //Sort sort = new Sort(new SortedNumericSortField(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME,SortField.Type.LONG, false));
+        Sort sort = new Sort(new SortField(NormalizedMsgRecord.UID_FIELD_NAME, SortField.Type.STRING,reverse));
 
         ScoreDoc lastScoreDoc = null;
         int totalRead = maxTotalHits; // just to let enter in the following loop
         while ( (totalRead >= maxTotalHits) ) {
             TopDocs results;
 
-            results = searcher.searchAfter(lastScoreDoc, bCompleteSearchStr, maxTotalHits, sort);
+            results = searcher.searchAfter(lastScoreDoc, stringQuery, maxTotalHits, sort);
 
             totalRead = results.scoreDocs.length;
 

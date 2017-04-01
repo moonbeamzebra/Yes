@@ -88,10 +88,14 @@ public class APIServer extends AbstractTCPServerHandler {
                     searchString = control.get("searchString");
                     logger.info("searchString: " + searchString);
 
+                    boolean reverse = Boolean.valueOf(control.get("reverse"));
+                    logger.info("reverse: " + reverse);
+
                     LongTermReader longTermReader = new LongTermReader(threadName,
                             indexBaseDirectory,
                             periodTimeRange,
                             searchString,
+                            reverse,
                             out);
 
                     longTermReader.startInstance();

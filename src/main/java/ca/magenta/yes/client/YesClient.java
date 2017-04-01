@@ -27,16 +27,19 @@ public class YesClient {
     }
 
 
-    public void showLongTermEntries(TimeRange periodTimeRange, String searchString, OutputOption outputOption) {
+    public void showLongTermEntries(TimeRange periodTimeRange, String searchString, boolean reverse, OutputOption outputOption) {
         try {
 
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
             PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
 
-            String control = String.format("{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\"}",
+            String control = String.format(
+                    "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
                     periodTimeRange.getOlderTime(),
                     periodTimeRange.getNewerTime(),
-                    searchString);
+                    searchString,
+                    Boolean.toString(reverse)
+                    );
 
             toServer.println(control);
 
@@ -68,7 +71,7 @@ public class YesClient {
         }
     }
 
-    public List<NormalizedMsgRecord> findAll(TimeRange periodTimeRange, String searchString) {
+    public List<NormalizedMsgRecord> findAll(TimeRange periodTimeRange, String searchString, boolean reverse) {
 
         List<NormalizedMsgRecord> list = new ArrayList<>();
 
@@ -78,10 +81,13 @@ public class YesClient {
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
             PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
 
-            String control = String.format("{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\"}",
+            String control = String.format(
+                    "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
                     periodTimeRange.getOlderTime(),
                     periodTimeRange.getNewerTime(),
-                    searchString);
+                    searchString,
+                    Boolean.toString(reverse)
+            );
 
             toServer.println(control);
 
