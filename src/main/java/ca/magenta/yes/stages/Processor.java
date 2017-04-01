@@ -145,7 +145,7 @@ public abstract class Processor implements Runnable {
         return indexDir;
     }
 
-    static class RunTimeStamps {
+    public static class RunTimeStamps {
 
         private long olderSrcTimestamp;
         private long newerSrcTimestamp;
@@ -179,27 +179,27 @@ public abstract class Processor implements Runnable {
                 newerRxTimestamp = rxTimestamp;
         }
 
-        long getOlderSrcTimestamp() {
+        public long getOlderSrcTimestamp() {
             return olderSrcTimestamp;
         }
 
-        long getNewerSrcTimestamp() {
+        public long getNewerSrcTimestamp() {
             return newerSrcTimestamp;
         }
 
-        long getOlderRxTimestamp() {
+        public long getOlderRxTimestamp() {
             return olderRxTimestamp;
         }
 
-        long getNewerRxTimestamp() {
+        public long getNewerRxTimestamp() {
             return newerRxTimestamp;
         }
 
-        long getRunStartTimestamp() {
+        public long getRunStartTimestamp() {
             return runStartTimestamp;
         }
 
-        long getRunEndTimestamp() {
+        public long getRunEndTimestamp() {
             return runEndTimestamp;
         }
 

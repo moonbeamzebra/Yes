@@ -258,12 +258,12 @@ public class YesManUI extends UI {
 
             logger.info(String.format("ROW COUNT: [%s]",Double.toString(eventList.getHeightByRows())));
 
-            eventList.setItems(yesClient.findAll(timeRange,"*"));
+            eventList.setItems(yesClient.findAll(timeRange,"*", false));
         }
         else {
             eventList.setHeightMode(HeightMode.ROW);
             logger.info(String.format("ROW COUNT: [%s]",Double.toString(eventList.getHeightByRows())));
-            eventList.setItems(yesClient.findAll(timeRange,filterText));
+            eventList.setItems(yesClient.findAll(timeRange,filterText, false));
         }
     }
     // end::listContacts[]

@@ -1,4 +1,4 @@
-loc=4801107|time=2016-05-20 14:03:11|action=drop|orig=172.31.254.22|i/f_dir=inbound|i/f_name=eth2|has_accounting=0|uuid=<4db9abdf,0000000c,16fe1fac,0000ffff>|product=VPN-1 & FireWall-1|__policy_id_tag=product=VPN-1 & FireWall-1[db_tag={C4D9DD02-71AB-11E0-BA27-AC1FFEFEEBEB};mgmt=cgsr;date=1304004337;policy_name=CNXSRF00]|src=172.31.252.5|dst=172.31.246.17|proto=icmp|message_info=Address spoofing
+loc=4801107|time=2016-05-20 14:03:11|action=accept|orig=172.31.254.22|i/f_dir=inbound|i/f_name=eth2|has_accounting=0|uuid=<4db9abdf,0000000c,16fe1fac,0000ffff>|product=VPN-1 & FireWall-1|__policy_id_tag=product=VPN-1 & FireWall-1[db_tag={C4D9DD02-71AB-11E0-BA27-AC1FFEFEEBEB};mgmt=cgsr;date=1304004337;policy_name=CNXSRF00]|src=172.31.252.5|dst=172.31.246.17|proto=icmp|message_info=Address spoofing
 device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop|msg=Connnection dropped
 device=fw01|source=10.10.10.20|dest=20.20.20.10|port=80|action=accept|msg=Connnection accpted
 device=fw01|source=10.10.10.30|dest=20.20.20.20|port=80|action=terminate|msg=Connnection terminated

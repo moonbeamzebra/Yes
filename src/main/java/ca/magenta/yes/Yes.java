@@ -38,6 +38,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
     private static boolean longTerm = false;
     private static YesClient.OutputOption outputOption = YesClient.OutputOption.DEFAULT;
     private static TimeRange periodTimeRange = null;
+    private static boolean reverse = false;
 
     public static void main(String[] args) throws IOException, ParseException {
 
@@ -53,7 +54,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             if (realTime) {
                 doRealTime();
             } else if (longTerm) {
-                yesClient.showLongTermEntries(periodTimeRange, searchString, outputOption);
+                yesClient.showLongTermEntries(periodTimeRange, searchString, reverse, outputOption);
             }
 
         }
@@ -182,6 +183,9 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                 } else if (a_sArg.toLowerCase().equals("--2liner")) {
                     outputOption = YesClient.OutputOption.TWO_LINER;
                     logger.info("Output: 2LINER");
+                } else if (a_sArg.toLowerCase().equals("--reverse")) {
+                    reverse = true;
+                    logger.info("reverse receive order -> newer 1st / older last");
                 } else if (a_sArg.toLowerCase().equals("-f")) {
                     realTime = true;
                     logger.info("Real Time Mode");
@@ -238,7 +242,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             System.err.println("    Yes [--raw|--json|--2liner] -f -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
 
             System.err.println("  Long Term:");
-            System.err.println("    Yes  [--raw|--json|--2liner] --time=periodString -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
+            System.err.println("    Yes  [--raw|--json|--2liner] {--reverse} --time=periodString -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
             System.err.println("      periodString:");
             System.err.println("        FROMepoch1-TOepoch2");
             System.err.println("        FROMyyyy-MM-ddTHH:mm:ss.SSS-TOyyyy-MM-ddTHH:mm:ss.SSS");
@@ -275,6 +279,8 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             System.err.println("    Yes --time=FROM1483104805352-TO1483105405352 -apiServerAddr=127.0.0.1 -apiServerPort=9595 'error'");
             System.err.println("    # Time range using date string (local time)");
             System.err.println("    Yes --time=FROM2016-12-30T08:33:25.352-TO2016-12-30T08:43:25.352 -apiServerAddr=127.0.0.1 -apiServerPort=9595 'error'");
+            System.err.println("    # LAST 15 MINUTES; reverse -> newer 1st / older last");
+            System.err.println("    Yes --time=LAST15m --reverse -apiServerAddr=127.0.0.1 -apiServerPort=9595 'error'");
 
             rc = 1;
         } else {

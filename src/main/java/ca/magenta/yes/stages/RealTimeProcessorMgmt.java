@@ -35,8 +35,8 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
     @Override
     synchronized void publishIndex(Processor RealTimeProcessor,
-                              String indexPath,
-                              String indexPathName)
+                                   String indexPath,
+                                   String indexPathName, String partition)
     {
         try {
             //logger.info("indexPublisher.publish");

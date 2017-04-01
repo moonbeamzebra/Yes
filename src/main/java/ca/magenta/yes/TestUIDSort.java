@@ -17,9 +17,14 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 
 public class TestUIDSort {
+
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSz");
+
 
 
     public static void main(String[] args) throws Exception {
@@ -35,9 +40,20 @@ public class TestUIDSort {
 
         Document doc = new Document();
 
+        long dNow = System.currentTimeMillis();
+        System.out.println(String.format("Now epoch: %d", dNow));
+        System.out.println(String.format("Now s: %s", DATE_FORMAT.format(dNow)));
+        long test = 1490829047884L;
+             test = 9999999999999L;
+        System.out.println(String.format("Now s: %s", DATE_FORMAT.format(test)));
+        Date date = new Date();
+        //DATE_FORMAT.format(getRxTimestamp())
+
         long max = Long.MAX_VALUE;
         System.out.println("MAX: [" + max + "]");
         System.out.println(String.format("Max: [%020d]", max));
+        System.out.println(String.format("Max: [%014d]", test));
+        System.out.println(String.format("Max: [%013d]", test));
         System.out.println(String.format("Max: [%020X]", max));
         System.out.println("MAX+1: [" + ++max + "]");
 

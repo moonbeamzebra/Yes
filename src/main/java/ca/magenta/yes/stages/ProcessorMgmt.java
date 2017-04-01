@@ -73,7 +73,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                     processor.commitAndClose();
                     long count = processor.getThisRunCount();
                     if (count > 0) {
-                        publishIndex(processor, indexPath, indexPathName);
+                        publishIndex(processor, indexPath, indexPathName, partition);
                     } else {
                         deleteUnusedIndex(indexPathName);
                     }
@@ -92,7 +92,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     abstract void publishIndex(Processor processor,
                                String indexPath,
-                               String indexPathName) throws IOException, AppException;
+                               String indexPathName, String partition) throws IOException, AppException;
 
     abstract void deleteUnusedIndex(String indexPathName);
 
