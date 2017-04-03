@@ -39,6 +39,8 @@ public class NormalizedMsgRecord {
     private final String message;
     private final String msgType;
 
+    private final static ObjectMapper mapper = new ObjectMapper();
+
 
     public NormalizedMsgRecord(Document logRecordDoc) {
 
@@ -93,7 +95,7 @@ public class NormalizedMsgRecord {
 
     public NormalizedMsgRecord(String jsonMsg, boolean isInitPhase) throws IOException {
 
-        data =  (new ObjectMapper()).readValue(jsonMsg, HashMap.class);
+        data =  mapper.readValue(jsonMsg, HashMap.class);
 
         long epoch = System.currentTimeMillis();
 
@@ -103,10 +105,9 @@ public class NormalizedMsgRecord {
 
         if (isInitPhase) {
             rxTimestamp = epoch;
-            //data.put(RECEIVE_TIMESTAMP_FIELD_NAME, rxTimestamp);
-            uid = "";
-            //uid = generateUID(epoch);
-            //data.put(UID_FIELD_NAME, uid);
+            data.put(RECEIVE_TIMESTAMP_FIELD_NAME, rxTimestamp);
+            uid = generateUID(epoch);
+            data.put(UID_FIELD_NAME, uid);
 
             String str = (String) data.get(NormalizedMsgRecord.LOGSTASH_TIMESTAMP);
             if (str != null) {
@@ -121,7 +122,7 @@ public class NormalizedMsgRecord {
                 }
             }
             srcTimestamp = epoch;
-            //data.put(SOURCE_TIMESTAMP_FIELD_NAME, srcTimestamp);
+            data.put(SOURCE_TIMESTAMP_FIELD_NAME, srcTimestamp);
         }
         else
         {

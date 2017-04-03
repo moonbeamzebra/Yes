@@ -22,7 +22,7 @@ public class Dispatcher extends QueueProcessor {
 
     public Dispatcher(String name, String partition) {
 
-        super(name, partition, Globals.getConfig().getDispatcherQueueDepth(), 10000);
+        super(name, partition, Globals.getConfig().getDispatcherQueueDepth(), 650000);
 
         longTermProcessorMgmt =
                 new LongTermProcessorMgmt("LongTermProcessorMgmt",
