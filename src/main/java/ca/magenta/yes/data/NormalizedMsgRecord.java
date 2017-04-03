@@ -59,27 +59,27 @@ public class NormalizedMsgRecord {
             switch (field.name()) {
                 case RECEIVE_TIMESTAMP_FIELD_NAME:
                     tRxTimestamp =  Long.valueOf(logRecordDoc.get(field.name()));
-                    data.put(field.name(), logRecordDoc.get(field.name()));
+                    //data.put(field.name(), logRecordDoc.get(field.name()));
                     break;
                 case SOURCE_TIMESTAMP_FIELD_NAME:
                     tSrcTimestamp =  Long.valueOf(logRecordDoc.get(field.name()));
-                    data.put(field.name(), logRecordDoc.get(field.name()));
+                    //data.put(field.name(), logRecordDoc.get(field.name()));
                     break;
                 case UID_FIELD_NAME:
                     tUid =  logRecordDoc.get(field.name());
-                    data.put(field.name(), logRecordDoc.get(field.name()));
+                    //data.put(field.name(), logRecordDoc.get(field.name()));
                     break;
                 case PARTITION_FIELD_NAME:
                     tPartition =  logRecordDoc.get(field.name());
-                    data.put(field.name(), logRecordDoc.get(field.name()));
+                    //data.put(field.name(), logRecordDoc.get(field.name()));
                     break;
                 case MESSAGE_FIELD_NAME:
                     tMessage =  logRecordDoc.get(field.name());
-                    data.put(field.name(), logRecordDoc.get(field.name()));
+                    //data.put(field.name(), logRecordDoc.get(field.name()));
                     break;
                 case MSG_TYPE_FIELD_NAME:
                     tMsgType =  logRecordDoc.get(field.name());
-                    data.put(field.name(), logRecordDoc.get(field.name()));
+                    //data.put(field.name(), logRecordDoc.get(field.name()));
                     break;
                 default:
                     data.put(field.name(), logRecordDoc.get(field.name()));
@@ -100,14 +100,17 @@ public class NormalizedMsgRecord {
         long epoch = System.currentTimeMillis();
 
         message = data.get(MESSAGE_FIELD_NAME).toString();
+        data.remove(MESSAGE_FIELD_NAME);
         partition = data.get(PARTITION_FIELD_NAME).toString();
+        data.remove(PARTITION_FIELD_NAME);
         msgType = data.get(MSG_TYPE_FIELD_NAME).toString();
+        data.remove(MSG_TYPE_FIELD_NAME);
 
         if (isInitPhase) {
             rxTimestamp = epoch;
-            data.put(RECEIVE_TIMESTAMP_FIELD_NAME, rxTimestamp);
+            //data.put(RECEIVE_TIMESTAMP_FIELD_NAME, rxTimestamp);
             uid = generateUID(epoch);
-            data.put(UID_FIELD_NAME, uid);
+            //data.put(UID_FIELD_NAME, uid);
 
             String str = (String) data.get(NormalizedMsgRecord.LOGSTASH_TIMESTAMP);
             if (str != null) {
@@ -122,13 +125,16 @@ public class NormalizedMsgRecord {
                 }
             }
             srcTimestamp = epoch;
-            data.put(SOURCE_TIMESTAMP_FIELD_NAME, srcTimestamp);
+            //data.put(SOURCE_TIMESTAMP_FIELD_NAME, srcTimestamp);
         }
         else
         {
             rxTimestamp = Long.valueOf((String) data.get(RECEIVE_TIMESTAMP_FIELD_NAME));
+            data.remove(RECEIVE_TIMESTAMP_FIELD_NAME);
             srcTimestamp = Long.valueOf((String) data.get(SOURCE_TIMESTAMP_FIELD_NAME));
+            data.remove(SOURCE_TIMESTAMP_FIELD_NAME);
             uid = data.get(UID_FIELD_NAME).toString();
+            data.remove(UID_FIELD_NAME);
         }
     }
 
@@ -180,22 +186,31 @@ public class NormalizedMsgRecord {
     @Override
     public String toString() {
 
-        StringBuilder sb = new StringBuilder();
+//        StringBuilder sb = new StringBuilder();
+//
+//        sb.append('{');
+//
+//        int n = 0;
+//        for (Map.Entry<String, Object> entry : data.entrySet()) {
+//            if (n != 0) sb.append(',');
+//            n++;
+//            sb.append(entry.getKey());
+//            sb.append('=');
+//            sb.append(entry.getKey());
+//        }
+//
+//        sb.append("}");
+//
+//        return sb.toString();
 
-        sb.append('{');
-
-        int n = 0;
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
-            if (n != 0) sb.append(',');
-            n++;
-            sb.append(entry.getKey());
-            sb.append('=');
-            sb.append(entry.getKey());
+        String toJson = "";
+        try {
+            toJson = toJson();
+        } catch (JsonProcessingException e) {
+            logger.error(e.getClass().getSimpleName(),e);
         }
 
-        sb.append("}");
-
-        return sb.toString();
+        return toJson;
     }
 
     public String toTTYString(boolean withOriginalMessage, boolean oneLiner) {
@@ -229,7 +244,34 @@ public class NormalizedMsgRecord {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        return mapper.writeValueAsString(data);
+        StringBuilder sb = new StringBuilder();
+        sb.append('{').append(embeddedToJson()).append(',').append(mapper.writeValueAsString(data).substring(1));
+
+
+        return sb.toString();
+    }
+
+    private String embeddedToJson() {
+
+        /*
+        private final long rxTimestamp;
+        private final long srcTimestamp;
+        private final String uid;
+        private final String partition;
+        private final String message;
+        private final String msgType;
+         */
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append('"').append(RECEIVE_TIMESTAMP_FIELD_NAME).append("\":\"").append(rxTimestamp).append("\",");
+        sb.append('"').append(SOURCE_TIMESTAMP_FIELD_NAME).append("\":\"").append(srcTimestamp).append("\",");
+        sb.append('"').append(UID_FIELD_NAME).append("\":\"").append(uid).append("\",");
+        sb.append('"').append(PARTITION_FIELD_NAME).append("\":\"").append(partition).append("\",");
+        sb.append('"').append(MSG_TYPE_FIELD_NAME).append("\":\"").append(msgType).append("\",");
+        sb.append('"').append(MESSAGE_FIELD_NAME).append("\":\"").append(message).append('"');
+
+        return sb.toString();
     }
 
     public String getPrettyRxTimestamp() {
