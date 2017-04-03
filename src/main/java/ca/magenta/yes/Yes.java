@@ -143,7 +143,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             String entry;
 
             while ((entry = fromServer.readLine()) != null) {
-                YesClient.printEntry(NormalizedMsgRecord.fromJson(entry), outputOption);
+                YesClient.printEntry(new NormalizedMsgRecord(entry,false), outputOption);
 
             }
 

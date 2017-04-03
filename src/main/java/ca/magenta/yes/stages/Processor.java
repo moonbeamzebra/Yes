@@ -65,14 +65,14 @@ public abstract class Processor implements Runnable {
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
-                HashMap<String, Object> message = takeFromQueue();
-                long srcTimestamp = (long) message.get(NormalizedMsgRecord.SOURCE_TIMESTAMP_FIELD_NAME);
-                long rxTimestamp = (long) message.get(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME);
-                runTimeStamps.compute(srcTimestamp, rxTimestamp);
+                NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
+                long srcTimestamp = normalizedMsgRecord.getSrcTimestamp();
+                long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
                 if (logger.isDebugEnabled())
-                    logger.debug("Processor received: " + message);
+                    logger.debug("Processor received: " + normalizedMsgRecord.toString());
+                runTimeStamps.compute(srcTimestamp, rxTimestamp);
                 try {
-                    storeInLucene(message);
+                    storeInLucene(normalizedMsgRecord);
                     count++;
                     thisRunCount++;
                     reportCount++;
@@ -123,9 +123,9 @@ public abstract class Processor implements Runnable {
 
     }
 
-    synchronized private void storeInLucene(HashMap<String, Object> message) throws AppException {
+    synchronized private void storeInLucene(NormalizedMsgRecord normalizedMsgRecord) throws AppException {
 
-        NormalizedMsgRecord.store(message, luceneIndexWriter);
+        normalizedMsgRecord.store(luceneIndexWriter);
 
         if (logger.isDebugEnabled())
             logger.debug("Document added");
@@ -208,12 +208,12 @@ public abstract class Processor implements Runnable {
         }
     }
 
-    private HashMap<String, Object> takeFromQueue() throws InterruptedException {
+    private NormalizedMsgRecord takeFromQueue() throws InterruptedException {
 
         Object obj = inputQueue.take();
-        if (obj instanceof HashMap) {
+        if (obj instanceof NormalizedMsgRecord) {
 
-            return (HashMap<String, Object>) obj;
+            return (NormalizedMsgRecord) obj;
         } else {
             logger.error(String.format("Unexpected value type: want HashMap; got [%s]", obj.getClass().getSimpleName()));
             return null;

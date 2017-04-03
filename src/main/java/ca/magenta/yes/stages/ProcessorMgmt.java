@@ -4,6 +4,7 @@ package ca.magenta.yes.stages;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.Globals;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -99,9 +100,9 @@ public abstract class ProcessorMgmt extends QueueProcessor {
     abstract Processor createProcessor(BlockingQueue<Object> queue) throws AppException;
 
 
-    synchronized void putInQueue(HashMap<String, Object> message) throws InterruptedException {
+    synchronized void putInQueue(NormalizedMsgRecord normalizedMsgRecord) throws InterruptedException {
 
 
-        this.putInQueueImpl(message, Globals.getConfig().getQueueDepthWarningThreshold());
+        this.putInQueueImpl(normalizedMsgRecord, Globals.getConfig().getQueueDepthWarningThreshold());
     }
 }

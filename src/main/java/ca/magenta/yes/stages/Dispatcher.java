@@ -22,7 +22,7 @@ public class Dispatcher extends QueueProcessor {
 
     public Dispatcher(String name, String partition) {
 
-        super(name, partition, Globals.getConfig().getDispatcherQueueDepth(), 650000);
+        super(name, partition, Globals.getConfig().getDispatcherQueueDepth(), 10000);
 
         longTermProcessorMgmt =
                 new LongTermProcessorMgmt("LongTermProcessorMgmt",
@@ -55,16 +55,16 @@ public class Dispatcher extends QueueProcessor {
                 logger.debug("Dispatcher received: " + jsonMsg);
                 HashMap<String, Object> hashedMsg;
                 try {
-
-                    hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
-                    logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
-
-                    NormalizedMsgRecord.initiateTimestampsInMsgHash(hashedMsg);
+                    NormalizedMsgRecord normalizedMsgRecord = new NormalizedMsgRecord(jsonMsg,true);
+//                    hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
+//                    logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
+//
+//                    NormalizedMsgRecord.initiateTimestampsInMsgHash(hashedMsg);
 
                     if (logger.isDebugEnabled())
                         logger.debug("Before putInQueue");
-                    longTermProcessorMgmt.putInQueue(hashedMsg);
-                    realTimeProcessorMgmt.putInQueue(hashedMsg);
+                    longTermProcessorMgmt.putInQueue(normalizedMsgRecord);
+                    realTimeProcessorMgmt.putInQueue(normalizedMsgRecord);
                 } catch (IOException e) {
                     logger.error("IOException", e);
                 }

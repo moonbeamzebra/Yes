@@ -2,4 +2,4 @@
 Yes.iml
 luceneIndex/*
 target/*
-tmp/*
+yes.lucene.index/*

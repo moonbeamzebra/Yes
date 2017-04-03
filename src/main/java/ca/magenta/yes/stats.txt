@@ -1,0 +1,25 @@
+Branch 0.740b
+=============
+java -jar ./target/ca.magenta.loggenerator-1.0-SNAPSHOT-jar-with-dependencies.jar \
+-msgServerAddr=127.0.0.1 \
+-msgServerPort=7540 \
+-multiThreaded \
+-repeatCount=nostop \
+-tunningLoopCount=60000 \
+-eventFile=./logs.xlsx \
+148
+
+java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.jar  /
+-apiServerAddr=127.0.0.1 \
+-apiServerPort=9595 \
+--json \
+--time=last30m \
+10.10.10.30
+
+java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.jar  \
+-apiServerAddr=127.0.0.1 \
+-apiServerPort=9595 \
+--json \
+-f \
+10.10.10.30
+

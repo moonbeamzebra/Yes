@@ -51,7 +51,7 @@ public class YesClient {
             String lastMessage = "";
             while (doRun && (entry = fromServer.readLine()) != null) {
                 if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
-                    YesClient.printEntry(NormalizedMsgRecord.fromJson(entry), outputOption);
+                    YesClient.printEntry(new NormalizedMsgRecord(entry,false), outputOption);
                 } else {
                     lastMessage = entry;
                     doRun = false;
@@ -99,7 +99,7 @@ public class YesClient {
             String lastMessage = "";
             while (doRun && (entry = fromServer.readLine()) != null) {
                 if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
-                    list.add(NormalizedMsgRecord.fromJson(entry));
+                    list.add(new NormalizedMsgRecord(entry,false));
                 } else {
                     lastMessage = entry;
                     doRun = false;
