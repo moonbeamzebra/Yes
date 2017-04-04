@@ -5,9 +5,11 @@ java -jar ./target/ca.magenta.loggenerator-1.0-SNAPSHOT-jar-with-dependencies.ja
 -msgServerPort=7540 \
 -multiThreaded \
 -repeatCount=nostop \
--tunningLoopCount=60000 \
+-tunningLoopCount=45000 \
 -eventFile=./logs.xlsx \
 148
+>>>>>>>>>
+STATS: [24971.375 msgs/sec]
 
 java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.jar  \
 -apiServerAddr=127.0.0.1 \

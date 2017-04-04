@@ -136,11 +136,11 @@ public class YesClient {
                         normalizedLogRecord.getMessage()));
                 break;
             case TWO_LINER:
-                System.out.println(normalizedLogRecord.toTTYString(true, false));
+                System.out.println(normalizedLogRecord.toRawString(true, false));
                 break;
 
             case DEFAULT:
-                System.out.println(normalizedLogRecord.toTTYString(false, true));
+                System.out.println(normalizedLogRecord.toRawString(false, true));
         }
     }
 

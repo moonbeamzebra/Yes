@@ -3,7 +3,6 @@ package ca.magenta.yes.data;
 import ca.magenta.utils.AppException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vaadin.ui.UI;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexableField;
@@ -44,7 +43,7 @@ public class NormalizedMsgRecord {
 
     public NormalizedMsgRecord(Document logRecordDoc) {
 
-        long tRxTimestamp = 0 ;
+        long tRxTimestamp = 0;
         long tSrcTimestamp = 0;
         String tUid = "";
         String tPartition = "";
@@ -58,28 +57,22 @@ public class NormalizedMsgRecord {
                 logger.debug(String.format("field:[%s]; [%s]", field.name(), field.fieldType().toString()));
             switch (field.name()) {
                 case RECEIVE_TIMESTAMP_FIELD_NAME:
-                    tRxTimestamp =  Long.valueOf(logRecordDoc.get(field.name()));
-                    //data.put(field.name(), logRecordDoc.get(field.name()));
+                    tRxTimestamp = Long.valueOf(logRecordDoc.get(field.name()));
                     break;
                 case SOURCE_TIMESTAMP_FIELD_NAME:
-                    tSrcTimestamp =  Long.valueOf(logRecordDoc.get(field.name()));
-                    //data.put(field.name(), logRecordDoc.get(field.name()));
+                    tSrcTimestamp = Long.valueOf(logRecordDoc.get(field.name()));
                     break;
                 case UID_FIELD_NAME:
-                    tUid =  logRecordDoc.get(field.name());
-                    //data.put(field.name(), logRecordDoc.get(field.name()));
+                    tUid = logRecordDoc.get(field.name());
                     break;
                 case PARTITION_FIELD_NAME:
-                    tPartition =  logRecordDoc.get(field.name());
-                    //data.put(field.name(), logRecordDoc.get(field.name()));
+                    tPartition = logRecordDoc.get(field.name());
                     break;
                 case MESSAGE_FIELD_NAME:
-                    tMessage =  logRecordDoc.get(field.name());
-                    //data.put(field.name(), logRecordDoc.get(field.name()));
+                    tMessage = logRecordDoc.get(field.name());
                     break;
                 case MSG_TYPE_FIELD_NAME:
-                    tMsgType =  logRecordDoc.get(field.name());
-                    //data.put(field.name(), logRecordDoc.get(field.name()));
+                    tMsgType = logRecordDoc.get(field.name());
                     break;
                 default:
                     data.put(field.name(), logRecordDoc.get(field.name()));
@@ -90,12 +83,12 @@ public class NormalizedMsgRecord {
         uid = tUid;
         partition = tPartition;
         message = tMessage;
-        msgType =tMsgType;
+        msgType = tMsgType;
     }
 
     public NormalizedMsgRecord(String jsonMsg, boolean isInitPhase) throws IOException {
 
-        data =  mapper.readValue(jsonMsg, HashMap.class);
+        data = mapper.readValue(jsonMsg, HashMap.class);
 
         long epoch = System.currentTimeMillis();
 
@@ -108,9 +101,7 @@ public class NormalizedMsgRecord {
 
         if (isInitPhase) {
             rxTimestamp = epoch;
-            //data.put(RECEIVE_TIMESTAMP_FIELD_NAME, rxTimestamp);
             uid = generateUID(epoch);
-            //data.put(UID_FIELD_NAME, uid);
 
             String str = (String) data.get(NormalizedMsgRecord.LOGSTASH_TIMESTAMP);
             if (str != null) {
@@ -125,13 +116,10 @@ public class NormalizedMsgRecord {
                 }
             }
             srcTimestamp = epoch;
-            //data.put(SOURCE_TIMESTAMP_FIELD_NAME, srcTimestamp);
-        }
-        else
-        {
-            rxTimestamp = Long.valueOf((String) data.get(RECEIVE_TIMESTAMP_FIELD_NAME));
+        } else {
+            rxTimestamp = (long) data.get(RECEIVE_TIMESTAMP_FIELD_NAME);
             data.remove(RECEIVE_TIMESTAMP_FIELD_NAME);
-            srcTimestamp = Long.valueOf((String) data.get(SOURCE_TIMESTAMP_FIELD_NAME));
+            srcTimestamp = (long) data.get(SOURCE_TIMESTAMP_FIELD_NAME);
             data.remove(SOURCE_TIMESTAMP_FIELD_NAME);
             uid = data.get(UID_FIELD_NAME).toString();
             data.remove(UID_FIELD_NAME);
@@ -141,9 +129,9 @@ public class NormalizedMsgRecord {
     public void store(IndexWriter luceneIndexWriter) throws AppException {
         Document document = new Document();
 
-        LuceneTools.luceneStoreSortedDoc(document,  RECEIVE_TIMESTAMP_FIELD_NAME, toStringTimestamp(rxTimestamp));
+        LuceneTools.luceneStoreSortedDoc(document, RECEIVE_TIMESTAMP_FIELD_NAME, toStringTimestamp(rxTimestamp));
         LuceneTools.luceneStoreSortedDoc(document, SOURCE_TIMESTAMP_FIELD_NAME, toStringTimestamp(srcTimestamp));
-        LuceneTools.luceneStoreSortedDoc(document,  UID_FIELD_NAME, uid);
+        LuceneTools.luceneStoreSortedDoc(document, UID_FIELD_NAME, uid);
         document.add(new TextField(MESSAGE_FIELD_NAME, message, Field.Store.YES));
         LuceneTools.luceneStoreNonTokenizedString(document, PARTITION_FIELD_NAME, partition);
         LuceneTools.luceneStoreNonTokenizedString(document, MSG_TYPE_FIELD_NAME, msgType);
@@ -151,12 +139,12 @@ public class NormalizedMsgRecord {
 
         for (Map.Entry<String, Object> fieldE : data.entrySet()) {
             String key = fieldE.getKey();
-            if (    (!RECEIVE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
+            if ((!RECEIVE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
                     (!SOURCE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
                     (!UID_FIELD_NAME.endsWith(key)) &&
                     (!MESSAGE_FIELD_NAME.endsWith(key)) &&
                     (!PARTITION_FIELD_NAME.endsWith(key)) &&
-                    (!MSG_TYPE_FIELD_NAME.endsWith(key)) ) {
+                    (!MSG_TYPE_FIELD_NAME.endsWith(key))) {
                 if (fieldE.getValue() instanceof Integer) {
                     document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
                     document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Integer) fieldE.getValue()));
@@ -185,35 +173,17 @@ public class NormalizedMsgRecord {
 
     @Override
     public String toString() {
-
-//        StringBuilder sb = new StringBuilder();
-//
-//        sb.append('{');
-//
-//        int n = 0;
-//        for (Map.Entry<String, Object> entry : data.entrySet()) {
-//            if (n != 0) sb.append(',');
-//            n++;
-//            sb.append(entry.getKey());
-//            sb.append('=');
-//            sb.append(entry.getKey());
-//        }
-//
-//        sb.append("}");
-//
-//        return sb.toString();
-
         String toJson = "";
         try {
             toJson = toJson();
         } catch (JsonProcessingException e) {
-            logger.error(e.getClass().getSimpleName(),e);
+            logger.error(e.getClass().getSimpleName(), e);
         }
 
         return toJson;
     }
 
-    public String toTTYString(boolean withOriginalMessage, boolean oneLiner) {
+    public String toRawString(boolean withOriginalMessage, boolean oneLiner) {
 
         StringBuilder sb = new StringBuilder();
 
@@ -264,9 +234,9 @@ public class NormalizedMsgRecord {
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append('"').append(RECEIVE_TIMESTAMP_FIELD_NAME).append("\":\"").append(rxTimestamp).append("\",");
-        sb.append('"').append(SOURCE_TIMESTAMP_FIELD_NAME).append("\":\"").append(srcTimestamp).append("\",");
         sb.append('"').append(UID_FIELD_NAME).append("\":\"").append(uid).append("\",");
+        sb.append('"').append(RECEIVE_TIMESTAMP_FIELD_NAME).append("\":").append(rxTimestamp).append(",");
+        sb.append('"').append(SOURCE_TIMESTAMP_FIELD_NAME).append("\":").append(srcTimestamp).append(",");
         sb.append('"').append(PARTITION_FIELD_NAME).append("\":\"").append(partition).append("\",");
         sb.append('"').append(MSG_TYPE_FIELD_NAME).append("\":\"").append(msgType).append("\",");
         sb.append('"').append(MESSAGE_FIELD_NAME).append("\":\"").append(message).append('"');
@@ -278,25 +248,22 @@ public class NormalizedMsgRecord {
         return DATE_FORMAT.format(getRxTimestamp());
     }
 
-    private static String generateUID(long timestamp)
-    {
-        return String.format("%s-%s",  toStringTimestamp(timestamp), generateBreakerSequence());
+    private static String generateUID(long timestamp) {
+        return String.format("%s-%s", toStringTimestamp(timestamp), generateBreakerSequence());
     }
 
-    public static String toStringTimestamp(long epoch)
-    {
+    public static String toStringTimestamp(long epoch) {
         return String.format("%013d", epoch);
     }
 
     private static int breakerSequence = -1;
-    synchronized public static String generateBreakerSequence()
-    {
-        if (breakerSequence == Integer.MAX_VALUE)
-        {
+
+    synchronized public static String generateBreakerSequence() {
+        if (breakerSequence == Integer.MAX_VALUE) {
             breakerSequence = -1;
         }
         breakerSequence++;
-        return String.format("%08X",breakerSequence);
+        return String.format("%08X", breakerSequence);
     }
 
     public static HashMap<String, Object> initiateMsgHash(String logMsg, String msgType, String partition) {
