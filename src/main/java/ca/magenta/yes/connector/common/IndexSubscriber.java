@@ -3,6 +3,7 @@ package ca.magenta.yes.connector.common;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.stages.RealTimeProcessorMgmt;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -56,6 +57,7 @@ public abstract class IndexSubscriber extends Runner {
             // Sorted by ascending rxTimestamp
             //Sort sort = new Sort(new SortedNumericSortField("rxTimestamp",SortField.Type.LONG, false));
 
+            ObjectMapper mapper = new ObjectMapper();
             while (doRun) {
                 Directory index = queue.take();
 
@@ -72,7 +74,7 @@ public abstract class IndexSubscriber extends Runner {
                         Document doc = searcher.doc(scoreDoc.doc);
                         NormalizedMsgRecord normalizedLogRecord = new NormalizedMsgRecord(doc);
 
-                        this.forward(normalizedLogRecord.toJson());
+                        this.forward(normalizedLogRecord.toJson(mapper));
                     }
                 } catch (IOException e) {
                     logger.error("IOException", e);

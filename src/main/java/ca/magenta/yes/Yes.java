@@ -4,6 +4,7 @@ import ca.magenta.yes.client.YesClient;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
@@ -142,8 +143,11 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
 
             String entry;
 
+            ObjectMapper mapper = new ObjectMapper();
             while ((entry = fromServer.readLine()) != null) {
-                YesClient.printEntry(new NormalizedMsgRecord(entry,false), outputOption);
+                YesClient.printEntry(mapper,
+                        new NormalizedMsgRecord(mapper, entry,false),
+                        outputOption);
 
             }
 

@@ -3,6 +3,7 @@ package ca.magenta.yes.client;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.api.LongTermReader;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
@@ -48,10 +49,13 @@ public class YesClient {
             String entry;
             boolean doRun = true;
 
+            ObjectMapper mapper = new ObjectMapper();
             String lastMessage = "";
             while (doRun && (entry = fromServer.readLine()) != null) {
                 if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
-                    YesClient.printEntry(new NormalizedMsgRecord(entry,false), outputOption);
+                    YesClient.printEntry(mapper,
+                            new NormalizedMsgRecord(mapper, entry,false),
+                            outputOption);
                 } else {
                     lastMessage = entry;
                     doRun = false;
@@ -96,10 +100,11 @@ public class YesClient {
             String entry;
             boolean doRun = true;
 
+            ObjectMapper mapper = new ObjectMapper();
             String lastMessage = "";
             while (doRun && (entry = fromServer.readLine()) != null) {
                 if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
-                    list.add(new NormalizedMsgRecord(entry,false));
+                    list.add(new NormalizedMsgRecord(mapper,entry,false));
                 } else {
                     lastMessage = entry;
                     doRun = false;
@@ -122,12 +127,12 @@ public class YesClient {
     }
 
 
-    public static void printEntry(NormalizedMsgRecord normalizedLogRecord, OutputOption outputOption) throws IOException {
+    public static void printEntry(ObjectMapper mapper, NormalizedMsgRecord normalizedLogRecord, OutputOption outputOption) throws IOException {
 
         // DEFAULT, RAW, JSON, TWO_LINER
         switch (outputOption) {
             case JSON:
-                System.out.println(normalizedLogRecord.toJson());
+                System.out.println(normalizedLogRecord.toJson(mapper));
                 break;
             case RAW:
                 System.out.println(String.format("[%s][%s] %s",

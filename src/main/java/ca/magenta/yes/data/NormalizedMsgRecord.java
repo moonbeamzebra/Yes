@@ -38,7 +38,7 @@ public class NormalizedMsgRecord {
     private final String message;
     private final String msgType;
 
-    private final static ObjectMapper mapper = new ObjectMapper();
+    //private final static ObjectMapper mapper = new ObjectMapper();
 
 
     public NormalizedMsgRecord(Document logRecordDoc) {
@@ -86,7 +86,7 @@ public class NormalizedMsgRecord {
         msgType = tMsgType;
     }
 
-    public NormalizedMsgRecord(String jsonMsg, boolean isInitPhase) throws IOException {
+    public NormalizedMsgRecord(ObjectMapper mapper, String jsonMsg, boolean isInitPhase) throws IOException {
 
         data = mapper.readValue(jsonMsg, HashMap.class);
 
@@ -175,7 +175,8 @@ public class NormalizedMsgRecord {
     public String toString() {
         String toJson = "";
         try {
-            toJson = toJson();
+            ObjectMapper mapper = new ObjectMapper();
+            toJson = toJson(mapper);
         } catch (JsonProcessingException e) {
             logger.error(e.getClass().getSimpleName(), e);
         }
@@ -210,9 +211,9 @@ public class NormalizedMsgRecord {
         return sb.toString();
     }
 
-    public String toJson() throws JsonProcessingException {
+    public String toJson(ObjectMapper mapper) throws JsonProcessingException {
 
-        ObjectMapper mapper = new ObjectMapper();
+        //ObjectMapper mapper = new ObjectMapper();
 
         StringBuilder sb = new StringBuilder();
         sb.append('{').append(embeddedToJson()).append(',').append(mapper.writeValueAsString(data).substring(1));

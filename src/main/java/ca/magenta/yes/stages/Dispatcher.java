@@ -49,13 +49,12 @@ public class Dispatcher extends QueueProcessor {
         long queueLength;
         long maxQueueLength = 0;
         try {
-
             while (doRun) {
                 String jsonMsg = takeFromQueue();
                 logger.debug("Dispatcher received: " + jsonMsg);
                 HashMap<String, Object> hashedMsg;
                 try {
-                    NormalizedMsgRecord normalizedMsgRecord = new NormalizedMsgRecord(jsonMsg,true);
+                    NormalizedMsgRecord normalizedMsgRecord = new NormalizedMsgRecord(mapper,jsonMsg,true);
 //                    hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
 //                    logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
 //

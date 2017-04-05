@@ -4,6 +4,7 @@ import ca.magenta.utils.Runner;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
@@ -216,6 +217,7 @@ public class LongTermReader extends Runner {
         //Sort sort = new Sort(new SortedNumericSortField(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME,SortField.Type.LONG, false));
         Sort sort = new Sort(new SortField(NormalizedMsgRecord.UID_FIELD_NAME, SortField.Type.STRING,reverse));
 
+        ObjectMapper mapper = new ObjectMapper();
         ScoreDoc lastScoreDoc = null;
         int totalRead = maxTotalHits; // just to let enter in the following loop
         while ( (totalRead >= maxTotalHits) ) {
@@ -234,7 +236,7 @@ public class LongTermReader extends Runner {
                 if (client != null) {
                     if (logger.isDebugEnabled())
                         logger.debug("Out to client");
-                    client.println(normalizedLogRecord.toJson());
+                    client.println(normalizedLogRecord.toJson(mapper));
                 }
             }
         }
