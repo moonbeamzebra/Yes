@@ -3,6 +3,7 @@ package ca.magenta.yes.stages;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.Globals;
+import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -20,12 +21,13 @@ public class Dispatcher extends QueueProcessor {
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
     private final LongTermProcessorMgmt longTermProcessorMgmt;
 
-    public Dispatcher(String name, String partition) {
+    public Dispatcher(String name, String partition, MasterIndex masterIndex ) {
 
         super(name, partition, Globals.getConfig().getDispatcherQueueDepth(), 650000);
 
         longTermProcessorMgmt =
-                new LongTermProcessorMgmt("LongTermProcessorMgmt",
+                new LongTermProcessorMgmt(masterIndex,
+                        "LongTermProcessorMgmt",
                         Globals.getConfig().getLongTermCuttingTime(),
                         partition);
 

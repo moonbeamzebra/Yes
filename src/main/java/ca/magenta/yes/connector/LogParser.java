@@ -3,6 +3,7 @@ package ca.magenta.yes.connector;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.Globals;
+import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.stages.Dispatcher;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -19,11 +20,11 @@ public class LogParser extends QueueProcessor {
 
     private final Dispatcher dispatcher;
 
-    LogParser(String name, String partition) {
+    LogParser(String name, String partition, MasterIndex masterIndex) {
 
         super(name, partition, Globals.getConfig().getLogParserQueueDepth(), 100000);
 
-        dispatcher = new Dispatcher(this.partition, this.partition);
+        dispatcher = new Dispatcher(this.partition, this.partition, masterIndex);
     }
 
     public void run() {

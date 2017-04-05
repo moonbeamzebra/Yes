@@ -3,6 +3,7 @@ package ca.magenta.yes.connector;
 import ca.magenta.utils.AbstractTCPServer;
 import ca.magenta.utils.AppException;
 import ca.magenta.yes.Config;
+import ca.magenta.yes.data.MasterIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,12 +18,12 @@ public class TCPGenericConnector extends AbstractTCPServer {
 
     private final Config config;
 
-    TCPGenericConnector(String partitionName, Config config, int port) {
+    TCPGenericConnector(String partitionName, Config config, int port, MasterIndex masterIndex) {
         super(partitionName, port);
 
         this.config = config;
 
-        logParser = new LogParser(partitionName, partitionName);
+        logParser = new LogParser(partitionName, partitionName, masterIndex);
 
     }
 

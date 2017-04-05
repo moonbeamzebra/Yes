@@ -3,6 +3,7 @@ package ca.magenta.yes.api;
 import ca.magenta.utils.AbstractTCPServer;
 import ca.magenta.utils.AbstractTCPServerHandler;
 import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.data.MasterIndex;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.log4j.Logger;
 
@@ -23,12 +24,14 @@ public class APIServer extends AbstractTCPServerHandler {
     private static Logger logger = Logger.getLogger(APIServer.class);
 
     private final String indexBaseDirectory;
+    private final MasterIndex masterIndex;
 
-    public APIServer(AbstractTCPServer tcpServer, String name, Socket handlerSocket, String indexBaseDirectory) {
+    public APIServer(AbstractTCPServer tcpServer, String name, Socket handlerSocket, String indexBaseDirectory, MasterIndex masterIndex) {
 
         super(tcpServer, name, handlerSocket);
 
         this.indexBaseDirectory = indexBaseDirectory;
+        this.masterIndex = masterIndex;
     }
 
     @Override
@@ -95,6 +98,7 @@ public class APIServer extends AbstractTCPServerHandler {
                             indexBaseDirectory,
                             periodTimeRange,
                             searchString,
+                            masterIndex,
                             reverse,
                             out);
 

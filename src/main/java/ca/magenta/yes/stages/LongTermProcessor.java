@@ -7,6 +7,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.NIOFSDirectory;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -24,6 +25,12 @@ public class LongTermProcessor extends Processor {
 
     synchronized public void createIndex(String indexPath) throws AppException {
 
+        // RAMDirectory to FSDirectory
+        // http://stackoverflow.com/questions/3913180/how-to-integrate-ramdirectory-into-fsdirectory-in-lucene
+        // https://wiki.apache.org/lucene-java/ImproveIndexingSpeed
+
+
+
         IndexWriter indexWriter;
 
         try {
@@ -33,7 +40,7 @@ public class LongTermProcessor extends Processor {
 
 
             indexDir = null;
-            indexDir = FSDirectory.open(Paths.get(indexPath));
+            indexDir = NIOFSDirectory.open(Paths.get(indexPath));
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
 
             // Add new documents to an existing index:

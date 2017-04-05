@@ -2,6 +2,7 @@ package ca.magenta.yes.api;
 
 import ca.magenta.utils.Runner;
 import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +42,8 @@ public class LongTermReader extends Runner {
     private final PrintWriter client;
 
     private final String indexBaseDirectory;
+    private final MasterIndex masterIndex;
+
 
     private final TimeRange periodTimeRange;
     private final String searchString;
@@ -52,6 +55,7 @@ public class LongTermReader extends Runner {
                    String indexBaseDirectory,
                    TimeRange periodTimeRange,
                    String searchString,
+                   MasterIndex masterIndex,
                    boolean reverse,
                    PrintWriter client) {
 
@@ -60,6 +64,7 @@ public class LongTermReader extends Runner {
         this.indexBaseDirectory = indexBaseDirectory;
         this.periodTimeRange = periodTimeRange;
         this.searchString = searchString;
+        this.masterIndex = masterIndex;
         this.reverse = reverse;
         this.client = client;
     }
@@ -148,10 +153,12 @@ public class LongTermReader extends Runner {
                                      boolean reverse,
                                      PrintWriter client) throws IOException, QueryNodeException, ParseException {
 
-        String indexNamePath = indexBaseDirectory + File.separator + "master.lucene";
+        // https://wiki.apache.org/lucene-java/ImproveSearchingSpeed
 
-        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
-        IndexSearcher searcher = new IndexSearcher(reader);
+//        String indexNamePath = indexBaseDirectory + File.separator + "master.lucene";
+//
+//        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
+//        IndexSearcher searcher = new IndexSearcher(reader);
 
         int maxTotalHits = 1000;
 
@@ -161,13 +168,13 @@ public class LongTermReader extends Runner {
         while ( (totalRead >= maxTotalHits) ) {
             TopDocs results;
 
-            results = searcher.searchAfter(lastScoreDoc, indexQuery, maxTotalHits, sort);
+            results = masterIndex.getIndexSearcher().searchAfter(lastScoreDoc, indexQuery, maxTotalHits, sort);
 
             totalRead = results.scoreDocs.length;
 
             for (ScoreDoc scoreDoc : results.scoreDocs) {
                 lastScoreDoc = scoreDoc;
-                Document doc = searcher.doc(scoreDoc.doc);
+                Document doc = masterIndex.getIndexSearcher().doc(scoreDoc.doc);
                 MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
                 searchInLongTermIndex(indexBaseDirectory,
                         masterIndexRecord.getLongTermIndexName(),
@@ -179,7 +186,7 @@ public class LongTermReader extends Runner {
             }
         }
 
-        reader.close();
+//        reader.close();
     }
 
     private void searchInLongTermIndex(String indexBaseDirectory,

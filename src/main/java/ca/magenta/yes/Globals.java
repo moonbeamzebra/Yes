@@ -4,6 +4,7 @@ import ca.magenta.utils.AppException;
 import ca.magenta.yes.api.TCPAPIServer;
 import ca.magenta.yes.connector.ConnectorManager;
 import ca.magenta.yes.connector.common.IndexPublisher;
+import ca.magenta.yes.data.MasterIndex;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,7 @@ public class Globals {
     private static ConnectorManager connectorManager = null;
     private static IndexPublisher indexPublisher = null;
     private static TCPAPIServer tcpAPIServer = null;
+    private static MasterIndex masterIndex = null;
 
 
     public Globals(Config config) {
@@ -33,10 +35,15 @@ public class Globals {
 
     static void startEverything() throws AppException {
 
+        startMasterIndex();
         startIndexPublisher();
         startAPIServer();
         startConnectorManager();
 
+    }
+
+    private static void startMasterIndex() throws AppException {
+        masterIndex = MasterIndex.getInstance();
     }
 
 
@@ -45,7 +52,13 @@ public class Globals {
         stopConnectorManager();
         stopAPIServer();
         stopIndexPublisher();
+        stoptMasterIndex();
 
+    }
+
+    private static void stoptMasterIndex() {
+
+        masterIndex.close();
     }
 
     private static void startIndexPublisher() {
@@ -62,7 +75,10 @@ public class Globals {
 
     private static void startAPIServer() throws AppException {
         if ((tcpAPIServer == null) || (!tcpAPIServer.isAlive())) {
-            tcpAPIServer = new TCPAPIServer("single", config.getApiServerPort(), config.getIndexBaseDirectory());
+            tcpAPIServer = new TCPAPIServer("single",
+                    config.getApiServerPort(),
+                    config.getIndexBaseDirectory(),
+                    masterIndex);
             tcpAPIServer.startServer();
         }
     }
@@ -73,7 +89,7 @@ public class Globals {
 
     private static void startConnectorManager() throws AppException {
 
-        connectorManager = new ConnectorManager(config);
+        connectorManager = new ConnectorManager(config, masterIndex);
 
         connectorManager.startInstance();
 

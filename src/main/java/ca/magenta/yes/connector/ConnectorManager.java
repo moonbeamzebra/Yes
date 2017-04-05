@@ -3,6 +3,7 @@ package ca.magenta.yes.connector;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.Config;
+import ca.magenta.yes.data.MasterIndex;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -12,20 +13,22 @@ public class ConnectorManager extends Runner {
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final Config config;
+    private final MasterIndex masterIndex;
 
     private ArrayList<TCPGenericConnector> tcpGenericConnectors;
 
-    public ConnectorManager(Config config) {
+    public ConnectorManager(Config config, MasterIndex masterIndex) {
 
         super("single");
 
         this.config = config;
+        this.masterIndex = masterIndex;
     }
 
     @Override
     public synchronized void startInstance() throws AppException {
 
-        tcpGenericConnectors = constructConnectors(config);
+        tcpGenericConnectors = constructConnectors(config, masterIndex);
         for (TCPGenericConnector tcpGenericConnector : tcpGenericConnectors) {
             tcpGenericConnector.startServer();
         }
@@ -67,7 +70,7 @@ public class ConnectorManager extends Runner {
         logger.info(String.format("%s [%s] stopped", this.getClass().getSimpleName(), this.getName()));
     }
 
-    private ArrayList<TCPGenericConnector> constructConnectors(Config config) throws AppException {
+    private ArrayList<TCPGenericConnector> constructConnectors(Config config, MasterIndex masterIndex) throws AppException {
 
         ArrayList<TCPGenericConnector> tcpGenericConnectors = new ArrayList<>();
         TCPGenericConnector tcpGenericConnector;
@@ -81,7 +84,7 @@ public class ConnectorManager extends Runner {
                 try {
                     String partition = items[0].trim();
                     int port = Integer.valueOf(items[1].trim());
-                    tcpGenericConnector = new TCPGenericConnector(partition, config, port);
+                    tcpGenericConnector = new TCPGenericConnector(partition, config, port, masterIndex);
                     tcpGenericConnectors.add(tcpGenericConnector);
                 } catch (NumberFormatException e) {
                     throw new AppException(String.format("Bad GenericConnector port [%s]", connector), e);
