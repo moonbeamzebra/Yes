@@ -6,14 +6,10 @@ import ca.magenta.yes.stages.LongTermProcessor;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.*;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.NIOFSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,11 +35,10 @@ public class MasterIndex {
     private final String masterIndexPathName;
 
 
-    private final IndexReader reader;
     private final IndexWriter indexWriter;
 
-
-    private final IndexSearcher indexSearcher;
+    private IndexReader reader = null;
+    private IndexSearcher indexSearcher = null;
 
     private MasterIndex() throws AppException {
         masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
@@ -51,14 +46,6 @@ public class MasterIndex {
                 "master.lucene";
 
         indexWriter = openIndexWriter(masterIndexPathName);
-
-        try {
-            reader = DirectoryReader.open(NIOFSDirectory.open(Paths.get(masterIndexPathName)));
-            indexSearcher = new IndexSearcher(reader);
-        } catch (IOException e) {
-            throw new AppException(e.getMessage(), e);
-        }
-
 
     }
 
@@ -76,12 +63,29 @@ public class MasterIndex {
             logger.error("Cannot close MasterIndex Writer", e);
         }
 
-        try {
-            reader.close();
-        } catch (IOException e) {
-            logger.error("Cannot close MasterIndex Reader", e);
+        if ( reader != null  ) {
+            try {
+                reader.close();
+            } catch (IOException e) {
+                logger.error("Cannot close MasterIndex Reader", e);
+            }
         }
 
+    }
+
+    private void openIndexSearcher() throws AppException {
+        if ( reader == null  ) {
+            try {
+                reader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
+                indexSearcher = new IndexSearcher(reader);
+            } catch (IndexNotFoundException e) {
+                logger.error("No data : IndexNotFoundException");
+                reader = null;
+                indexSearcher = null;
+            } catch (IOException e) {
+                throw new AppException(e.getMessage(), e);
+            }
+        }
     }
 
     private IndexWriter openIndexWriter(String indexPath) throws AppException {
@@ -95,7 +99,7 @@ public class MasterIndex {
                 logger.debug("Master Indexing in '" + indexPath + "'");
 
 
-            Directory indexDir = NIOFSDirectory.open(Paths.get(indexPath));
+            Directory indexDir = FSDirectory.open(Paths.get(indexPath));
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
 
             iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
@@ -113,7 +117,12 @@ public class MasterIndex {
         return indexWriter;
     }
 
-    public IndexSearcher getIndexSearcher() {
+    public IndexSearcher getIndexSearcher() throws AppException {
+
+        if ( reader == null  ) {
+            openIndexSearcher();
+        }
+
         return indexSearcher;
     }
 
@@ -149,7 +158,9 @@ public class MasterIndex {
 
         try {
             indexWriter.addDocument(document);
+            indexWriter.flush();
             indexWriter.commit();
+
         } catch (IOException e) {
             throw new AppException(e.getMessage(), e);
         }

@@ -70,6 +70,7 @@ public class NormalizedMsgRecord {
                     break;
                 case MESSAGE_FIELD_NAME:
                     tMessage = logRecordDoc.get(field.name());
+
                     break;
                 case MSG_TYPE_FIELD_NAME:
                     tMsgType = logRecordDoc.get(field.name());
@@ -84,11 +85,24 @@ public class NormalizedMsgRecord {
         partition = tPartition;
         message = tMessage;
         msgType = tMsgType;
+        if (logger.isDebugEnabled()) {
+            logger.debug(String.format("rxTimestamp:[%d]", rxTimestamp));
+            logger.debug(String.format("srcTimestamp:[%d]", srcTimestamp));
+            logger.debug(String.format("uid:[%s]", uid));
+            logger.debug(String.format("partition:[%s]", partition));
+            logger.debug(String.format("message:[%s]", message));
+            logger.debug(String.format("msgType:[%s]", msgType));
+        }
     }
 
     public NormalizedMsgRecord(ObjectMapper mapper, String jsonMsg, boolean isInitPhase) throws IOException {
 
         data = mapper.readValue(jsonMsg, HashMap.class);
+
+        if (data.isEmpty())
+        {
+            logger.error(String.format("NormalizedMsgRecord::NormalizedMsgRecord DataPart is empty ; isInitPhase:[%b]",isInitPhase));
+        }
 
         long epoch = System.currentTimeMillis();
 
@@ -137,30 +151,36 @@ public class NormalizedMsgRecord {
         LuceneTools.luceneStoreNonTokenizedString(document, MSG_TYPE_FIELD_NAME, msgType);
 
 
-        for (Map.Entry<String, Object> fieldE : data.entrySet()) {
-            String key = fieldE.getKey();
-            if ((!RECEIVE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
-                    (!SOURCE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
-                    (!UID_FIELD_NAME.endsWith(key)) &&
-                    (!MESSAGE_FIELD_NAME.endsWith(key)) &&
-                    (!PARTITION_FIELD_NAME.endsWith(key)) &&
-                    (!MSG_TYPE_FIELD_NAME.endsWith(key))) {
-                if (fieldE.getValue() instanceof Integer) {
-                    document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
-                    document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Integer) fieldE.getValue()));
-                    document.add(new StoredField(fieldE.getKey(), (Integer) fieldE.getValue()));
-                } else if (fieldE.getValue() instanceof Long) {
-                    document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
-                    document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Long) fieldE.getValue()));
-                    document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
-                    if (logger.isDebugEnabled()) {
-                        long longValue = (Long) fieldE.getValue();
-                        logger.debug(String.format("ADDED:[%s];[%d]", fieldE.getKey(), longValue));
+        if ( ! data.isEmpty() ) {
+            for (Map.Entry<String, Object> fieldE : data.entrySet()) {
+                String key = fieldE.getKey();
+                if ((!RECEIVE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
+                        (!SOURCE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
+                        (!UID_FIELD_NAME.endsWith(key)) &&
+                        (!MESSAGE_FIELD_NAME.endsWith(key)) &&
+                        (!PARTITION_FIELD_NAME.endsWith(key)) &&
+                        (!MSG_TYPE_FIELD_NAME.endsWith(key))) {
+                    if (fieldE.getValue() instanceof Integer) {
+                        document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
+                        document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Integer) fieldE.getValue()));
+                        document.add(new StoredField(fieldE.getKey(), (Integer) fieldE.getValue()));
+                    } else if (fieldE.getValue() instanceof Long) {
+                        document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
+                        document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Long) fieldE.getValue()));
+                        document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
+                        if (logger.isDebugEnabled()) {
+                            long longValue = (Long) fieldE.getValue();
+                            logger.debug(String.format("ADDED:[%s];[%d]", fieldE.getKey(), longValue));
+                        }
+                    } else {
+                        LuceneTools.luceneStoreNonTokenizedString(document, fieldE.getKey(), (String) fieldE.getValue());
                     }
-                } else {
-                    LuceneTools.luceneStoreNonTokenizedString(document, fieldE.getKey(), (String) fieldE.getValue());
                 }
             }
+        }
+        else
+        {
+            //logger.warn(String.format("NormalizedMsgRecord::store DataPart is empty in [%s]", getUid()));
         }
 
         try {
@@ -173,15 +193,8 @@ public class NormalizedMsgRecord {
 
     @Override
     public String toString() {
-        String toJson = "";
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            toJson = toJson(mapper);
-        } catch (JsonProcessingException e) {
-            logger.error(e.getClass().getSimpleName(), e);
-        }
 
-        return toJson;
+        return toJson(new ObjectMapper());
     }
 
     public String toRawString(boolean withOriginalMessage, boolean oneLiner) {
@@ -211,13 +224,35 @@ public class NormalizedMsgRecord {
         return sb.toString();
     }
 
-    public String toJson(ObjectMapper mapper) throws JsonProcessingException {
-
-        //ObjectMapper mapper = new ObjectMapper();
+    public String toJson(ObjectMapper mapper) {
 
         StringBuilder sb = new StringBuilder();
-        sb.append('{').append(embeddedToJson()).append(',').append(mapper.writeValueAsString(data).substring(1));
+        sb.append('{').append(embeddedToJson());
 
+        if ( !  data.isEmpty() ) {
+
+            String dataPart = null;
+            try {
+                dataPart = mapper.writeValueAsString(data);
+                if (logger.isDebugEnabled()) logger.debug(String.format("DataPart: [%s]", dataPart));
+            } catch (JsonProcessingException e) {
+                logger.error(e.getClass().getSimpleName(), e);
+            }
+
+            if ((dataPart != null) && (dataPart.length() > 2)) {
+                sb.append(',').append(dataPart.substring(1));
+            }
+            else
+            {
+                logger.error(String.format("NormalizedMsgRecord::toJson Data Part [%s] was NULL or empty in [%s]",dataPart, getUid()));
+                sb.append('}');
+            }
+        }
+        else
+        {
+            //logger.warn(String.format("NormalizedMsgRecord::toJson Data Part is empty in [%s]", getUid()));
+            sb.append('}');
+        }
 
         return sb.toString();
     }

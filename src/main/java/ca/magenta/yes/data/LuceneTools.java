@@ -19,7 +19,9 @@ public class LuceneTools {
 
     static void luceneStoreSortedDoc(Document document, String key, String value)
     {
-        document.add(new TextField(key, value, Field.Store.YES));
+        //document.add(new TextField(key, value, Field.Store.YES));
+        luceneStoreNonTokenizedString(document, key, value);
+
         document.add(new SortedDocValuesField(key, new BytesRef(value)));
     }
 

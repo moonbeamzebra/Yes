@@ -1,7 +1,9 @@
 package ca.magenta.yes.api;
 
+import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
 import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -101,7 +103,7 @@ public class LongTermReader extends Runner {
                                           TimeRange periodTimeRange,
                                           String searchString,
                                           boolean reverse,
-                                          PrintWriter client) throws IOException, QueryNodeException, ParseException {
+                                          PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
 
         // Files containing range at the end : left part
         // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
@@ -151,42 +153,47 @@ public class LongTermReader extends Runner {
                                      TimeRange periodTimeRange,
                                      String searchString,
                                      boolean reverse,
-                                     PrintWriter client) throws IOException, QueryNodeException, ParseException {
+                                     PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
 
         // https://wiki.apache.org/lucene-java/ImproveSearchingSpeed
 
-//        String indexNamePath = indexBaseDirectory + File.separator + "master.lucene";
-//
-//        IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
-//        IndexSearcher searcher = new IndexSearcher(reader);
+        String masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
+                File.separator +
+                "master.lucene";
+
+        DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
+        IndexSearcher indexSearcher = new IndexSearcher(reader);
+        //indexSearcher = masterIndex.getIndexSearcher();
+
 
         int maxTotalHits = 1000;
 
-        Sort sort = new Sort(new SortedNumericSortField("olderRxTimestamp",SortField.Type.LONG, false));
+        Sort sort = new Sort(new SortedNumericSortField("olderRxTimestamp",SortField.Type.LONG, reverse));
         ScoreDoc lastScoreDoc = null;
         int totalRead = maxTotalHits; // just to let enter in the following loop
-        while ( (totalRead >= maxTotalHits) ) {
-            TopDocs results;
+        if (indexSearcher != null) {
+            while ((totalRead >= maxTotalHits)) {
+                TopDocs results;
 
-            results = masterIndex.getIndexSearcher().searchAfter(lastScoreDoc, indexQuery, maxTotalHits, sort);
+                results = indexSearcher.searchAfter(lastScoreDoc, indexQuery, maxTotalHits, sort);
 
-            totalRead = results.scoreDocs.length;
+                totalRead = results.scoreDocs.length;
 
-            for (ScoreDoc scoreDoc : results.scoreDocs) {
-                lastScoreDoc = scoreDoc;
-                Document doc = masterIndex.getIndexSearcher().doc(scoreDoc.doc);
-                MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
-                searchInLongTermIndex(indexBaseDirectory,
-                        masterIndexRecord.getLongTermIndexName(),
-                        periodTimeRange,
-                        searchString,
-                        reverse,
-                        client);
+                for (ScoreDoc scoreDoc : results.scoreDocs) {
+                    lastScoreDoc = scoreDoc;
+                    Document doc = indexSearcher.doc(scoreDoc.doc);
+                    MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
+                    searchInLongTermIndex(indexBaseDirectory,
+                            masterIndexRecord.getLongTermIndexName(),
+                            periodTimeRange,
+                            searchString,
+                            reverse,
+                            client);
 
+                }
             }
         }
-
-//        reader.close();
+        reader.close();
     }
 
     private void searchInLongTermIndex(String indexBaseDirectory,
@@ -196,8 +203,6 @@ public class LongTermReader extends Runner {
                                        boolean reverse,
                                        PrintWriter client) throws IOException, QueryNodeException, ParseException {
 
-//        StandardQueryParser queryParserHelper = new StandardQueryParser();
-//        Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
         String indexNamePath = indexBaseDirectory + File.separator + longTermIndexName;
 
@@ -211,15 +216,10 @@ public class LongTermReader extends Runner {
 
         logger.info("completeSearchStr: " + completeSearchStr);
 
-//        Analyzer analyzer = new KeywordAnalyzer();
-//        //Analyzer analyzer = new StandardAnalyzer();
-//        QueryParser queryParser = new QueryParser(NormalizedMsgRecord.MESSAGE_FIELD_NAME, analyzer);
-//        Query query = queryParser.parse(searchString);
-
         StandardQueryParser queryParserHelper = new StandardQueryParser();
         Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
-        int maxTotalHits = 5;
+        int maxTotalHits = 1000;
 
         //Sort sort = new Sort(new SortedNumericSortField(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME,SortField.Type.LONG, false));
         Sort sort = new Sort(new SortField(NormalizedMsgRecord.UID_FIELD_NAME, SortField.Type.STRING,reverse));

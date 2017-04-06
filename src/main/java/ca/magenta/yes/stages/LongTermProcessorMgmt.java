@@ -11,7 +11,6 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.NIOFSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,7 +133,7 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
 //            logger.debug("Indexing in '" + indexPath + "'");
 //
 //
-//            Directory indexDir = NIOFSDirectory.open(Paths.get(indexPath));
+//            Directory indexDir = FSDirectory.open(Paths.get(indexPath));
 //            //Directory indexDir = FSDirectory.open(Paths.get(indexPath));
 //            IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
 //

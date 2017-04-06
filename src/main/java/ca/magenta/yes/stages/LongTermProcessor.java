@@ -7,7 +7,6 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.NIOFSDirectory;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -40,7 +39,7 @@ public class LongTermProcessor extends Processor {
 
 
             indexDir = null;
-            indexDir = NIOFSDirectory.open(Paths.get(indexPath));
+            indexDir = FSDirectory.open(Paths.get(indexPath));
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
 
             // Add new documents to an existing index:
