@@ -157,13 +157,14 @@ public class LongTermReader extends Runner {
 
         // https://wiki.apache.org/lucene-java/ImproveSearchingSpeed
 
-        String masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
-                File.separator +
-                "master.lucene";
-
-        DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
-        IndexSearcher indexSearcher = new IndexSearcher(reader);
-        //indexSearcher = masterIndex.getIndexSearcher();
+        IndexSearcher indexSearcher;
+//        String masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
+//                File.separator +
+//                "master.lucene";
+//
+//        DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
+//        indexSearcher = new IndexSearcher(reader);
+        indexSearcher = masterIndex.getIndexSearcher();
 
 
         int maxTotalHits = 1000;
@@ -193,7 +194,7 @@ public class LongTermReader extends Runner {
                 }
             }
         }
-        reader.close();
+        //reader.close();
     }
 
     private void searchInLongTermIndex(String indexBaseDirectory,

@@ -37,7 +37,7 @@ public class MasterIndex {
 
     private final IndexWriter indexWriter;
 
-    private IndexReader reader = null;
+    private DirectoryReader directoryReader = null;
     private IndexSearcher indexSearcher = null;
 
     private MasterIndex() throws AppException {
@@ -51,6 +51,14 @@ public class MasterIndex {
 
     public void close() {
 
+        if ( directoryReader != null  ) {
+            try {
+                directoryReader.close();
+            } catch (IOException e) {
+                logger.error("Cannot close MasterIndex Reader", e);
+            }
+        }
+
         try {
             indexWriter.commit();
         } catch (IOException e) {
@@ -63,24 +71,17 @@ public class MasterIndex {
             logger.error("Cannot close MasterIndex Writer", e);
         }
 
-        if ( reader != null  ) {
-            try {
-                reader.close();
-            } catch (IOException e) {
-                logger.error("Cannot close MasterIndex Reader", e);
-            }
-        }
-
     }
 
     private void openIndexSearcher() throws AppException {
-        if ( reader == null  ) {
+        if ( directoryReader == null  ) {
             try {
-                reader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
-                indexSearcher = new IndexSearcher(reader);
+                directoryReader = DirectoryReader.open(indexWriter);
+                //directoryReader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
+                indexSearcher = new IndexSearcher(directoryReader);
             } catch (IndexNotFoundException e) {
                 logger.error("No data : IndexNotFoundException");
-                reader = null;
+                directoryReader = null;
                 indexSearcher = null;
             } catch (IOException e) {
                 throw new AppException(e.getMessage(), e);
@@ -119,7 +120,7 @@ public class MasterIndex {
 
     public IndexSearcher getIndexSearcher() throws AppException {
 
-        if ( reader == null  ) {
+        if ( directoryReader == null  ) {
             openIndexSearcher();
         }
 
@@ -160,6 +161,15 @@ public class MasterIndex {
             indexWriter.addDocument(document);
             indexWriter.flush();
             indexWriter.commit();
+
+            if (directoryReader != null)
+            {
+                DirectoryReader reader = DirectoryReader.openIfChanged(directoryReader);
+                if (reader != null) {
+                    directoryReader = reader;
+                    indexSearcher = new IndexSearcher(directoryReader);
+                }
+            }
 
         } catch (IOException e) {
             throw new AppException(e.getMessage(), e);
