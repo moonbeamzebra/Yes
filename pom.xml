@@ -62,14 +62,15 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analyzers-common</artifactId>
-            <version>6.3.0</version>
+            <version>6.4.2</version>
         </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-queryparser -->
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
-            <version>6.3.0</version>
+            <version>6.4.2</version>
         </dependency>
 
     </dependencies>
