@@ -37,8 +37,10 @@ public class MasterIndex {
 
     private final IndexWriter indexWriter;
 
-    private DirectoryReader directoryReader = null;
-    private IndexSearcher indexSearcher = null;
+
+    private Searcher searcher = null;
+//    private DirectoryReader directoryReader = null;
+//    private IndexSearcher indexSearcher = null;
 
     private MasterIndex() throws AppException {
         masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
@@ -47,17 +49,20 @@ public class MasterIndex {
 
         indexWriter = openIndexWriter(masterIndexPathName);
 
+        searcher = Searcher.getInstance(indexWriter, false);
+
     }
 
     public void close() {
 
-        if ( directoryReader != null  ) {
-            try {
-                directoryReader.close();
-            } catch (IOException e) {
-                logger.error("Cannot close MasterIndex Reader", e);
-            }
-        }
+        searcher.close();
+//        if ( directoryReader != null  ) {
+//            try {
+//                directoryReader.close();
+//            } catch (IOException e) {
+//                logger.error("Cannot close MasterIndex Reader", e);
+//            }
+//        }
 
         try {
             indexWriter.commit();
@@ -73,21 +78,21 @@ public class MasterIndex {
 
     }
 
-    private void openIndexSearcher() throws AppException {
-        if ( directoryReader == null  ) {
-            try {
-                directoryReader = DirectoryReader.open(indexWriter);
-                //directoryReader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
-                indexSearcher = new IndexSearcher(directoryReader);
-            } catch (IndexNotFoundException e) {
-                logger.error("No data : IndexNotFoundException");
-                directoryReader = null;
-                indexSearcher = null;
-            } catch (IOException e) {
-                throw new AppException(e.getMessage(), e);
-            }
-        }
-    }
+//    private void openIndexSearcher() throws AppException {
+//        if ( directoryReader == null  ) {
+//            try {
+//                directoryReader = DirectoryReader.open(indexWriter);
+//                //directoryReader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
+//                indexSearcher = new IndexSearcher(directoryReader);
+//            } catch (IndexNotFoundException e) {
+//                logger.error("No data : IndexNotFoundException");
+//                directoryReader = null;
+//                indexSearcher = null;
+//            } catch (IOException e) {
+//                throw new AppException(e.getMessage(), e);
+//            }
+//        }
+//    }
 
     private IndexWriter openIndexWriter(String indexPath) throws AppException {
 
@@ -118,14 +123,14 @@ public class MasterIndex {
         return indexWriter;
     }
 
-    public IndexSearcher getIndexSearcher() throws AppException {
-
-        if ( directoryReader == null  ) {
-            openIndexSearcher();
-        }
-
-        return indexSearcher;
-    }
+//    public IndexSearcher getIndexSearcher() throws AppException {
+//
+//        if ( directoryReader == null  ) {
+//            openIndexSearcher();
+//        }
+//
+//        return indexSearcher;
+//    }
 
     public void update(String newFileName, LongTermProcessor.RunTimeStamps runTimeStamps) throws AppException {
 
@@ -162,18 +167,29 @@ public class MasterIndex {
             indexWriter.flush();
             indexWriter.commit();
 
-            if (directoryReader != null)
+            Searcher tSearcher = Searcher.openIfChanged(searcher);
+            if (tSearcher != null)
             {
-                DirectoryReader reader = DirectoryReader.openIfChanged(directoryReader);
-                if (reader != null) {
-                    directoryReader = reader;
-                    indexSearcher = new IndexSearcher(directoryReader);
-                }
+                searcher = tSearcher;
             }
+
+//            if (directoryReader != null)
+//            {
+//                DirectoryReader reader = DirectoryReader.openIfChanged(directoryReader);
+//                if (reader != null) {
+//                    directoryReader = reader;
+//                    indexSearcher = new IndexSearcher(directoryReader);
+//                }
+//            }
 
         } catch (IOException e) {
             throw new AppException(e.getMessage(), e);
         }
 
     }
+
+    public Searcher getSearcher() {
+        return searcher;
+    }
+
 }

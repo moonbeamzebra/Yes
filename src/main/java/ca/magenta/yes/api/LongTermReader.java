@@ -7,6 +7,7 @@ import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import ca.magenta.yes.data.Searcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
@@ -164,7 +165,8 @@ public class LongTermReader extends Runner {
 //
 //        DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
 //        indexSearcher = new IndexSearcher(reader);
-        indexSearcher = masterIndex.getIndexSearcher();
+        Searcher searcher = masterIndex.getSearcher();
+        indexSearcher = searcher.getIndexSearcher();
 
 
         int maxTotalHits = 1000;
