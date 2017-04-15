@@ -9,7 +9,7 @@ java -jar ./target/ca.magenta.loggenerator-1.0-SNAPSHOT-jar-with-dependencies.ja
 -eventFile=./logs.xlsx \
 148
 >>>>>>>>>
-STATS: [28922.422 msgs/sec]
+STATS: [27208.43 msgs/sec]
 
 java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.jar  \
 -apiServerAddr=127.0.0.1 \

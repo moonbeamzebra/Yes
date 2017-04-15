@@ -11,7 +11,7 @@ import java.io.IOException;
 
 public class Searcher {
 
-    private static final Logger logger = LoggerFactory.getLogger(Searcher.class.getSimpleName());
+    private static final Logger logger = LoggerFactory.getLogger(Searcher.class.getName());
 
     private DirectoryReader directoryReader = null;
 
@@ -23,7 +23,8 @@ public class Searcher {
     private Searcher(IndexWriter indexWriter) throws AppException {
 
         super();
-        logger.warn("WARN: Searcher::Searcher called!");
+        if (logger.isTraceEnabled())
+            logger.trace("TRACE: Searcher::Searcher called!");
         this.indexWriter = indexWriter;
         try {
             this.directoryReader = DirectoryReader.open(this.indexWriter);
@@ -37,24 +38,24 @@ public class Searcher {
         return indexSearcher;
     }
 
-    synchronized public static Searcher getInstance(IndexWriter indexWriter, boolean renew) throws AppException {
+    synchronized static Searcher getInstance(IndexWriter indexWriter, boolean renew) throws AppException {
 
-        logger.warn("WARN: Searcher::getInstance called!");
+        if (logger.isTraceEnabled())
+            logger.trace("TRACE: Searcher::getInstance called!");
 
-        if ( renew || (instance == null) ) {
+        if (renew || (instance == null)) {
             instance = new Searcher(indexWriter);
         }
 
         return instance;
     }
 
-    synchronized public static Searcher openIfChanged(Searcher searcher) throws AppException {
+    synchronized static Searcher openIfChanged(Searcher searcher) throws AppException {
 
         Searcher rSearcher = null;
         try {
             DirectoryReader reader = DirectoryReader.openIfChanged(searcher.directoryReader);
-            if (reader != null)
-            {
+            if (reader != null) {
                 instance = getInstance(searcher.indexWriter, true);
                 rSearcher = instance;
             }
@@ -67,7 +68,8 @@ public class Searcher {
 
     void close() {
 
-        logger.warn("WARN: Searcher::close called!");
+        if (logger.isTraceEnabled())
+            logger.trace("TRACE: Searcher::close called!");
 
         if (directoryReader != null) {
             try {
@@ -81,7 +83,8 @@ public class Searcher {
 
     @Override
     protected void finalize() throws Throwable {
-        logger.warn("WARN: Searcher::finalize called!");
+        if (logger.isTraceEnabled())
+            logger.trace("TRACE: Searcher::finalize called!");
         close();
     }
 

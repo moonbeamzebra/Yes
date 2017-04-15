@@ -7,7 +7,6 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
@@ -23,27 +22,19 @@ public class MasterIndex {
 
     private static MasterIndex instance;
 
+    private final IndexWriter indexWriter;
+
+    private Searcher searcher = null;
 
     public static MasterIndex getInstance() throws AppException {
-        if(instance == null){
+        if (instance == null) {
             instance = new MasterIndex();
         }
         return instance;
     }
 
-
-    private final String masterIndexPathName;
-
-
-    private final IndexWriter indexWriter;
-
-
-    private Searcher searcher = null;
-//    private DirectoryReader directoryReader = null;
-//    private IndexSearcher indexSearcher = null;
-
     private MasterIndex() throws AppException {
-        masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
+        String masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
                 File.separator +
                 "master.lucene";
 
@@ -56,13 +47,6 @@ public class MasterIndex {
     public void close() {
 
         searcher.close();
-//        if ( directoryReader != null  ) {
-//            try {
-//                directoryReader.close();
-//            } catch (IOException e) {
-//                logger.error("Cannot close MasterIndex Reader", e);
-//            }
-//        }
 
         try {
             indexWriter.commit();
@@ -78,22 +62,6 @@ public class MasterIndex {
 
     }
 
-//    private void openIndexSearcher() throws AppException {
-//        if ( directoryReader == null  ) {
-//            try {
-//                directoryReader = DirectoryReader.open(indexWriter);
-//                //directoryReader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
-//                indexSearcher = new IndexSearcher(directoryReader);
-//            } catch (IndexNotFoundException e) {
-//                logger.error("No data : IndexNotFoundException");
-//                directoryReader = null;
-//                indexSearcher = null;
-//            } catch (IOException e) {
-//                throw new AppException(e.getMessage(), e);
-//            }
-//        }
-//    }
-
     private IndexWriter openIndexWriter(String indexPath) throws AppException {
 
         IndexWriter indexWriter;
@@ -103,7 +71,6 @@ public class MasterIndex {
 
             if (logger.isDebugEnabled())
                 logger.debug("Master Indexing in '" + indexPath + "'");
-
 
             Directory indexDir = FSDirectory.open(Paths.get(indexPath));
             IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
@@ -118,19 +85,6 @@ public class MasterIndex {
 
         return indexWriter;
     }
-
-    public IndexWriter getIndexWriter() {
-        return indexWriter;
-    }
-
-//    public IndexSearcher getIndexSearcher() throws AppException {
-//
-//        if ( directoryReader == null  ) {
-//            openIndexSearcher();
-//        }
-//
-//        return indexSearcher;
-//    }
 
     public void update(String newFileName, LongTermProcessor.RunTimeStamps runTimeStamps) throws AppException {
 
@@ -168,20 +122,9 @@ public class MasterIndex {
             indexWriter.commit();
 
             Searcher tSearcher = Searcher.openIfChanged(searcher);
-            if (tSearcher != null)
-            {
+            if (tSearcher != null) {
                 searcher = tSearcher;
             }
-
-//            if (directoryReader != null)
-//            {
-//                DirectoryReader reader = DirectoryReader.openIfChanged(directoryReader);
-//                if (reader != null) {
-//                    directoryReader = reader;
-//                    indexSearcher = new IndexSearcher(directoryReader);
-//                }
-//            }
-
         } catch (IOException e) {
             throw new AppException(e.getMessage(), e);
         }
@@ -191,5 +134,4 @@ public class MasterIndex {
     public Searcher getSearcher() {
         return searcher;
     }
-
 }
