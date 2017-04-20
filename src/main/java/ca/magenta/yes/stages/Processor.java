@@ -1,7 +1,7 @@
 package ca.magenta.yes.stages;
 
-
 import ca.magenta.utils.AppException;
+import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.Directory;
@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
 
@@ -17,19 +16,16 @@ public abstract class Processor implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(Processor.class.getPackage().getName());
 
-
     private final String partition;
 
-
     private BlockingQueue<Object> inputQueue;
-
 
     Directory indexDir;
     IndexWriter luceneIndexWriter;
 
     private volatile boolean doRun = true;
 
-    private RunTimeStamps runTimeStamps;
+    private MasterIndexRecord.RunTimeStamps runTimeStamps;
     private final long startTime;
     private long hiWaterMarkQueueLength = 0;
     private long previousNow = System.currentTimeMillis();
@@ -38,13 +34,11 @@ public abstract class Processor implements Runnable {
     private long thisRunCount = 0;
     private long reportCount = 0;
 
-
     synchronized void stopIt() {
         doRun = false;
     }
 
     private static final long printEvery = 100000;
-
 
     Processor(String partition, BlockingQueue<Object> inputQueue) throws AppException {
 
@@ -61,28 +55,30 @@ public abstract class Processor implements Runnable {
         doRun = true;
         thisRunCount = 0;
         reportCount = 0;
-        runTimeStamps = new RunTimeStamps();
+        runTimeStamps = new MasterIndexRecord.RunTimeStamps();
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
                 NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
-                long srcTimestamp = normalizedMsgRecord.getSrcTimestamp();
-                long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
-                if (logger.isDebugEnabled())
-                    logger.debug("Processor received: " + normalizedMsgRecord.toString());
-                runTimeStamps.compute(srcTimestamp, rxTimestamp);
-                try {
-                    storeInLucene(normalizedMsgRecord);
-                    count++;
-                    thisRunCount++;
-                    reportCount++;
+                if (normalizedMsgRecord != null) {
+                    long srcTimestamp = normalizedMsgRecord.getSrcTimestamp();
+                    long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
+                    if (logger.isDebugEnabled())
+                        logger.debug("Processor received: " + normalizedMsgRecord.toString());
+                    runTimeStamps.compute(srcTimestamp, rxTimestamp);
+                    try {
+                        storeInLucene(normalizedMsgRecord);
+                        count++;
+                        thisRunCount++;
+                        reportCount++;
 
-                } catch (AppException e) {
-                    logger.error("AppException", e);
-                }
+                    } catch (AppException e) {
+                        logger.error("AppException", e);
+                    }
 
-                if (reportCount == printEvery) {
-                    printReport();
+                    if (reportCount == printEvery) {
+                        printReport();
+                    }
                 }
             }
 
@@ -133,7 +129,7 @@ public abstract class Processor implements Runnable {
 
     public abstract void createIndex(String indexPath) throws AppException;
 
-    RunTimeStamps getRunTimeStamps() {
+    MasterIndexRecord.RunTimeStamps getRunTimeStamps() {
         return runTimeStamps;
     }
 
@@ -143,69 +139,6 @@ public abstract class Processor implements Runnable {
 
     synchronized Directory getIndexDir() {
         return indexDir;
-    }
-
-    public static class RunTimeStamps {
-
-        private long olderSrcTimestamp;
-        private long newerSrcTimestamp;
-
-        private long olderRxTimestamp;
-        private long newerRxTimestamp;
-
-        private final long runStartTimestamp;
-        private long runEndTimestamp;
-
-        RunTimeStamps() {
-            runStartTimestamp = System.currentTimeMillis();
-
-            olderSrcTimestamp = Long.MAX_VALUE;
-            newerSrcTimestamp = 0;
-
-            olderRxTimestamp = Long.MAX_VALUE;
-            newerRxTimestamp = 0;
-        }
-
-        void compute(long srcTimestamp, long rxTimestamp) {
-
-            if (srcTimestamp < olderSrcTimestamp)
-                olderSrcTimestamp = srcTimestamp;
-            if (srcTimestamp > newerSrcTimestamp)
-                newerSrcTimestamp = srcTimestamp;
-
-            if (rxTimestamp < olderRxTimestamp)
-                olderRxTimestamp = rxTimestamp;
-            if (rxTimestamp > newerRxTimestamp)
-                newerRxTimestamp = rxTimestamp;
-        }
-
-        public long getOlderSrcTimestamp() {
-            return olderSrcTimestamp;
-        }
-
-        public long getNewerSrcTimestamp() {
-            return newerSrcTimestamp;
-        }
-
-        public long getOlderRxTimestamp() {
-            return olderRxTimestamp;
-        }
-
-        public long getNewerRxTimestamp() {
-            return newerRxTimestamp;
-        }
-
-        public long getRunStartTimestamp() {
-            return runStartTimestamp;
-        }
-
-        public long getRunEndTimestamp() {
-            return runEndTimestamp;
-        }
-
-        void setRunEndTimestamp(long runEndTimestamp) {
-            this.runEndTimestamp = runEndTimestamp;
-        }
     }
 
     private NormalizedMsgRecord takeFromQueue() throws InterruptedException {
@@ -219,6 +152,4 @@ public abstract class Processor implements Runnable {
             return null;
         }
     }
-
-
 }

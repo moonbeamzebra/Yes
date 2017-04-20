@@ -2,7 +2,6 @@ package ca.magenta.yes.data;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.yes.Globals;
-import ca.magenta.yes.stages.LongTermProcessor;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
@@ -86,36 +85,11 @@ public class MasterIndex {
         return indexWriter;
     }
 
-    public void update(String newFileName, LongTermProcessor.RunTimeStamps runTimeStamps) throws AppException {
+    public Searcher getSearcher() {
+        return searcher;
+    }
 
-        Document document = new Document();
-
-        document.add(new SortedNumericDocValuesField("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
-        document.add(new LongPoint("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
-        document.add(new StoredField("olderTxTimestamp", runTimeStamps.getOlderSrcTimestamp()));
-
-        document.add(new SortedNumericDocValuesField("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
-        document.add(new LongPoint("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
-        document.add(new StoredField("newerTxTimestamp", runTimeStamps.getNewerSrcTimestamp()));
-
-        document.add(new SortedNumericDocValuesField("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));
-        document.add(new LongPoint("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));
-        document.add(new StoredField("olderRxTimestamp", runTimeStamps.getOlderRxTimestamp()));
-
-        document.add(new SortedNumericDocValuesField("newerRxTimestamp", runTimeStamps.getNewerRxTimestamp()));
-        document.add(new LongPoint("newerRxTimestamp", runTimeStamps.getNewerRxTimestamp()));
-        document.add(new StoredField("newerRxTimestamp", runTimeStamps.getNewerRxTimestamp()));
-
-        document.add(new SortedNumericDocValuesField("runStartTimestamp", runTimeStamps.getRunStartTimestamp()));
-        document.add(new LongPoint("runStartTimestamp", runTimeStamps.getRunStartTimestamp()));
-        document.add(new StoredField("runStartTimestamp", runTimeStamps.getRunStartTimestamp()));
-
-        document.add(new SortedNumericDocValuesField("runEndTimestamp", runTimeStamps.getRunEndTimestamp()));
-        document.add(new LongPoint("runEndTimestamp", runTimeStamps.getRunEndTimestamp()));
-        document.add(new StoredField("runEndTimestamp", runTimeStamps.getRunEndTimestamp()));
-
-        document.add(new StringField("longTermIndexName", newFileName, Field.Store.YES));
-
+    void addDocument(Document document) throws AppException {
         try {
             indexWriter.addDocument(document);
             indexWriter.flush();
@@ -129,9 +103,5 @@ public class MasterIndex {
             throw new AppException(e.getMessage(), e);
         }
 
-    }
-
-    public Searcher getSearcher() {
-        return searcher;
     }
 }
