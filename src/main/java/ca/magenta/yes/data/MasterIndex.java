@@ -89,7 +89,7 @@ public class MasterIndex {
         return searcher;
     }
 
-    void addDocument(Document document) throws AppException {
+    private void addDocument(Document document) throws AppException {
         try {
             indexWriter.addDocument(document);
             indexWriter.flush();
@@ -102,6 +102,12 @@ public class MasterIndex {
         } catch (IOException e) {
             throw new AppException(e.getMessage(), e);
         }
+
+    }
+
+    public void addRecord(MasterIndexRecord masterIndexRecord) throws AppException {
+
+        addDocument(masterIndexRecord.toDocument());
 
     }
 }

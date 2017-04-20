@@ -25,7 +25,7 @@ public abstract class Processor implements Runnable {
 
     private volatile boolean doRun = true;
 
-    private MasterIndexRecord.RunTimeStamps runTimeStamps;
+    private MasterIndexRecord.RuntimeTimestamps runtimeTimestamps;
     private final long startTime;
     private long hiWaterMarkQueueLength = 0;
     private long previousNow = System.currentTimeMillis();
@@ -55,7 +55,7 @@ public abstract class Processor implements Runnable {
         doRun = true;
         thisRunCount = 0;
         reportCount = 0;
-        runTimeStamps = new MasterIndexRecord.RunTimeStamps();
+        runtimeTimestamps = new MasterIndexRecord.RuntimeTimestamps();
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
@@ -65,7 +65,7 @@ public abstract class Processor implements Runnable {
                     long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
                     if (logger.isDebugEnabled())
                         logger.debug("Processor received: " + normalizedMsgRecord.toString());
-                    runTimeStamps.compute(srcTimestamp, rxTimestamp);
+                    runtimeTimestamps.compute(srcTimestamp, rxTimestamp);
                     try {
                         storeInLucene(normalizedMsgRecord);
                         count++;
@@ -88,7 +88,7 @@ public abstract class Processor implements Runnable {
             else if (logger.isDebugEnabled())
                 logger.debug("Processor manager asked to stop!");
         }
-        runTimeStamps.setRunEndTimestamp(System.currentTimeMillis());
+        runtimeTimestamps.setRunEndTimestamp(System.currentTimeMillis());
     }
 
     synchronized void commitAndClose() throws IOException {
@@ -129,8 +129,8 @@ public abstract class Processor implements Runnable {
 
     public abstract void createIndex(String indexPath) throws AppException;
 
-    MasterIndexRecord.RunTimeStamps getRunTimeStamps() {
-        return runTimeStamps;
+    MasterIndexRecord.RuntimeTimestamps getRuntimeTimestamps() {
+        return runtimeTimestamps;
     }
 
     long getThisRunCount() {

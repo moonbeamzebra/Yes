@@ -15,12 +15,12 @@ public class MasterIndexRecord {
     private static final String RUN_END_TIMESTAMP_FIELD_NAME = "runEndTimestamp";
     private static final String LONG_TERM_INDEX_NAME_FIELD_NAME = "longTermIndexName";
 
-    private final RunTimeStamps runtimeTimestamps;
+    private final RuntimeTimestamps runtimeTimestamps;
     private final String longTermIndexName;
 
     public MasterIndexRecord(Document masterIndexDoc) {
 
-        runtimeTimestamps = new RunTimeStamps(
+        runtimeTimestamps = new RuntimeTimestamps(
                 Long.valueOf(masterIndexDoc.get(OLDER_SOURCE_TIMESTAMP_FIELD_NAME)),
                 Long.valueOf(masterIndexDoc.get(NEWER_SOURCE_TIMESTAMP_FIELD_NAME)),
                 Long.valueOf(masterIndexDoc.get(OLDER_RECEIVE_TIMESTAMP_FIELD_NAME)),
@@ -32,12 +32,12 @@ public class MasterIndexRecord {
         this.longTermIndexName = masterIndexDoc.get(LONG_TERM_INDEX_NAME_FIELD_NAME);
     }
 
-    public MasterIndexRecord(String longTermIndexName, RunTimeStamps runtimeTimestamps) {
+    public MasterIndexRecord(String longTermIndexName, RuntimeTimestamps runtimeTimestamps) {
         this.runtimeTimestamps = runtimeTimestamps;
         this.longTermIndexName = longTermIndexName;
     }
 
-    public void addToMasterIndex(MasterIndex masterIndex) throws AppException {
+    Document toDocument() throws AppException {
 
         Document document = new Document();
 
@@ -50,7 +50,7 @@ public class MasterIndexRecord {
 
         document.add(new StringField(LONG_TERM_INDEX_NAME_FIELD_NAME, longTermIndexName, Field.Store.YES));
 
-        masterIndex.addDocument(document);
+        return document;
     }
 
 
@@ -72,7 +72,7 @@ public class MasterIndexRecord {
     }
 
 
-    public static class RunTimeStamps {
+    public static class RuntimeTimestamps {
 
         private long olderSrcTimestamp;
         private long newerSrcTimestamp;
@@ -83,7 +83,7 @@ public class MasterIndexRecord {
         private final long runStartTimestamp;
         private long runEndTimestamp;
 
-        public RunTimeStamps() {
+        public RuntimeTimestamps() {
             runStartTimestamp = System.currentTimeMillis();
 
             olderSrcTimestamp = Long.MAX_VALUE;
@@ -93,12 +93,12 @@ public class MasterIndexRecord {
             newerRxTimestamp = 0;
         }
 
-        private RunTimeStamps(long olderSrcTimestamp,
-                              long newerSrcTimestamp,
-                              long olderRxTimestamp,
-                              long newerRxTimestamp,
-                              long runStartTimestamp,
-                              long runEndTimestamp) {
+        private RuntimeTimestamps(long olderSrcTimestamp,
+                                  long newerSrcTimestamp,
+                                  long olderRxTimestamp,
+                                  long newerRxTimestamp,
+                                  long runStartTimestamp,
+                                  long runEndTimestamp) {
             this.olderSrcTimestamp = olderSrcTimestamp;
             this.newerSrcTimestamp = newerSrcTimestamp;
             this.olderRxTimestamp = olderRxTimestamp;

@@ -27,17 +27,15 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
                                    String indexPathName) throws IOException, AppException {
         String newFileName = String.format("%s-%d.run.%d-%d.lucene",
                 partition,
-                longTermProcessor.getRunTimeStamps().getNewerRxTimestamp(),
-                longTermProcessor.getRunTimeStamps().getRunStartTimestamp(),
-                longTermProcessor.getRunTimeStamps().getRunEndTimestamp());
+                longTermProcessor.getRuntimeTimestamps().getNewerRxTimestamp(),
+                longTermProcessor.getRuntimeTimestamps().getRunStartTimestamp(),
+                longTermProcessor.getRuntimeTimestamps().getRunEndTimestamp());
         String newIndexPathName = indexPath + newFileName;
         File dir = new File(indexPathName);
         File newDirName = new File(newIndexPathName);
         if (dir.isDirectory()) {
             if (dir.renameTo(newDirName)) {
-                (new MasterIndexRecord(newFileName, longTermProcessor.getRunTimeStamps())).addToMasterIndex(masterIndex);
-                //masterIndex.update(newFileName, longTermProcessor.getRunTimeStamps());
-                //updateMasterIndex(masterIndexPathName, newFileName, longTermProcessor.getRunTimeStamps());
+                masterIndex.addRecord(new MasterIndexRecord(newFileName, longTermProcessor.getRuntimeTimestamps()));
                 logger.info(String.format("Index [%s] published", newFileName));
             } else {
                 logger.error(String.format("Cannot rename [%s to %s]", indexPathName, newIndexPathName));
