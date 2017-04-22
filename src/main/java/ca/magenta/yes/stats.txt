@@ -1,0 +1,27 @@
+Branch 0.81-cleanup
+=============
+java -jar ./target/ca.magenta.loggenerator-1.0-SNAPSHOT-jar-with-dependencies.jar \
+-msgServerAddr=127.0.0.1 \
+-msgServerPort=7540 \
+-multiThreaded \
+-repeatCount=nostop \
+-tunningLoopCount=40000 \
+-eventFile=./logs.xlsx \
+148
+>>>>>>>>>
+STATS: [27208.43 msgs/sec]
+
+java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.jar  \
+-apiServerAddr=127.0.0.1 \
+-apiServerPort=9595 \
+--raw \
+--time=last30m \
+10.10.10.30
+
+java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.jar  \
+-apiServerAddr=127.0.0.1 \
+-apiServerPort=9595 \
+--raw \
+-f \
+10.10.10.30
+

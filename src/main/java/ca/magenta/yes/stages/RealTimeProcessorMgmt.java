@@ -2,31 +2,36 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
-import ca.magenta.yes.Config;
-import ca.magenta.yes.api.APIServer;
+import ca.magenta.yes.Globals;
 import ca.magenta.yes.connector.common.IndexPublisher;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 
 
 public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private static IndexPublisher indexPublisher = new IndexPublisher("IndexPublisher");
-
-    private APIServer apiServer = null;
+    private static IndexPublisher indexPublisher = Globals.getIndexPublisher();
 
 
-    public RealTimeProcessorMgmt(String name, long cuttingTime, Config config) {
-        super(name, cuttingTime, config);
+    public RealTimeProcessorMgmt(String name, long cuttingTime, String partition) {
+        super(name, partition, cuttingTime);
 
-        startAPIServer(config);
 
     }
+
+    @Override
+    public synchronized void startInstance() throws AppException {
+        super.startInstance();
+    }
+
+    public synchronized void stopInstance() {
+        super.stopInstance();
+    }
+
 
     @Override
     synchronized void publishIndex(Processor RealTimeProcessor,
@@ -34,6 +39,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
                               String indexPathName)
     {
         try {
+            //logger.info("indexPublisher.publish");
             indexPublisher.publish(RealTimeProcessor.getIndexDir());
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -48,9 +54,9 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
     @Override
-    Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException {
+    Processor createProcessor(BlockingQueue<Object> queue) throws AppException {
 
-        return new RealTimeProcessor("RealTimeProcessor", queue);
+        return new RealTimeProcessor(partition, queue);
 
     }
 
@@ -60,27 +66,5 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
 
-    public void startAPIServer(Config config) {
-
-        try {
-
-            if ((apiServer == null) || ( ! apiServer.getRunner().isAlive())) {
-                apiServer = new APIServer(this.config.getApiServerPort(),"APISrvr", config.getIndexBaseDirectory());
-                logger.info("Starting APIServer...");
-                apiServer.startServer();
-                logger.info("APIServer started");
-            }
-        } catch (IOException e) {
-
-            logger.error("", e);
-        }
-    }
-
-    public void stopAPIServer() {
-        try {
-            apiServer.stopServer();
-        } catch (Exception ex) {
-        }
-    }
 
 }

@@ -1,107 +1,117 @@
 package ca.magenta.yes.connector;
 
 import ca.magenta.utils.AppException;
-import ca.magenta.yes.Config;
+import ca.magenta.utils.QueueProcessor;
+import ca.magenta.yes.Globals;
+import ca.magenta.yes.data.MasterIndex;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.stages.Dispatcher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
 
-public class LogParser implements Runnable {
+public class LogParser extends QueueProcessor {
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName());
 
-    private final String name;
-    private final BlockingQueue<String> outputQueue;
-    private final BlockingQueue<String> inputQueue;
+    private final Dispatcher dispatcher;
 
-    private final String customer;
+    LogParser(String name, String partition, MasterIndex masterIndex) {
 
-    private volatile boolean doRun = true;
+        super(name, partition, Globals.getConfig().getLogParserQueueDepth(), 100000);
 
-    public void stopIt() {
-        doRun = false;
-    }
-
-    private static final long printEvery = 100000;
-
-    private long count = 0;
-
-    public LogParser(String name, Config config) {
-
-        this.inputQueue = new ArrayBlockingQueue<String>(1000000);
-        this.name = name;
-
-        customer = Integer.toString(config.getGenericConnectorPort());
-
-        Dispatcher dispatcher = new Dispatcher("Dispatcher", config);
-        outputQueue = dispatcher.getInputQueue();
-        Thread dispatcherThread = new Thread(dispatcher, "Dispatcher");
-        dispatcherThread.start();
-
+        dispatcher = new Dispatcher(this.partition, this.partition, masterIndex);
     }
 
     public void run() {
 
-        logger.info("New LogParser running");
+        logger.info(String.format("LogParser start running for partition [%s]", partition));
+
         count = 0;
         long previousNow = System.currentTimeMillis();
         long now;
         long totalTime;
         float msgPerSec;
-        try {
 
-            while (doRun || !inputQueue.isEmpty()) {
-                String logMsg = inputQueue.take();
-                logger.debug("LogParser received: " + logMsg);
+        while (doRun) {
+            String logMsg = null;
+            try {
+                logMsg = takeFromQueue();
                 try {
-                    dispatchParsingAndProcessing(logMsg);
+                    dispatchParsingAndProcessing(logMsg, dispatcher);
                 } catch (JsonProcessingException e) {
                     logger.error("JsonProcessingException", e);
                 }
-
-                count++;
-
-                if ((count % printEvery) == 0) {
-                    now = System.currentTimeMillis();
-                    totalTime = now - previousNow;
-
-                    msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
-
-                    System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
-                    previousNow = now;
-                }
+            } catch (InterruptedException e) {
+                if (doRun)
+                    logger.error("InterruptedException", e);
             }
-        } catch (InterruptedException e) {
-            logger.error("InterruptedException", e);
+            logger.debug("LogParser received: " + logMsg);
+
+            count++;
+
+            if ((count % printEvery) == 0) {
+                now = System.currentTimeMillis();
+                totalTime = now - previousNow;
+
+                msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
+
+                System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
+                previousNow = now;
+            }
         }
+
+        logger.info(String.format("LogParser stop running for partition [%s]", partition));
+
     }
 
-    private void dispatchParsingAndProcessing(String logMsg) throws JsonProcessingException, InterruptedException {
+    @Override
+    public synchronized void startInstance() throws AppException {
 
+        // Start drain
+        dispatcher.startInstance();
+
+        // Start source
+        super.startInstance();
+    }
+
+    @Override
+    public synchronized void stopInstance() {
+
+        // Stop source
+        super.stopInstance();
+
+        dispatcher.letDrain();
+
+        // Stop drain
+        dispatcher.stopInstance();
+    }
+
+
+    private void dispatchParsingAndProcessing(String logMsg, Dispatcher dispatcher) throws JsonProcessingException, InterruptedException {
+
+        String msgType =  "pseudoCheckpoint";
+
+        HashMap<String, Object> hashedMsg = NormalizedMsgRecord.initiateMsgHash(logMsg, msgType, partition);
+
+        // Let's parse pseudo Checkpoint logs
         // device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop
-
-        HashMap<String, Object> hashedMsg = new HashMap<String, Object>();
-
-        hashedMsg.put("message", logMsg);
-        hashedMsg.put("type", "pseudoCheckpoint");
-        hashedMsg.put("customer", customer);
-
         String[] items = logMsg.split("\\|");
 
         for (String item : items) {
-            //logger.info(String.format("ITEM:[%s]", item));
+            if (logger.isDebugEnabled())
+                logger.debug(String.format("ITEM:[%s]", item));
             int pos = item.indexOf("=");
             if (pos != -1) {
                 String key = item.substring(0, pos);
                 String value = item.substring(pos + 1);
 
-                //logger.info(String.format("KEY:[%s]; VALUE:[%s]", key, value));
+                if (logger.isDebugEnabled())
+                    logger.debug(String.format("KEY:[%s]; VALUE:[%s]", key, value));
 
                 hashedMsg.put(key, value);
 
@@ -113,12 +123,16 @@ public class LogParser implements Runnable {
 
         String jsonMsg = mapper.writeValueAsString(hashedMsg);
 
-        outputQueue.put(jsonMsg);
+        dispatcher.putInQueue(jsonMsg);
 
     }
 
-    public BlockingQueue<String> getInputQueue() {
-        return inputQueue;
+    private String takeFromQueue() throws InterruptedException {
+        return (String) inputQueue.take();
     }
 
+    void putInQueue(String message) throws InterruptedException {
+
+        this.putInQueueImpl(message, Globals.getConfig().getQueueDepthWarningThreshold());
+    }
 }

@@ -5,9 +5,6 @@ import java.text.SimpleDateFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Created by jplaberge on 2016-12-28.
- */
 public class TimeRange {
 
     public TimeRange(long olderTime, long newerTime) {
@@ -34,62 +31,51 @@ public class TimeRange {
     private static final Pattern typeFromToPattern = Pattern.compile("FROM(.+)-TO(.+)");
     private static final SimpleDateFormat typeFromToSimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
-    static public TimeRange returnTimeRangeBackwardFromNow(String periodString) throws AppException
-    {
+    static public TimeRange returnTimeRangeBackwardFromNow(String periodString) throws AppException {
         periodString = periodString.trim();
 
-        if (periodString.toUpperCase().startsWith("LAST"))
-        {
+        if (periodString.toUpperCase().startsWith("LAST")) {
             return returnTimeRange(true, System.currentTimeMillis(), periodString);
-        }
-        else if (periodString.toUpperCase().startsWith("FROM"))
-        {
-            return  returnTime_FromTo(periodString.toUpperCase());
+        } else if (periodString.toUpperCase().startsWith("FROM")) {
+            return returnTime_FromTo(periodString.toUpperCase());
         }
 
         return returnTimeRange(true, System.currentTimeMillis(), periodString);
     }
 
-    static public TimeRange returnTimeRange(boolean backward /* in the pass */,
-                                            long offset,
-                                            String periodString) throws AppException
-    {
+    private static TimeRange returnTimeRange(boolean backward /* in the pass */,
+                                             long offset,
+                                             String periodString) throws AppException {
 
         long time = 0;
 
         periodString = periodString.trim();
 
-        if (periodString.toUpperCase().startsWith("LAST"))
-        {
+        if (periodString.toUpperCase().startsWith("LAST")) {
             time = returnTime_LAST(periodString.substring(4));
         }
 
         long olderTime;
         long newerTime;
-        if (backward)
-        {
+        if (backward) {
             newerTime = offset;
             olderTime = newerTime - time;
-        }
-        else // forward - in the future
+        } else // forward - in the future
         {
             olderTime = offset;
             newerTime = olderTime + time;
         }
 
-        if ( (olderTime >= 0) && (newerTime >= 0))
-        {
+        if ((olderTime >= 0) && (newerTime >= 0)) {
             return new TimeRange(olderTime, newerTime);
-        }
-        else
-        {
+        } else {
             throw new AppException(String.format("Bad parameters: backward [%b],offset[%d],periodString[%s]; " +
-                                                    "gives negative values: olderTime[%d], newerTime[%d]",
-                                                    backward,
-                                                    offset,
-                                                    periodString,
-                                                    olderTime,
-                                                    newerTime));
+                            "gives negative values: olderTime[%d], newerTime[%d]",
+                    backward,
+                    offset,
+                    periodString,
+                    olderTime,
+                    newerTime));
         }
     }
 
@@ -104,10 +90,8 @@ public class TimeRange {
 
             return new TimeRange(fromPart, toPart);
 
-        }
-        else
-        {
-            throw new AppException(String.format("Bad type LAST periodString: [%s]",periodString));
+        } else {
+            throw new AppException(String.format("Bad type LAST periodString: [%s]", periodString));
         }
 
     }
@@ -118,16 +102,14 @@ public class TimeRange {
         try {
             return Long.valueOf(timeString);
         } catch (NumberFormatException e) {
-            ; // Do nothing.  Now try formatted date way
+            // Do nothing.  Now try formatted date way
         }
 
         // try yyyy-MM-dd'T'HH:mm:ss.SSS format
         try {
             return typeFromToSimpleDateFormat.parse(timeString).getTime();
-        }
-        catch (ParseException e)
-        {
-            ; // Do nothing.  Throw below (can add other acceptable format below later on)
+        } catch (ParseException e) {
+            // Do nothing.  Throw below (can add other acceptable format below later on)
         }
 
         // If we land here, we got no luck with parsing
@@ -135,8 +117,7 @@ public class TimeRange {
 
     }
 
-    static public long returnTime_LAST(String periodString) throws AppException
-    {
+    private static long returnTime_LAST(String periodString) throws AppException {
 
         Matcher m = typeLastPattern.matcher(periodString.trim());
 
@@ -149,8 +130,7 @@ public class TimeRange {
             periodSpecifier = m.group(2).charAt(0);
             long time;
 
-            switch (periodSpecifier)
-            {
+            switch (periodSpecifier) {
                 // yyyy-MM-dd'T'HH:mm:ss.SSSZ
                 //YEAR
                 case 'y':
@@ -185,16 +165,14 @@ public class TimeRange {
                     time = MILLISECONDS_IN_1_MILLISECOND;
                     break;
 
-                default: throw new AppException("ASSERT FAILED");
+                default:
+                    throw new AppException("ASSERT FAILED");
             }
-            long totalTime = multiplier * time;
 
-            return totalTime;
+            return multiplier * time;
 
-        }
-        else
-        {
-            throw new AppException(String.format("Bad type LAST periodString: [%s]",periodString));
+        } else {
+            throw new AppException(String.format("Bad type LAST periodString: [%s]", periodString));
         }
     }
 
@@ -213,12 +191,10 @@ public class TimeRange {
         String olderTimeStr = DATE_FORMAT.format(olderTime);
         String newerTimeStr = DATE_FORMAT.format(newerTime);
 
-        String toString = String.format("TimeRange{olderTime=%s(%s), newerTime=%s(%s)}",
+        return String.format("TimeRange{olderTime=%s(%s), newerTime=%s(%s)}",
                 olderTimeStr,
                 olderTime,
                 newerTimeStr,
                 newerTime);
-
-        return toString;
     }
 }

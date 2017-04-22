@@ -1,67 +1,71 @@
 package ca.magenta.yes.connector;
 
-import ca.magenta.utils.TCPServer;
-import ca.magenta.yes.Config;
+import ca.magenta.utils.AbstractTCPServer;
+import ca.magenta.utils.AbstractTCPServerHandler;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
+import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.concurrent.BlockingQueue;
+import java.net.SocketException;
 
+public class GenericConnector extends AbstractTCPServerHandler {
 
-/**
- * Created by jean-paul.laberge on 12/19/2016.
- */
-@Component
-public class GenericConnector extends TCPServer {
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
+    private final LogParser logParser;
 
+    GenericConnector(AbstractTCPServer tcpServer, String partitionName, Socket handlerSocket, LogParser logParser) {
 
-    private final BlockingQueue<String> outputQueue;
+        super(tcpServer, partitionName, handlerSocket);
 
-    public GenericConnector(Config config) {
-
-        super(config.getGenericConnectorPort(), GenericConnector.class.getName());
-
-        logger.info(String.format("GenericConnector started on port [%d]", config.getGenericConnectorPort()));
-
-        LogParser logParser = new LogParser("LogParser", config);
-        outputQueue = logParser.getInputQueue();
-        Thread logParserThread = new Thread(logParser, "LogParser");
-        logParserThread.start();
-
+        this.logParser = logParser;
 
     }
 
-    public void run(Socket data) {
+    @Override
+    public void run() {
+        doRun = true;
+
+        String clientIP = handlerSocket.getInetAddress().toString();
+        int clientPort = handlerSocket.getPort();
+
+        logger.info(String.format("Received a connection from %s:%s", clientIP, clientPort));
+
         try {
+            BufferedReader in = new BufferedReader(new InputStreamReader(handlerSocket.getInputStream()));
+            PrintWriter out = new PrintWriter(handlerSocket.getOutputStream());
 
-
-
-            InetAddress clientAddress = data.getInetAddress();
-            int port = data.getPort();
-            logger.info("Connected to client: " + clientAddress.getHostAddress() + ":" + port);
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(data.getInputStream()));
-
-            String inputLine;
-
-            while ((inputLine = in.readLine()) != null) {
-                logger.debug("Client: " + inputLine);
-                outputQueue.put(inputLine);
+            try {
+                String line;
+                while ((doRun) && (line = in.readLine()) != null) {
+                    logParser.putInQueue(line);
+                }
+            } catch (SocketException e) {
+                if (doRun)
+                    logger.error("SocketException", e);
+            } catch (IOException e) {
+                if (doRun)
+                    logger.error("IOException", e);
+            } catch (InterruptedException e) {
+                if (doRun)
+                    logger.error("InterruptedException", e);
             }
 
             in.close();
-            data.close();
+            out.close();
+            handlerSocket.close();
 
-            // Process the data socket here.
-        } catch (Exception e) {
-            logger.error("", e);
+        } catch (IOException e) {
+            if (doRun)
+                logger.error("IOException", e);
         }
+        tcpServer.removeTcpServerHandler(this);
+
+        logger.info(String.format("Connection closed from %s:%s", clientIP, clientPort));
     }
 
 }

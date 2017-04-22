@@ -2,103 +2,94 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
-import ca.magenta.yes.Config;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import ca.magenta.utils.QueueProcessor;
+import ca.magenta.yes.Globals;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 
-public abstract class ProcessorMgmt implements Runnable {
+public abstract class ProcessorMgmt extends QueueProcessor {
 
-    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getPackage().getName());
-
-
-    private final String name;
+    private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final long cuttingTime;
-    final Config config;
 
+    ProcessorMgmt(String name, String partition, long cuttingTime) {
 
-    private final BlockingQueue<HashMap<String, Object>> inputQueue;
+        super(name, partition, Globals.getConfig().getProcessorQueueDepth(), 650000);
 
-    private volatile boolean doRun = true;
-
-    public void stopIt() {
-        doRun = false;
-    }
-
-    public ProcessorMgmt(String name, long cuttingTime, Config config) {
-
-        this.name = name;
         this.cuttingTime = cuttingTime;
-        this.inputQueue = new ArrayBlockingQueue<HashMap<String, Object>>(config.getProcessorQueueDepth());
-        this.config = config;
-
     }
 
     public void run() {
 
-        ObjectMapper mapper = new ObjectMapper();
-
-        //LongTermProcessor longTermProcessor = new LongTermProcessor("LongTermProcessor",
-        //        inputQueue);
         try {
             Processor processor = createProcessor(inputQueue);
 
-            logger.info(String.format("New [%s] running", this.getClass().getSimpleName()));
-            try {
+            logger.info(String.format("[%s] started for partition [%s]", this.getClass().getSimpleName(), partition));
 
-                while (doRun || !inputQueue.isEmpty()) {
-                    String indexPath = config.getIndexBaseDirectory() + File.separator;
-                    String indexPathName = indexPath +
-                            this.getClass().getSimpleName() + "." +
-                            java.util.UUID.randomUUID();
-                    processor.createIndex(indexPathName);
-                    Thread processorThread = new Thread(processor, processor.getClass().getSimpleName());
-                    processorThread.start();
 
-                    Thread.sleep(cuttingTime);
+            while (doRun || (!inputQueue.isEmpty())) {
+                String indexPath = Globals.getConfig().getIndexBaseDirectory() + File.separator;
+                String indexPathName = indexPath +
+                        this.getClass().getSimpleName() + "." +
+                        java.util.UUID.randomUUID();
+                processor.createIndex(indexPathName);
+                Thread processorThread = new Thread(processor, processor.getClass().getSimpleName());
+                processorThread.start();
 
-                    if (logger.isDebugEnabled())
-                        logger.debug("Time to rotate...stop the thread");
-                    processor.stopIt();
-                    processorThread.interrupt();
-                    processorThread.join();
-                    if (logger.isDebugEnabled())
-                        logger.debug("Stopped");
-                    if (this instanceof LongTermProcessorMgmt)
-                        processor.printReport();
-
+                if (doRun) {
                     try {
-                        processor.commitAndClose();
-                        long count = processor.getThisRunCount();
-                        if (count > 0) {
-                            publishIndex(processor, indexPath, indexPathName);
-                        } else {
-                            deleteUnusedIndex(indexPathName);
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        Thread.sleep(cuttingTime);
+                    } catch (InterruptedException e) {
+                        if (doRun)
+                            logger.error("InterruptedException", e);
                     }
-
                 }
-            } catch (InterruptedException e) {
-                logger.error("InterruptedException", e);
+                if (!doRun) {
+                    // The still running processor take care of draining the queue
+                    this.letDrain();
+                }
+
+                if (logger.isDebugEnabled())
+                    logger.debug("Time to rotate...stop the thread");
+                processor.stopIt();
+                processorThread.interrupt();
+                try {
+                    processorThread.join();
+                } catch (InterruptedException e) {
+                    logger.error("InterruptedException", e);
+                }
+                if (logger.isDebugEnabled())
+                    logger.debug("Stopped");
+                if (this instanceof LongTermProcessorMgmt)
+                    processor.printReport();
+
+                try {
+                    processor.commitAndClose();
+                    long count = processor.getThisRunCount();
+                    if (count > 0) {
+                        publishIndex(processor, indexPath, indexPathName);
+                    } else {
+                        deleteUnusedIndex(indexPathName);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             }
         } catch (AppException e) {
             logger.error("AppException", e);
         }
 
-    }
+        logger.info(String.format("[%s] stopped for partition [%s]", this.getClass().getSimpleName(), partition));
 
-//    public BlockingQueue<LogstashMessage> getInputQueue() {
-//        return inputQueue;
-//    }
+    }
 
     abstract void publishIndex(Processor processor,
                                String indexPath,
@@ -106,24 +97,12 @@ public abstract class ProcessorMgmt implements Runnable {
 
     abstract void deleteUnusedIndex(String indexPathName);
 
-    abstract Processor createProcessor(BlockingQueue<HashMap<String, Object>> queue) throws AppException;
+    abstract Processor createProcessor(BlockingQueue<Object> queue) throws AppException;
 
 
-    public void putInQueue(HashMap<String, Object> logstashMessage) throws InterruptedException {
+    synchronized void putInQueue(NormalizedMsgRecord normalizedMsgRecord) throws InterruptedException {
 
-        inputQueue.put(logstashMessage);
 
-        if (logger.isWarnEnabled()) {
-            int length = inputQueue.size();
-            float percentFull = length / config.getProcessorQueueDepth();
-
-            if (percentFull > config.getQueueDepthWarningThreshold())
-                logger.warn(String.format("Queue length threashold bypassed max:[%d]; " +
-                                "queue length:[%d] " +
-                                "Percent:[%f] " +
-                                "Threshold:[%f]",
-                        config.getProcessorQueueDepth(), length, percentFull, config.getQueueDepthWarningThreshold()));
-        }
-
+        this.putInQueueImpl(normalizedMsgRecord, Globals.getConfig().getQueueDepthWarningThreshold());
     }
 }

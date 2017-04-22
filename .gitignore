@@ -2,3 +2,5 @@
 Yes.iml
 luceneIndex/*
 target/*
+yes.lucene.index/*
+tmp/*

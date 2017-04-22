@@ -25,11 +25,14 @@ public class Config {
 
 
     @NotNull
-    private int logstashConnectorPort;
+    private String genericConnectorPorts;
 
 
     @NotNull
-    private int genericConnectorPort;
+    private int genericConnectorPortA;
+
+    @NotNull
+    private int genericConnectorPortB;
 
 
     @NotNull
@@ -46,27 +49,37 @@ public class Config {
 
     private int processorQueueDepth = 300000;
 
+    private int logParserQueueDepth = 1000000;
 
+    private int dispatcherQueueDepth = 1000000;
 
     private float queueDepthWarningThreshold = (float) 0.8;
 
     @NotNull
     private String environment;
 
-    public int getLogstashConnectorPort() {
-        return logstashConnectorPort;
+    public String getGenericConnectorPorts() {
+        return genericConnectorPorts;
     }
 
-    public void setLogstashConnectorPort(int logstashConnectorPort) {
-        this.logstashConnectorPort = logstashConnectorPort;
+    public void setGenericConnectorPorts(String genericConnectorPorts) {
+        this.genericConnectorPorts = genericConnectorPorts;
     }
 
-    public int getGenericConnectorPort() {
-        return genericConnectorPort;
+    public int getGenericConnectorPortA() {
+        return genericConnectorPortA;
     }
 
-    public void setGenericConnectorPort(int genericConnectorPort) {
-        this.genericConnectorPort = genericConnectorPort;
+    public void setGenericConnectorPortA(int genericConnectorPortA) {
+        this.genericConnectorPortA = genericConnectorPortA;
+    }
+
+    public int getGenericConnectorPortB() {
+        return genericConnectorPortB;
+    }
+
+    public void setGenericConnectorPortB(int genericConnectorPortB) {
+        this.genericConnectorPortB = genericConnectorPortB;
     }
 
     public int getLongTermCuttingTime() {
@@ -107,6 +120,22 @@ public class Config {
 
     public void setProcessorQueueDepth(int processorQueueDepth) {
         this.processorQueueDepth = processorQueueDepth;
+    }
+
+    public int getLogParserQueueDepth() {
+        return logParserQueueDepth;
+    }
+
+    public void setLogParserQueueDepth(int logParserQueueDepth) {
+        this.logParserQueueDepth = logParserQueueDepth;
+    }
+
+    public int getDispatcherQueueDepth() {
+        return dispatcherQueueDepth;
+    }
+
+    public void setDispatcherQueueDepth(int dispatcherQueueDepth) {
+        this.dispatcherQueueDepth = dispatcherQueueDepth;
     }
 
     public float getQueueDepthWarningThreshold() {
