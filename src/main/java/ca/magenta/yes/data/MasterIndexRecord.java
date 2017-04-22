@@ -1,11 +1,17 @@
 package ca.magenta.yes.data;
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.Globals;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 
 public class MasterIndexRecord {
+
 
     private static final String OLDER_SOURCE_TIMESTAMP_FIELD_NAME = "olderTxTimestamp";
     private static final String NEWER_SOURCE_TIMESTAMP_FIELD_NAME = "newerTxTimestamp";
@@ -71,6 +77,65 @@ public class MasterIndexRecord {
         return longTermIndexName;
     }
 
+    public static BooleanQuery buildSearchStringForTimeRange(Globals.DrivingTimestamp drivingTimestamp,
+                                                             TimeRange periodTimeRange) {
+
+        if (drivingTimestamp == Globals.DrivingTimestamp.SOURCE_TIME)
+        {
+            return buildSearchStringForTimeRange(periodTimeRange,
+                    OLDER_SOURCE_TIMESTAMP_FIELD_NAME,
+                    NEWER_SOURCE_TIMESTAMP_FIELD_NAME);
+        }
+        else
+        {
+            return buildSearchStringForTimeRange(periodTimeRange,
+                    OLDER_RECEIVE_TIMESTAMP_FIELD_NAME,
+                    NEWER_RECEIVE_TIMESTAMP_FIELD_NAME);
+        }
+    }
+
+    private static BooleanQuery buildSearchStringForTimeRange(TimeRange periodTimeRange,
+                                                              String olderTimestampFieldName,
+                                                              String newerTimestampFieldName) {
+
+        // Files containing range at the end : left part
+        // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
+        BooleanQuery bMasterSearchLeftPart = new BooleanQuery.Builder().
+                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+                build();
+
+
+        // Range completely enclose the files range: middle part
+        // OlderTimeRange <= olderRxTimestamp AND newerRxTimestamp <= NewerTimeRange
+        BooleanQuery bMasterSearchMiddlePart = new BooleanQuery.Builder().
+                add(LongPoint.newRangeQuery(olderTimestampFieldName, periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(newerTimestampFieldName, 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
+                build();
+
+
+        // Files containing range at the beginning : right part
+        // olderRxTimestamp <= NewerTimeRange <= newerRxTimestamp
+        BooleanQuery bMasterSearchRightPart = new BooleanQuery.Builder().
+                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+                build();
+
+        // File range completely enclose the range: narrow part
+        // olderRxTimestamp <= OlderTimeRange AND NewerTimeRange <= newerRxTimestamp
+        BooleanQuery bMasterSearchNarrowPart = new BooleanQuery.Builder().
+                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+                build();
+
+        return new BooleanQuery.Builder().
+                add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD).
+                build();
+
+    }
 
     public static class RuntimeTimestamps {
 

@@ -2,4 +2,5 @@ loc=4801107|time=2016-05-20 14:03:11|action=accept|orig=10.10.10.10|i/f_dir=inbo
 device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop|msg=Connnection dropped
 device=fw01|source=10.10.10.20|dest=20.20.20.10|port=80|action=accept|msg=Connnection accpted
 device=fw01|source=10.10.10.30|dest=20.20.20.20|port=80|action=terminate|msg=Connnection terminated
+device=fw02|@timestamp=2014-04-20T10:29:43.961Z|source=10.10.10.40|dest=20.20.20.50|port=80|action=terminate|msg=Connnection terminated
 loc=4801108|time=2016-05-20 14:03:14|action=drop|orig=10.10.10.10|i/f_dir=inbound|i/f_name=eth2|has_accounting=0|uuid=<aaaaaa,00000000,bbbbbb,0000ffff>|product=FireWall-1|__policy_id_tag=product=FireWall-1[db_tag={CCCCC-7777-1111-AAA-ZZZZZZZZ};mgmt=myMgmt;date=1304004339;policy_name=StopThat]|src=11.11.11.13|dst=12.12.12.14|proto=icmp|message_info=Address spoofing

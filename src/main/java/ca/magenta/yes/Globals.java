@@ -13,6 +13,9 @@ public class Globals {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Application.class.getPackage().getName());
 
+    public enum DrivingTimestamp {
+        RECEIVE_TIME, SOURCE_TIME
+    }
 
     public static void setConfig(Config config) {
         Globals.config = config;

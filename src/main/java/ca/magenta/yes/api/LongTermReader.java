@@ -106,44 +106,48 @@ public class LongTermReader extends Runner {
                                           boolean reverse,
                                           PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
 
-        // Files containing range at the end : left part
-        // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
-        BooleanQuery bMasterSearchLeftPart = new BooleanQuery.Builder().
-                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
-                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-                build();
+//        // Files containing range at the end : left part
+//        // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
+//        BooleanQuery bMasterSearchLeftPart = new BooleanQuery.Builder().
+//                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
+//                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+//                build();
+//
+//
+//        // Range completely enclose the files range: middle part
+//        // OlderTimeRange <= olderRxTimestamp AND newerRxTimestamp <= NewerTimeRange
+//        BooleanQuery bMasterSearchMiddlePart = new BooleanQuery.Builder().
+//                add(LongPoint.newRangeQuery("olderRxTimestamp", periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+//                add(LongPoint.newRangeQuery("newerRxTimestamp", 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
+//                build();
+//
+//
+//        // Files containing range at the beginning : right part
+//        // olderRxTimestamp <= NewerTimeRange <= newerRxTimestamp
+//        BooleanQuery bMasterSearchRightPart = new BooleanQuery.Builder().
+//                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
+//                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+//                build();
+//
+//        // File range completely enclose the range: narrow part
+//        // olderRxTimestamp <= OlderTimeRange AND NewerTimeRange <= newerRxTimestamp
+//        BooleanQuery bMasterSearchNarrowPart = new BooleanQuery.Builder().
+//                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
+//                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+//                build();
+//
+//        BooleanQuery bMasterSearch;
+//
+//        bMasterSearch = new BooleanQuery.Builder().
+//                add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
+//                add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
+//                add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
+//                add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD).
+//                build();
 
+        BooleanQuery bMasterSearch = MasterIndexRecord.buildSearchStringForTimeRange(Globals.DrivingTimestamp.RECEIVE_TIME, periodTimeRange);
 
-        // Range completely enclose the files range: middle part
-        // OlderTimeRange <= olderRxTimestamp AND newerRxTimestamp <= NewerTimeRange
-        BooleanQuery bMasterSearchMiddlePart = new BooleanQuery.Builder().
-                add(LongPoint.newRangeQuery("olderRxTimestamp", periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-                add(LongPoint.newRangeQuery("newerRxTimestamp", 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
-                build();
-
-
-        // Files containing range at the beginning : right part
-        // olderRxTimestamp <= NewerTimeRange <= newerRxTimestamp
-        BooleanQuery bMasterSearchRightPart = new BooleanQuery.Builder().
-                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
-                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-                build();
-
-        // File range completely enclose the range: narrow part
-        // olderRxTimestamp <= OlderTimeRange AND NewerTimeRange <= newerRxTimestamp
-        BooleanQuery bMasterSearchNarrowPart = new BooleanQuery.Builder().
-                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
-                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-                build();
-
-        BooleanQuery bMasterSearch = new BooleanQuery.Builder().
-                add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
-                add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
-                add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
-                add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD).
-                build();
-
-        logger.info("Search In MasterIndex search string: " + bMasterSearch.toString());
+        logger.info("TimeRange Search String In MasterIndex: " + bMasterSearch.toString());
 
 
         searchInMasterIndex(indexBaseDirectory, bMasterSearch, periodTimeRange, searchString, reverse, client);
