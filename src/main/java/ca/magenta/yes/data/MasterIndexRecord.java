@@ -7,8 +7,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.*;
 
 public class MasterIndexRecord {
 
@@ -135,6 +134,10 @@ public class MasterIndexRecord {
                 add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD).
                 build();
 
+    }
+
+    public static Sort buildSort_receiveTimeDriving(boolean reverse) {
+        return new Sort(new SortedNumericSortField(OLDER_RECEIVE_TIMESTAMP_FIELD_NAME, SortField.Type.LONG, reverse));
     }
 
     public static class RuntimeTimestamps {

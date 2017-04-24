@@ -6,6 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.SortedNumericSortField;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -17,10 +23,10 @@ import java.util.Map;
 
 public class NormalizedMsgRecord {
 
-    public static final String UID_FIELD_NAME = "_yes_uid";
+    private static final String UID_FIELD_NAME = "_yes_uid";
     private static final String RECEIVE_TIMESTAMP_FIELD_NAME = "_yes_rxTimestamp";
     private static final String SOURCE_TIMESTAMP_FIELD_NAME = "_yes_srcTimestamp";
-    public static final String MESSAGE_FIELD_NAME = "_yes_message";
+    private static final String MESSAGE_FIELD_NAME = "_yes_message";
     private static final String PARTITION_FIELD_NAME = "_yes_partition";
     private static final String MSG_TYPE_FIELD_NAME = "_yes_msgType";
     private static final String LOGSTASH_TIMESTAMP = "@timestamp";
@@ -336,6 +342,15 @@ public class NormalizedMsgRecord {
 
     public String getMsgType() {
         return msgType;
+    }
+
+    public static Query buildQuery_messageAsDefaultField(String searchString) throws QueryNodeException {
+        StandardQueryParser queryParserHelper = new StandardQueryParser();
+        return queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
+    }
+
+    public static Sort buildSort_uidDriving(boolean reverse) {
+        return new Sort(new SortField(UID_FIELD_NAME, SortField.Type.STRING,reverse));
     }
 
 }

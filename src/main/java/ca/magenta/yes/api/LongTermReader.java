@@ -106,45 +106,6 @@ public class LongTermReader extends Runner {
                                           boolean reverse,
                                           PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
 
-//        // Files containing range at the end : left part
-//        // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
-//        BooleanQuery bMasterSearchLeftPart = new BooleanQuery.Builder().
-//                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
-//                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-//                build();
-//
-//
-//        // Range completely enclose the files range: middle part
-//        // OlderTimeRange <= olderRxTimestamp AND newerRxTimestamp <= NewerTimeRange
-//        BooleanQuery bMasterSearchMiddlePart = new BooleanQuery.Builder().
-//                add(LongPoint.newRangeQuery("olderRxTimestamp", periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-//                add(LongPoint.newRangeQuery("newerRxTimestamp", 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
-//                build();
-//
-//
-//        // Files containing range at the beginning : right part
-//        // olderRxTimestamp <= NewerTimeRange <= newerRxTimestamp
-//        BooleanQuery bMasterSearchRightPart = new BooleanQuery.Builder().
-//                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
-//                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-//                build();
-//
-//        // File range completely enclose the range: narrow part
-//        // olderRxTimestamp <= OlderTimeRange AND NewerTimeRange <= newerRxTimestamp
-//        BooleanQuery bMasterSearchNarrowPart = new BooleanQuery.Builder().
-//                add(LongPoint.newRangeQuery("olderRxTimestamp", 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
-//                add(LongPoint.newRangeQuery("newerRxTimestamp", periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-//                build();
-//
-//        BooleanQuery bMasterSearch;
-//
-//        bMasterSearch = new BooleanQuery.Builder().
-//                add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
-//                add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
-//                add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
-//                add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD).
-//                build();
-
         BooleanQuery bMasterSearch = MasterIndexRecord.buildSearchStringForTimeRange(Globals.DrivingTimestamp.RECEIVE_TIME, periodTimeRange);
 
         logger.info("TimeRange Search String In MasterIndex: " + bMasterSearch.toString());
@@ -163,19 +124,13 @@ public class LongTermReader extends Runner {
         // https://wiki.apache.org/lucene-java/ImproveSearchingSpeed
 
         IndexSearcher indexSearcher;
-//        String masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
-//                File.separator +
-//                "master.lucene";
-//
-//        DirectoryReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(masterIndexPathName)));
-//        indexSearcher = new IndexSearcher(reader);
         Searcher searcher = masterIndex.getSearcher();
         indexSearcher = searcher.getIndexSearcher();
 
 
         int maxTotalHits = 1000;
 
-        Sort sort = new Sort(new SortedNumericSortField("olderRxTimestamp",SortField.Type.LONG, reverse));
+        Sort sort = MasterIndexRecord.buildSort_receiveTimeDriving(reverse);
         ScoreDoc lastScoreDoc = null;
         int totalRead = maxTotalHits; // just to let enter in the following loop
         if (indexSearcher != null) {
@@ -200,7 +155,6 @@ public class LongTermReader extends Runner {
                 }
             }
         }
-        //reader.close();
     }
 
     private void searchInLongTermIndex(String indexBaseDirectory,
@@ -223,13 +177,17 @@ public class LongTermReader extends Runner {
 
         logger.info("completeSearchStr: " + completeSearchStr);
 
-        StandardQueryParser queryParserHelper = new StandardQueryParser();
-        Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
+        //StandardQueryParser queryParserHelper = new StandardQueryParser();
+        //Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
+
+        //StandardQueryParser queryParserHelper = new StandardQueryParser();
+        Query stringQuery = NormalizedMsgRecord.buildQuery_messageAsDefaultField(searchString);
+        //Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
         int maxTotalHits = 1000;
 
-        //Sort sort = new Sort(new SortedNumericSortField(NormalizedMsgRecord.RECEIVE_TIMESTAMP_FIELD_NAME,SortField.Type.LONG, false));
-        Sort sort = new Sort(new SortField(NormalizedMsgRecord.UID_FIELD_NAME, SortField.Type.STRING,reverse));
+        Sort sort = NormalizedMsgRecord.buildSort_uidDriving(reverse);
+        //Sort sort = new Sort(new SortField(NormalizedMsgRecord.UID_FIELD_NAME, SortField.Type.STRING,reverse));
 
         ObjectMapper mapper = new ObjectMapper();
         ScoreDoc lastScoreDoc = null;
