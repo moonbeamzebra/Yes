@@ -35,7 +35,7 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
         File newDirName = new File(newIndexPathName);
         if (dir.isDirectory()) {
             if (dir.renameTo(newDirName)) {
-                masterIndex.addRecord(new MasterIndexRecord(newFileName, longTermProcessor.getRuntimeTimestamps()));
+                masterIndex.addRecord(new MasterIndexRecord(newFileName, partition, longTermProcessor.getRuntimeTimestamps()));
                 logger.info(String.format("Index [%s] published", newFileName));
             } else {
                 logger.error(String.format("Cannot rename [%s to %s]", indexPathName, newIndexPathName));

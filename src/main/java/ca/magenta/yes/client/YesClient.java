@@ -28,19 +28,33 @@ public class YesClient {
     }
 
 
-    public void showLongTermEntries(TimeRange periodTimeRange, String searchString, boolean reverse, OutputOption outputOption) {
+    public void showLongTermEntries(String partition, TimeRange periodTimeRange, String searchString, boolean reverse, OutputOption outputOption) {
         try {
 
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
             PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
 
-            String control = String.format(
-                    "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
-                    periodTimeRange.getOlderTime(),
-                    periodTimeRange.getNewerTime(),
-                    searchString,
-                    Boolean.toString(reverse)
-                    );
+            String control;
+            if (partition != null) {
+                control = String.format(
+                        "{\"mode\":\"longTerm\",\"partition\":\"%s\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
+                        partition,
+                        periodTimeRange.getOlderTime(),
+                        periodTimeRange.getNewerTime(),
+                        searchString,
+                        Boolean.toString(reverse)
+                );
+            }
+            else
+            {
+                control = String.format(
+                        "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
+                        periodTimeRange.getOlderTime(),
+                        periodTimeRange.getNewerTime(),
+                        searchString,
+                        Boolean.toString(reverse)
+                );
+            }
 
             toServer.println(control);
 
@@ -74,6 +88,36 @@ public class YesClient {
             t.printStackTrace();
         }
     }
+
+    public void showRealTimeEntries(String searchString, OutputOption outputOption) {
+        try {
+
+            Socket apiServer = new Socket(apiServerAddr, apiServerPort);
+            PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
+
+            String control = String.format("{\"mode\":\"realTime\",\"searchString\":\"%s\"}", searchString);
+
+            toServer.println(control);
+
+            BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
+
+            String entry;
+
+            ObjectMapper mapper = new ObjectMapper();
+            while ((entry = fromServer.readLine()) != null) {
+                YesClient.printEntry(mapper,
+                        new NormalizedMsgRecord(mapper, entry,false),
+                        outputOption);
+
+            }
+
+            fromServer.close();
+            apiServer.close();
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+    }
+
 
     public List<NormalizedMsgRecord> findAll(TimeRange periodTimeRange, String searchString, boolean reverse) {
 
@@ -148,6 +192,7 @@ public class YesClient {
                 System.out.println(normalizedLogRecord.toRawString(false, true));
         }
     }
+
 
     public enum OutputOption {
         DEFAULT, RAW, JSON, TWO_LINER

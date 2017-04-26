@@ -3,25 +3,32 @@ package ca.magenta.yes.data;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.Globals;
+import ca.magenta.yes.Yes;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.*;
+import org.slf4j.LoggerFactory;
 
 public class MasterIndexRecord {
 
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MasterIndexRecord.class.getName());
 
-    private static final String OLDER_SOURCE_TIMESTAMP_FIELD_NAME = "olderTxTimestamp";
-    private static final String NEWER_SOURCE_TIMESTAMP_FIELD_NAME = "newerTxTimestamp";
+    private static final String OLDER_SOURCE_TIMESTAMP_FIELD_NAME = "olderSrcTimestamp";
+    private static final String NEWER_SOURCE_TIMESTAMP_FIELD_NAME = "newerSrcTimestamp";
     private static final String OLDER_RECEIVE_TIMESTAMP_FIELD_NAME = "olderRxTimestamp";
     private static final String NEWER_RECEIVE_TIMESTAMP_FIELD_NAME = "newerRxTimestamp";
     private static final String RUN_START_TIMESTAMP_FIELD_NAME = "runStartTimestamp";
     private static final String RUN_END_TIMESTAMP_FIELD_NAME = "runEndTimestamp";
+    private static final String PARTITION_FIELD_NAME = "partition";
     private static final String LONG_TERM_INDEX_NAME_FIELD_NAME = "longTermIndexName";
 
     private final RuntimeTimestamps runtimeTimestamps;
     private final String longTermIndexName;
+    private final String partition;
 
     public MasterIndexRecord(Document masterIndexDoc) {
 
@@ -35,11 +42,13 @@ public class MasterIndexRecord {
         );
 
         this.longTermIndexName = masterIndexDoc.get(LONG_TERM_INDEX_NAME_FIELD_NAME);
+        this.partition = masterIndexDoc.get(PARTITION_FIELD_NAME);
     }
 
-    public MasterIndexRecord(String longTermIndexName, RuntimeTimestamps runtimeTimestamps) {
-        this.runtimeTimestamps = runtimeTimestamps;
+    public MasterIndexRecord(String longTermIndexName, String partition, RuntimeTimestamps runtimeTimestamps) {
         this.longTermIndexName = longTermIndexName;
+        this.partition = partition;
+        this.runtimeTimestamps = runtimeTimestamps;
     }
 
     Document toDocument() throws AppException {
@@ -53,6 +62,8 @@ public class MasterIndexRecord {
         LuceneTools.storeSortedNumericDocValuesField(document, RUN_START_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getRunStartTimestamp());
         LuceneTools.storeSortedNumericDocValuesField(document, RUN_END_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getRunEndTimestamp());
 
+        LuceneTools.luceneStoreNonTokenizedString(document, PARTITION_FIELD_NAME, partition);
+
         document.add(new StringField(LONG_TERM_INDEX_NAME_FIELD_NAME, longTermIndexName, Field.Store.YES));
 
         return document;
@@ -62,7 +73,8 @@ public class MasterIndexRecord {
     @Override
     public String toString() {
         return "MasterIndexRecord{" +
-                "longTermIndexName='" + longTermIndexName +
+                "partition='" + partition +
+                "', longTermIndexName='" + longTermIndexName +
                 "', olderSrc=" + runtimeTimestamps.getOlderSrcTimestamp() +
                 ", newerSrc=" + runtimeTimestamps.getNewerSrcTimestamp() +
                 ", olderRx=" + runtimeTimestamps.getOlderRxTimestamp() +
@@ -76,26 +88,29 @@ public class MasterIndexRecord {
         return longTermIndexName;
     }
 
-    public static BooleanQuery buildSearchStringForTimeRange(Globals.DrivingTimestamp drivingTimestamp,
-                                                             TimeRange periodTimeRange) {
+    public static BooleanQuery buildSearchStringForTimeRangeAndPartition(Globals.DrivingTimestamp drivingTimestamp,
+                                                                         String partition, TimeRange periodTimeRange) {
 
         if (drivingTimestamp == Globals.DrivingTimestamp.SOURCE_TIME)
         {
-            return buildSearchStringForTimeRange(periodTimeRange,
+            return buildSearchStringForTimeRangeAndPartition(partition,
+                    periodTimeRange,
                     OLDER_SOURCE_TIMESTAMP_FIELD_NAME,
                     NEWER_SOURCE_TIMESTAMP_FIELD_NAME);
         }
         else
         {
-            return buildSearchStringForTimeRange(periodTimeRange,
+            return buildSearchStringForTimeRangeAndPartition(partition,
+                    periodTimeRange,
                     OLDER_RECEIVE_TIMESTAMP_FIELD_NAME,
                     NEWER_RECEIVE_TIMESTAMP_FIELD_NAME);
         }
     }
 
-    private static BooleanQuery buildSearchStringForTimeRange(TimeRange periodTimeRange,
-                                                              String olderTimestampFieldName,
-                                                              String newerTimestampFieldName) {
+    private static BooleanQuery buildSearchStringForTimeRangeAndPartition(String partition,
+                                                                          TimeRange periodTimeRange,
+                                                                          String olderTimestampFieldName,
+                                                                          String newerTimestampFieldName) {
 
         // Files containing range at the end : left part
         // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
@@ -127,12 +142,26 @@ public class MasterIndexRecord {
                 add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
                 build();
 
-        return new BooleanQuery.Builder().
-                add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
-                add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
-                add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
-                add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD).
-                build();
+
+        BooleanQuery.Builder returnedBooleanQueryBuilder = new BooleanQuery.Builder();
+        if (partition != null) {
+            StandardQueryParser queryParserHelper = new StandardQueryParser();
+            Query partitionQuery = null;
+            try {
+                partitionQuery = queryParserHelper.parse(String.format("%s:%s", PARTITION_FIELD_NAME, partition), PARTITION_FIELD_NAME);
+                returnedBooleanQueryBuilder.add(partitionQuery, BooleanClause.Occur.SHOULD);
+            } catch (QueryNodeException e) {
+                logger.error(e.getClass().getSimpleName(),e);
+            }
+        }
+
+        returnedBooleanQueryBuilder.
+                    add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
+                    add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
+                    add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
+                    add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD);
+
+        return returnedBooleanQueryBuilder.build();
 
     }
 

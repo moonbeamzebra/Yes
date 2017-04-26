@@ -10,24 +10,16 @@ import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.data.Searcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.log4j.Logger;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
-import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 
@@ -49,6 +41,7 @@ public class LongTermReader extends Runner {
 
 
     private final TimeRange periodTimeRange;
+    private final String partition;
     private final String searchString;
     private final boolean reverse;
 
@@ -57,6 +50,7 @@ public class LongTermReader extends Runner {
     LongTermReader(String name,
                    String indexBaseDirectory,
                    TimeRange periodTimeRange,
+                   String partition,
                    String searchString,
                    MasterIndex masterIndex,
                    boolean reverse,
@@ -66,6 +60,7 @@ public class LongTermReader extends Runner {
 
         this.indexBaseDirectory = indexBaseDirectory;
         this.periodTimeRange = periodTimeRange;
+        this.partition = partition;
         this.searchString = searchString;
         this.masterIndex = masterIndex;
         this.reverse = reverse;
@@ -79,7 +74,7 @@ public class LongTermReader extends Runner {
         String errorMessage = "";
 
         try {
-            doLongTerm(indexBaseDirectory, periodTimeRange, searchString, reverse, client);
+            doLongTerm(indexBaseDirectory, periodTimeRange, partition, searchString, reverse, client);
         } catch (IOException e) {
             logger.error("IOException", e);
             errorMessage = " ERROR: " + e.getMessage();
@@ -102,11 +97,15 @@ public class LongTermReader extends Runner {
 
     synchronized  private void doLongTerm(String indexBaseDirectory,
                                           TimeRange periodTimeRange,
+                                          String partition,
                                           String searchString,
                                           boolean reverse,
                                           PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
 
-        BooleanQuery bMasterSearch = MasterIndexRecord.buildSearchStringForTimeRange(Globals.DrivingTimestamp.RECEIVE_TIME, periodTimeRange);
+        BooleanQuery bMasterSearch =
+                MasterIndexRecord.buildSearchStringForTimeRangeAndPartition(Globals.DrivingTimestamp.RECEIVE_TIME,
+                        partition,
+                        periodTimeRange);
 
         logger.info("TimeRange Search String In MasterIndex: " + bMasterSearch.toString());
 

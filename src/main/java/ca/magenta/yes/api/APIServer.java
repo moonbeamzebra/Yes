@@ -53,6 +53,7 @@ public class APIServer extends AbstractTCPServerHandler {
 
             String mode = null;
 
+            String partition = null;
             String searchString = "*";
             HashMap<String, String> control = null;
             if ((doRun) && (inputLine = in.readLine()) != null) {
@@ -67,6 +68,9 @@ public class APIServer extends AbstractTCPServerHandler {
                     String threadName = RealTimeReader.class.getSimpleName() + "-" + tcpServer.getClientCount();
                     searchString = control.get("searchString");
                     logger.info("searchString: " + searchString);
+                    partition = control.get("partition");
+                    if (partition != null)
+                        logger.info("partition: " + partition);
 
                     RealTimeReader realTimeReader = new RealTimeReader(threadName, searchString, out);
 
@@ -90,6 +94,10 @@ public class APIServer extends AbstractTCPServerHandler {
 
                     searchString = control.get("searchString");
                     logger.info("searchString: " + searchString);
+                    partition = control.get("partition");
+                    if (partition != null)
+                        logger.info("partition: " + partition);
+
 
                     boolean reverse = Boolean.valueOf(control.get("reverse"));
                     logger.info("reverse: " + reverse);
@@ -97,6 +105,7 @@ public class APIServer extends AbstractTCPServerHandler {
                     LongTermReader longTermReader = new LongTermReader(threadName,
                             indexBaseDirectory,
                             periodTimeRange,
+                            partition,
                             searchString,
                             masterIndex,
                             reverse,
