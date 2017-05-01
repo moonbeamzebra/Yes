@@ -42,6 +42,7 @@ public class LongTermReader extends Runner {
 
     private final TimeRange periodTimeRange;
     private final String partition;
+    private final int limit;
     private final String searchString;
     private final boolean reverse;
 
@@ -51,6 +52,7 @@ public class LongTermReader extends Runner {
                    String indexBaseDirectory,
                    TimeRange periodTimeRange,
                    String partition,
+                   int limit,
                    String searchString,
                    MasterIndex masterIndex,
                    boolean reverse,
@@ -61,6 +63,7 @@ public class LongTermReader extends Runner {
         this.indexBaseDirectory = indexBaseDirectory;
         this.periodTimeRange = periodTimeRange;
         this.partition = partition;
+        this.limit = limit;
         this.searchString = searchString;
         this.masterIndex = masterIndex;
         this.reverse = reverse;
@@ -74,7 +77,7 @@ public class LongTermReader extends Runner {
         String errorMessage = "";
 
         try {
-            doLongTerm(indexBaseDirectory, periodTimeRange, partition, searchString, reverse, client);
+            doLongTerm(indexBaseDirectory, periodTimeRange, partition, limit, searchString, reverse, client);
         } catch (IOException e) {
             logger.error("IOException", e);
             errorMessage = " ERROR: " + e.getMessage();
@@ -98,6 +101,7 @@ public class LongTermReader extends Runner {
     synchronized  private void doLongTerm(String indexBaseDirectory,
                                           TimeRange periodTimeRange,
                                           String partition,
+                                          int limit,
                                           String searchString,
                                           boolean reverse,
                                           PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
@@ -110,10 +114,11 @@ public class LongTermReader extends Runner {
         logger.info("TimeRange Search String In MasterIndex: " + bMasterSearch.toString());
 
 
-        searchInMasterIndex(indexBaseDirectory, bMasterSearch, periodTimeRange, searchString, reverse, client);
+        searchInMasterIndex(indexBaseDirectory, limit, bMasterSearch, periodTimeRange, searchString, reverse, client);
     }
 
     private void searchInMasterIndex(String indexBaseDirectory,
+                                     int limit,
                                      Query indexQuery,
                                      TimeRange periodTimeRange,
                                      String searchString,
@@ -127,13 +132,18 @@ public class LongTermReader extends Runner {
         indexSearcher = searcher.getIndexSearcher();
 
 
-        int maxTotalHits = 1000;
+        int maxTotalHits = Globals.getConfig().getMaxTotalHit_MasterIndex();
 
+
+        // TODO Change the following
+        if (limit <= 0) limit = Integer.MAX_VALUE;
+
+        int soFarCount = 0;
         Sort sort = MasterIndexRecord.buildSort_receiveTimeDriving(reverse);
         ScoreDoc lastScoreDoc = null;
         int totalRead = maxTotalHits; // just to let enter in the following loop
         if (indexSearcher != null) {
-            while ((totalRead >= maxTotalHits)) {
+            while ((totalRead >= maxTotalHits) && (soFarCount < limit)) {
                 TopDocs results;
 
                 results = indexSearcher.searchAfter(lastScoreDoc, indexQuery, maxTotalHits, sort);
@@ -144,24 +154,32 @@ public class LongTermReader extends Runner {
                     lastScoreDoc = scoreDoc;
                     Document doc = indexSearcher.doc(scoreDoc.doc);
                     MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
-                    searchInLongTermIndex(indexBaseDirectory,
+                    soFarCount = searchInLongTermIndex(indexBaseDirectory,
                             masterIndexRecord.getLongTermIndexName(),
                             periodTimeRange,
                             searchString,
                             reverse,
-                            client);
+                            client,
+                            limit,
+                            soFarCount);
+                    if (!(soFarCount < limit))
+                    {
+                        break;
+                    }
 
                 }
             }
         }
     }
 
-    private void searchInLongTermIndex(String indexBaseDirectory,
+    private int searchInLongTermIndex(String indexBaseDirectory,
                                        String longTermIndexName,
                                        TimeRange periodTimeRange,
                                        String searchString,
                                        boolean reverse,
-                                       PrintWriter client) throws IOException, QueryNodeException, ParseException {
+                                       PrintWriter client,
+                                       int limit,
+                                       int soFarCount) throws IOException, QueryNodeException, ParseException {
 
 
         String indexNamePath = indexBaseDirectory + File.separator + longTermIndexName;
@@ -174,7 +192,7 @@ public class LongTermReader extends Runner {
                 NormalizedMsgRecord.toStringTimestamp(periodTimeRange.getNewerTime()),
                 searchString);
 
-        logger.info("completeSearchStr: " + completeSearchStr);
+        logger.info(String.format("Search[%s]: {%s}", longTermIndexName, completeSearchStr));
 
         //StandardQueryParser queryParserHelper = new StandardQueryParser();
         //Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
@@ -183,7 +201,7 @@ public class LongTermReader extends Runner {
         Query stringQuery = NormalizedMsgRecord.buildQuery_messageAsDefaultField(searchString);
         //Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
-        int maxTotalHits = 1000;
+        int maxTotalHits = Globals.getConfig().getMaxTotalHit_LongTermIndex();
 
         Sort sort = NormalizedMsgRecord.buildSort_uidDriving(reverse);
         //Sort sort = new Sort(new SortField(NormalizedMsgRecord.UID_FIELD_NAME, SortField.Type.STRING,reverse));
@@ -191,7 +209,7 @@ public class LongTermReader extends Runner {
         ObjectMapper mapper = new ObjectMapper();
         ScoreDoc lastScoreDoc = null;
         int totalRead = maxTotalHits; // just to let enter in the following loop
-        while ( (totalRead >= maxTotalHits) ) {
+        while ( (totalRead >= maxTotalHits) && (soFarCount < limit)) {
             TopDocs results;
 
             results = searcher.searchAfter(lastScoreDoc, stringQuery, maxTotalHits, sort);
@@ -208,11 +226,18 @@ public class LongTermReader extends Runner {
                     if (logger.isDebugEnabled())
                         logger.debug("Out to client");
                     client.println(normalizedLogRecord.toJson(mapper));
+                    soFarCount++;
+                }
+
+                if (!(soFarCount < limit))
+                {
+                    break;
                 }
             }
         }
 
         reader.close();
-    }
 
+        return soFarCount;
+    }
 }

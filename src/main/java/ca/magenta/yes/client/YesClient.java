@@ -1,6 +1,8 @@
 package ca.magenta.yes.client;
 
+import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.api.Control;
 import ca.magenta.yes.api.LongTermReader;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,35 +30,42 @@ public class YesClient {
     }
 
 
-    public void showLongTermEntries(String partition, TimeRange periodTimeRange, String searchString, boolean reverse, OutputOption outputOption) {
-        try {
+    public void showLongTermEntries(String partition,
+                                    int limit,
+                                    TimeRange periodTimeRange,
+                                    String searchString,
+                                    boolean reverse,
+                                    OutputOption outputOption) throws AppException {
 
+        try {
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
             PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
 
-            String control;
-            if (partition != null) {
-                control = String.format(
-                        "{\"mode\":\"longTerm\",\"partition\":\"%s\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
-                        partition,
-                        periodTimeRange.getOlderTime(),
-                        periodTimeRange.getNewerTime(),
-                        searchString,
-                        Boolean.toString(reverse)
-                );
-            }
-            else
-            {
-                control = String.format(
-                        "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
-                        periodTimeRange.getOlderTime(),
-                        periodTimeRange.getNewerTime(),
-                        searchString,
-                        Boolean.toString(reverse)
-                );
-            }
+//            String partitionStr = "";
+//            if (partition != null) {
+//                partitionStr = String.format(",\"partition\":\"%s\"", partition);
+//            }
 
-            toServer.println(control);
+            Control control = new Control(Control.YesQueryMode.LONG_TERM,
+                    partition,
+                    limit,
+                    periodTimeRange.getOlderTime(),
+                    periodTimeRange.getNewerTime(),
+                    searchString,
+                    reverse
+                    );
+
+//            String control = String.format(
+//                    "{\"mode\":\"longTerm\"%s,\"limit\":%d,\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
+//                    partitionStr,
+//                    limit,
+//                    periodTimeRange.getOlderTime(),
+//                    periodTimeRange.getNewerTime(),
+//                    searchString,
+//                    Boolean.toString(reverse)
+//            );
+
+            toServer.println(control.toJson());
 
             BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
 
@@ -83,21 +92,25 @@ public class YesClient {
             if (lastMessage.length() > LongTermReader.END_DATA_STRING.length()) {
                 logger.error(String.format("%s", lastMessage));
             }
-
-        } catch (Throwable t) {
-            t.printStackTrace();
+        } catch (IOException e) {
+            throw new AppException(e.getClass().getSimpleName(), e);
         }
+
     }
 
-    public void showRealTimeEntries(String searchString, OutputOption outputOption) {
+    public void showRealTimeEntries(String searchString, OutputOption outputOption) throws AppException {
         try {
 
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
             PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
 
-            String control = String.format("{\"mode\":\"realTime\",\"searchString\":\"%s\"}", searchString);
+            Control control = new Control(Control.YesQueryMode.REAL_TIME,
+                    searchString
+            );
 
-            toServer.println(control);
+//            String control = String.format("{\"mode\":\"realTime\",\"searchString\":\"%s\"}", searchString);
+
+            toServer.println(control.toJson());
 
             BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
 
@@ -113,8 +126,8 @@ public class YesClient {
 
             fromServer.close();
             apiServer.close();
-        } catch (Throwable t) {
-            t.printStackTrace();
+        } catch (IOException e) {
+            throw new AppException(e.getClass().getSimpleName(), e);
         }
     }
 

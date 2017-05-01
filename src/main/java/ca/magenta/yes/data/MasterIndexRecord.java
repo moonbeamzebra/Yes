@@ -143,23 +143,31 @@ public class MasterIndexRecord {
                 build();
 
 
-        BooleanQuery.Builder returnedBooleanQueryBuilder = new BooleanQuery.Builder();
+        BooleanQuery.Builder timeBooleanQueryBuilder = new BooleanQuery.Builder();
+        timeBooleanQueryBuilder.add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD);
+
+
+        BooleanQuery.Builder returnedBooleanQueryBuilder;
+
         if (partition != null) {
+            returnedBooleanQueryBuilder = new BooleanQuery.Builder();
             StandardQueryParser queryParserHelper = new StandardQueryParser();
             Query partitionQuery = null;
             try {
                 partitionQuery = queryParserHelper.parse(String.format("%s:%s", PARTITION_FIELD_NAME, partition), PARTITION_FIELD_NAME);
-                returnedBooleanQueryBuilder.add(partitionQuery, BooleanClause.Occur.SHOULD);
+                returnedBooleanQueryBuilder.add(partitionQuery, BooleanClause.Occur.MUST);
             } catch (QueryNodeException e) {
                 logger.error(e.getClass().getSimpleName(),e);
             }
+            returnedBooleanQueryBuilder.add(timeBooleanQueryBuilder.build(),BooleanClause.Occur.MUST);
         }
-
-        returnedBooleanQueryBuilder.
-                    add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
-                    add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
-                    add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
-                    add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD);
+        else
+        {
+            returnedBooleanQueryBuilder = timeBooleanQueryBuilder;
+        }
 
         return returnedBooleanQueryBuilder.build();
 

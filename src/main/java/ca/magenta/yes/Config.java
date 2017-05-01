@@ -55,6 +55,10 @@ public class Config {
 
     private float queueDepthWarningThreshold = (float) 0.8;
 
+    private int maxTotalHit_MasterIndex = 1000;
+    private int maxTotalHit_LongTermIndex = 1000;
+    private int maxTotalHit_RealTimeIndex = 1000;
+
     @NotNull
     private String environment;
 
@@ -144,6 +148,30 @@ public class Config {
 
     public void setQueueDepthWarningThreshold(float queueDepthWarninghreshold) {
         this.queueDepthWarningThreshold = queueDepthWarninghreshold;
+    }
+
+    public int getMaxTotalHit_MasterIndex() {
+        return maxTotalHit_MasterIndex;
+    }
+
+    public void setMaxTotalHit_MasterIndex(int maxTotalHit_MasterIndex) {
+        this.maxTotalHit_MasterIndex = maxTotalHit_MasterIndex;
+    }
+
+    public int getMaxTotalHit_LongTermIndex() {
+        return maxTotalHit_LongTermIndex;
+    }
+
+    public void setMaxTotalHit_LongTermIndex(int maxTotalHit_LongTermIndex) {
+        this.maxTotalHit_LongTermIndex = maxTotalHit_LongTermIndex;
+    }
+
+    public int getMaxTotalHit_RealTimeIndex() {
+        return maxTotalHit_RealTimeIndex;
+    }
+
+    public void setMaxTotalHit_RealTimeIndex(int maxTotalHit_RealTimeIndex) {
+        this.maxTotalHit_RealTimeIndex = maxTotalHit_RealTimeIndex;
     }
 
     public String getEnvironment() {

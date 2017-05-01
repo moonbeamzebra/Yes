@@ -35,6 +35,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
     private static String searchString = null;
     private static boolean realTime = false;
     private static String partition = null;
+    private static int limit = 0; // Default NO LIMIT
     private static String apiServerAddr = null;
     private static int apiServerPort = -1;
     private static boolean longTerm = false;
@@ -42,7 +43,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
     private static TimeRange periodTimeRange = null;
     private static boolean reverse = false;
 
-    public static void main(String[] args) throws IOException, ParseException {
+    public static void main(String[] args) throws IOException, ParseException, AppException {
 
         logger.info("");
         logger.info("Running Yes version " + version);
@@ -56,7 +57,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             if (realTime) {
                 yesClient.showRealTimeEntries(searchString, outputOption);
             } else if (longTerm) {
-                yesClient.showLongTermEntries(partition, periodTimeRange, searchString, reverse, outputOption);
+                yesClient.showLongTermEntries(partition, limit, periodTimeRange, searchString, reverse, outputOption);
             }
 
         }
@@ -71,8 +72,8 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                     apiServerAddr = a_sArg.substring(15);
                     logger.info("apiServerAddr: [" + apiServerAddr + "]");
                 } else if (a_sArg.startsWith("--partition=")) {
-                        partition = a_sArg.substring(12);
-                        logger.info("partition: [" + partition + "]");
+                    partition = a_sArg.substring(12);
+                    logger.info("partition: [" + partition + "]");
                 } else if (a_sArg.startsWith("-apiServerPort=")) {
                     String apiServerPortStr = a_sArg.substring(15);
                     try {
@@ -83,8 +84,19 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                         logger.error("Bad apiServerPort: [" + apiServerPortStr + "]");
                         rc = 1;
                     }
-                    // --raw|--json|--2liner
-                } else if (a_sArg.toLowerCase().equals("--raw")) {
+                } else if (a_sArg.startsWith("--limit=")) {
+                    String limitStr = a_sArg.substring(8);
+                    try {
+                        limit = Integer.parseInt(limitStr);
+                        logger.info("limit: [" + limit + "]");
+
+                    } catch (NumberFormatException e) {
+                        logger.error("Bad limit: [" + limitStr + "]");
+                        rc = 1;
+                    }
+                }
+                // --raw|--json|--2liner
+                else if (a_sArg.toLowerCase().equals("--raw")) {
                     outputOption = YesClient.OutputOption.RAW;
                     logger.info("Output: RAW");
                 } else if (a_sArg.toLowerCase().equals("--json")) {
@@ -133,9 +145,8 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                         (searchString == null)) {
                     System.err.println("In Real Time mode; apiServerAddr, apiServerPort and searchString most be specified");
                     rc = 1;
-                } else if (partition != null)
-                {
-                    System.err.println("Could not specify 'partition' in Real Time mode");
+                } else if ( (partition != null) || (limit != 0) ) {
+                    System.err.println("Could not specify 'partition' or 'limit' in Real Time mode");
                     rc = 1;
                 }
             } else if (longTerm) {
@@ -156,7 +167,7 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             System.err.println("    Yes [--raw|--json|--2liner] -f -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
 
             System.err.println("  Long Term:");
-            System.err.println("    Yes  [--raw|--json|--2liner] {--partition=partitionName} {--reverse} --time=periodString -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
+            System.err.println("    Yes  [--raw|--json|--2liner] {--limit=maxRowOutput} {--partition=partitionName} {--reverse} --time=periodString -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
             System.err.println("      periodString:");
             System.err.println("        FROMepoch1-TOepoch2");
             System.err.println("        FROMyyyy-MM-ddTHH:mm:ss.SSS-TOyyyy-MM-ddTHH:mm:ss.SSS");
@@ -197,6 +208,8 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             System.err.println("    Yes --time=LAST15m --reverse -apiServerAddr=127.0.0.1 -apiServerPort=9595 'error'");
             System.err.println("    # LAST 15 MINUTES; reverse -> newer 1st / older last; partition 'coke'");
             System.err.println("    Yes --time=LAST15m --partition=coke --reverse -apiServerAddr=127.0.0.1 -apiServerPort=9595 'error'");
+            System.err.println("    # LAST 1 YEAR; limit of 10 rows output");
+            System.err.println("    Yes --time=LAST1y --limit=10 -apiServerAddr=127.0.0.1 -apiServerPort=9595 'error'");
 
             rc = 1;
         } else {
