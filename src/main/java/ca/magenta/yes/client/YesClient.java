@@ -41,11 +41,6 @@ public class YesClient {
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
             PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
 
-//            String partitionStr = "";
-//            if (partition != null) {
-//                partitionStr = String.format(",\"partition\":\"%s\"", partition);
-//            }
-
             Control control = new Control(Control.YesQueryMode.LONG_TERM,
                     partition,
                     limit,
@@ -54,16 +49,6 @@ public class YesClient {
                     searchString,
                     reverse
                     );
-
-//            String control = String.format(
-//                    "{\"mode\":\"longTerm\"%s,\"limit\":%d,\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
-//                    partitionStr,
-//                    limit,
-//                    periodTimeRange.getOlderTime(),
-//                    periodTimeRange.getNewerTime(),
-//                    searchString,
-//                    Boolean.toString(reverse)
-//            );
 
             toServer.println(control.toJson());
 
@@ -108,8 +93,6 @@ public class YesClient {
                     searchString
             );
 
-//            String control = String.format("{\"mode\":\"realTime\",\"searchString\":\"%s\"}", searchString);
-
             toServer.println(control.toJson());
 
             BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
@@ -142,15 +125,25 @@ public class YesClient {
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
             PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
 
-            String control = String.format(
-                    "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
+            Control control = new Control(Control.YesQueryMode.LONG_TERM,
+                    null,
+                    9,
                     periodTimeRange.getOlderTime(),
                     periodTimeRange.getNewerTime(),
                     searchString,
-                    Boolean.toString(reverse)
+                    reverse
             );
 
-            toServer.println(control);
+
+//            String control = String.format(
+//                    "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
+//                    periodTimeRange.getOlderTime(),
+//                    periodTimeRange.getNewerTime(),
+//                    searchString,
+//                    Boolean.toString(reverse)
+//            );
+
+            toServer.println(control.toJson());
 
             BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
 
