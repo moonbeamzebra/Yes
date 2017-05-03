@@ -51,21 +51,23 @@ public class APIServer extends AbstractTCPServerHandler {
 
             String inputLine;
 
-            String mode = null;
+            Control.YesQueryMode mode = null;
 
+            String partition = null;
             String searchString = "*";
-            HashMap<String, String> control = null;
+            //HashMap<String, String> control = null;
+            Control control = null;
             if ((doRun) && (inputLine = in.readLine()) != null) {
                 logger.info("Client: " + inputLine);
                 ObjectMapper mapper = new ObjectMapper();
-                control = mapper.readValue(inputLine, HashMap.class);
+                control = mapper.readValue(inputLine, Control.class);
 
-                mode = control.get("mode");
+                mode = control.getMode();
                 logger.info("Mode: " + mode);
 
-                if ("realTime".equals(mode)) {
+                if (mode == Control.YesQueryMode.REAL_TIME) {
                     String threadName = RealTimeReader.class.getSimpleName() + "-" + tcpServer.getClientCount();
-                    searchString = control.get("searchString");
+                    searchString = control.getSearchString();
                     logger.info("searchString: " + searchString);
 
                     RealTimeReader realTimeReader = new RealTimeReader(threadName, searchString, out);
@@ -79,24 +81,37 @@ public class APIServer extends AbstractTCPServerHandler {
 
                     realTimeReader.stopInstance();
 
-                } else if ("longTerm".equals(mode)) {
+                } else if (mode == Control.YesQueryMode.LONG_TERM) {
                     String threadName = LongTermReader.class.getSimpleName() + "-" + tcpServer.getClientCount();
-                    String olderTimeStr = control.get("olderTime");
-                    logger.info("olderTimeStr: " + olderTimeStr);
-                    String newerTimeStr = control.get("newerTime");
-                    logger.info("newerTimeStr: " + newerTimeStr);
+                    long olderTime = control.getOlderTime();
+                    logger.info("olderTimeStr: " + olderTime);
+                    long newerTime = control.getNewerTime();
+                    logger.info("newerTimeStr: " + newerTime);
 
-                    TimeRange periodTimeRange = new TimeRange(Long.valueOf(olderTimeStr), Long.valueOf(newerTimeStr));
+                    TimeRange periodTimeRange = new TimeRange(olderTime, newerTime);
 
-                    searchString = control.get("searchString");
+                    searchString = control.getSearchString();
                     logger.info("searchString: " + searchString);
+                    partition = control.getPartition();
+                    if (partition != null)
+                        logger.info("partition: " + partition);
 
-                    boolean reverse = Boolean.valueOf(control.get("reverse"));
+                    int limit = control.getLimit();
+                    if (limit > 0)
+                        logger.info("limit: " + limit);
+                    else if (limit <= 0)
+                        logger.info("limit: NO LIMIT");
+
+
+
+                    boolean reverse = control.isReverse();
                     logger.info("reverse: " + reverse);
 
                     LongTermReader longTermReader = new LongTermReader(threadName,
                             indexBaseDirectory,
                             periodTimeRange,
+                            partition,
+                            limit,
                             searchString,
                             masterIndex,
                             reverse,

@@ -8,7 +8,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
-import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.slf4j.LoggerFactory;
@@ -48,8 +47,9 @@ public abstract class IndexSubscriber extends Runner {
         queue = new ArrayBlockingQueue<>(300000);
         IndexReader reader = null;
         try {
-            StandardQueryParser queryParserHelper = new StandardQueryParser();
-            Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
+            //StandardQueryParser queryParserHelper = new StandardQueryParser();
+            Query stringQuery = NormalizedMsgRecord.buildQuery_messageAsDefaultField(searchString);
+            //Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
             // Sorted by ascending index = same order as it comes
             Sort sort = new Sort(new SortField("name", SortField.FIELD_DOC.getType(), false));

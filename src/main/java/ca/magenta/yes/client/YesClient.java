@@ -1,6 +1,8 @@
 package ca.magenta.yes.client;
 
+import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.api.Control;
 import ca.magenta.yes.api.LongTermReader;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,21 +30,42 @@ public class YesClient {
     }
 
 
-    public void showLongTermEntries(TimeRange periodTimeRange, String searchString, boolean reverse, OutputOption outputOption) {
-        try {
+    public void showLongTermEntries(String partition,
+                                    int limit,
+                                    TimeRange periodTimeRange,
+                                    String searchString,
+                                    boolean reverse,
+                                    OutputOption outputOption) throws AppException {
 
+        try {
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
             PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
 
-            String control = String.format(
-                    "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
+//            String partitionStr = "";
+//            if (partition != null) {
+//                partitionStr = String.format(",\"partition\":\"%s\"", partition);
+//            }
+
+            Control control = new Control(Control.YesQueryMode.LONG_TERM,
+                    partition,
+                    limit,
                     periodTimeRange.getOlderTime(),
                     periodTimeRange.getNewerTime(),
                     searchString,
-                    Boolean.toString(reverse)
+                    reverse
                     );
 
-            toServer.println(control);
+//            String control = String.format(
+//                    "{\"mode\":\"longTerm\"%s,\"limit\":%d,\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
+//                    partitionStr,
+//                    limit,
+//                    periodTimeRange.getOlderTime(),
+//                    periodTimeRange.getNewerTime(),
+//                    searchString,
+//                    Boolean.toString(reverse)
+//            );
+
+            toServer.println(control.toJson());
 
             BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
 
@@ -69,11 +92,45 @@ public class YesClient {
             if (lastMessage.length() > LongTermReader.END_DATA_STRING.length()) {
                 logger.error(String.format("%s", lastMessage));
             }
+        } catch (IOException e) {
+            throw new AppException(e.getClass().getSimpleName(), e);
+        }
 
-        } catch (Throwable t) {
-            t.printStackTrace();
+    }
+
+    public void showRealTimeEntries(String searchString, OutputOption outputOption) throws AppException {
+        try {
+
+            Socket apiServer = new Socket(apiServerAddr, apiServerPort);
+            PrintWriter toServer = new PrintWriter(apiServer.getOutputStream(), true);
+
+            Control control = new Control(Control.YesQueryMode.REAL_TIME,
+                    searchString
+            );
+
+//            String control = String.format("{\"mode\":\"realTime\",\"searchString\":\"%s\"}", searchString);
+
+            toServer.println(control.toJson());
+
+            BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
+
+            String entry;
+
+            ObjectMapper mapper = new ObjectMapper();
+            while ((entry = fromServer.readLine()) != null) {
+                YesClient.printEntry(mapper,
+                        new NormalizedMsgRecord(mapper, entry,false),
+                        outputOption);
+
+            }
+
+            fromServer.close();
+            apiServer.close();
+        } catch (IOException e) {
+            throw new AppException(e.getClass().getSimpleName(), e);
         }
     }
+
 
     public List<NormalizedMsgRecord> findAll(TimeRange periodTimeRange, String searchString, boolean reverse) {
 
@@ -148,6 +205,7 @@ public class YesClient {
                 System.out.println(normalizedLogRecord.toRawString(false, true));
         }
     }
+
 
     public enum OutputOption {
         DEFAULT, RAW, JSON, TWO_LINER
