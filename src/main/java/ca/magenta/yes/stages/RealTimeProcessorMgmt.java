@@ -68,6 +68,6 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
     @Override
     public boolean isEndDrainsCanDrain() {
-        return true;
+        return isLocalQueueCanDrain();
     }
 }
