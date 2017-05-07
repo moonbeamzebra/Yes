@@ -52,45 +52,51 @@ public class Dispatcher extends QueueProcessor {
         long maxQueueLength = 0;
         try {
             while (doRun) {
-                String jsonMsg = takeFromQueue();
-                logger.debug("Dispatcher received: " + jsonMsg);
-                HashMap<String, Object> hashedMsg;
-                try {
-                    NormalizedMsgRecord normalizedMsgRecord = new NormalizedMsgRecord(mapper,jsonMsg,true);
-//                    hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
-//                    logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
-//
-//                    NormalizedMsgRecord.initiateTimestampsInMsgHash(hashedMsg);
+                if (longTermProcessorMgmt.isEndDrainsCanDrain()) {
+                    String jsonMsg = takeFromQueue();
+                    logger.debug("Dispatcher received: " + jsonMsg);
+                    HashMap<String, Object> hashedMsg;
+                    try {
+                        NormalizedMsgRecord normalizedMsgRecord = new NormalizedMsgRecord(mapper, jsonMsg, true);
+                        //                    hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
+                        //                    logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
+                        //
+                        //                    NormalizedMsgRecord.initiateTimestampsInMsgHash(hashedMsg);
 
-                    if (logger.isDebugEnabled())
-                        logger.debug("Before putInQueue");
-                    longTermProcessorMgmt.putInQueue(normalizedMsgRecord);
-                    realTimeProcessorMgmt.putInQueue(normalizedMsgRecord);
-                } catch (IOException e) {
-                    logger.error("IOException", e);
+                        if (logger.isDebugEnabled())
+                            logger.debug("Before putInQueue");
+                        longTermProcessorMgmt.putInQueue(normalizedMsgRecord);
+                        realTimeProcessorMgmt.putInQueue(normalizedMsgRecord);
+                    } catch (IOException e) {
+                        logger.error("IOException", e);
+                    }
+
+                    count++;
+                    queueLength = inputQueue.size();
+                    if (queueLength > maxQueueLength)
+                        maxQueueLength = queueLength;
+
+
+                    if ((count % printEvery) == 0) {
+                        now = System.currentTimeMillis();
+                        totalTime = now - previousNow;
+
+                        totalTimeSinceStart = now - startTime;
+                        msgPerSecSinceStart = ((float) count / (float) totalTimeSinceStart) * 1000;
+
+
+                        msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
+
+                        System.out.println(partition + "-" + "Dispatcher: " + printEvery +
+                                " messages sent in " + totalTime +
+                                " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + maxQueueLength +
+                                " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
+                        previousNow = now;
+                    }
                 }
-
-                count++;
-                queueLength = inputQueue.size();
-                if (queueLength > maxQueueLength)
-                    maxQueueLength = queueLength;
-
-
-                if ((count % printEvery) == 0) {
-                    now = System.currentTimeMillis();
-                    totalTime = now - previousNow;
-
-                    totalTimeSinceStart = now - startTime;
-                    msgPerSecSinceStart = ((float) count / (float) totalTimeSinceStart) * 1000;
-
-
-                    msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
-
-                    System.out.println(partition + "-" + "Dispatcher: " + printEvery +
-                            " messages sent in " + totalTime +
-                            " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + maxQueueLength +
-                            " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
-                    previousNow = now;
+                else
+                {
+                    logger.warn(String.format("Partition:[%s] drains baddly", getName()));
                 }
             }
         } catch (InterruptedException e) {
@@ -126,5 +132,20 @@ public class Dispatcher extends QueueProcessor {
         realTimeProcessorMgmt.stopInstance();
         longTermProcessorMgmt.stopInstance();
 
+    }
+
+    @Override
+    public boolean isEndDrainsCanDrain() {
+
+        if (isLocalQueueCanDrain())
+        {
+            if (realTimeProcessorMgmt.isEndDrainsCanDrain()) {
+                if (longTermProcessorMgmt.isEndDrainsCanDrain()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

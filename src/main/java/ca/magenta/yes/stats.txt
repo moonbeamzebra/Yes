@@ -25,3 +25,14 @@ java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.ja
 -f \
 10.10.10.30
 
+
+
+Autre:
+java -jar ./ca.magenta.loggenerator-1.0-SNAPSHOT-jar-with-dependencies.jar \
+-msgServerAddr=10.10.10.10 \
+-msgServerPort=7560 \
+-multiThreaded \
+-repeatCount=nostop \
+-tunningLoopCount=80000 \
+-eventFile=./logs.xlsx 148
+

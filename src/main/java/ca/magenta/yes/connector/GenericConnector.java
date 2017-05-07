@@ -40,9 +40,20 @@ public class GenericConnector extends AbstractTCPServerHandler {
             PrintWriter out = new PrintWriter(handlerSocket.getOutputStream());
 
             try {
-                String line;
-                while ((doRun) && (line = in.readLine()) != null) {
-                    logParser.putInQueue(line);
+                String line = ""; // Just let go in
+                while ((doRun) && (line != null) ) {
+
+                    if (logParser.isEndDrainsCanDrain()) {
+                        line = in.readLine();
+                        if (line != null) {
+                            logParser.putInQueue(line);
+                        }
+                    }
+                    else
+                    {
+                        logger.warn(String.format("Partition:[%s] drains baddly", getName()));
+
+                    }
                 }
             } catch (SocketException e) {
                 if (doRun)

@@ -66,5 +66,8 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
 
-
+    @Override
+    public boolean isEndDrainsCanDrain() {
+        return true;
+    }
 }

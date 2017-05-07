@@ -70,4 +70,9 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
         return new LongTermProcessor("LongTermProcessor", partition, queue);
 
     }
+
+    @Override
+    public boolean isEndDrainsCanDrain() {
+        return true;
+    }
 }
