@@ -44,43 +44,43 @@ public class Application {
     }
 
 
-    // START Vaadin Things
-    @Bean
-    public CommandLineRunner loadData(CustomerRepository repository) {
-        return (args) -> {
-            // save a couple of customers
-            repository.save(new Customer("Jack", "Bauer"));
-            repository.save(new Customer("Chloe", "O'Brian"));
-            repository.save(new Customer("Kim", "Bauer"));
-            repository.save(new Customer("David", "Palmer"));
-            repository.save(new Customer("Michelle", "Dessler"));
-
-            // fetch all customers
-            logger.info("Customers found with findAll():");
-            logger.info("-------------------------------");
-            for (Customer customer : repository.findAll()) {
-                logger.info(customer.toString());
-            }
-            logger.info("");
-
-            // fetch an individual customer by ID
-            Customer customer = repository.findOne(1L);
-            logger.info("Customer found with findOne(1L):");
-            logger.info("--------------------------------");
-            logger.info(customer.toString());
-            logger.info("");
-
-            // fetch customers by last name
-            logger.info("Customer found with findByLastNameStartsWithIgnoreCase('Bauer'):");
-            logger.info("--------------------------------------------");
-            for (Customer bauer : repository
-                    .findByLastNameStartsWithIgnoreCase("Bauer")) {
-                logger.info(bauer.toString());
-            }
-            logger.info("");
-        };
-    }
-    // END Vaadin Things
+//    // START Vaadin Things
+//    @Bean
+//    public CommandLineRunner loadData(CustomerRepository repository) {
+//        return (args) -> {
+//            // save a couple of customers
+//            repository.save(new Customer("Jack", "Bauer"));
+//            repository.save(new Customer("Chloe", "O'Brian"));
+//            repository.save(new Customer("Kim", "Bauer"));
+//            repository.save(new Customer("David", "Palmer"));
+//            repository.save(new Customer("Michelle", "Dessler"));
+//
+//            // fetch all customers
+//            logger.info("Customers found with findAll():");
+//            logger.info("-------------------------------");
+//            for (Customer customer : repository.findAll()) {
+//                logger.info(customer.toString());
+//            }
+//            logger.info("");
+//
+//            // fetch an individual customer by ID
+//            Customer customer = repository.findOne(1L);
+//            logger.info("Customer found with findOne(1L):");
+//            logger.info("--------------------------------");
+//            logger.info(customer.toString());
+//            logger.info("");
+//
+//            // fetch customers by last name
+//            logger.info("Customer found with findByLastNameStartsWithIgnoreCase('Bauer'):");
+//            logger.info("--------------------------------------------");
+//            for (Customer bauer : repository
+//                    .findByLastNameStartsWithIgnoreCase("Bauer")) {
+//                logger.info(bauer.toString());
+//            }
+//            logger.info("");
+//        };
+//    }
+//    // END Vaadin Things
 
 
 
