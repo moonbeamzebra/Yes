@@ -225,15 +225,15 @@ public class MasterIndexRecord {
                 newerRxTimestamp = rxTimestamp;
         }
 
-        long getOlderSrcTimestamp() {
+        public long getOlderSrcTimestamp() {
             return olderSrcTimestamp;
         }
 
-        long getNewerSrcTimestamp() {
+        public long getNewerSrcTimestamp() {
             return newerSrcTimestamp;
         }
 
-        long getOlderRxTimestamp() {
+        public long getOlderRxTimestamp() {
             return olderRxTimestamp;
         }
 

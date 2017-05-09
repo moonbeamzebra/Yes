@@ -9,13 +9,18 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.TimeZone;
 import java.util.concurrent.BlockingQueue;
 
 
 public abstract class ProcessorMgmt extends QueueProcessor {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+
+    private static final SimpleDateFormat DAY_FORMAT = new SimpleDateFormat("yyyy/MM/dd'GMT'");
+
 
     private final long cuttingTime;
 
@@ -29,14 +34,21 @@ public abstract class ProcessorMgmt extends QueueProcessor {
     public void run() {
 
         try {
+            DAY_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
+
             Processor processor = createProcessor(inputQueue);
 
             logger.info(String.format("[%s] started for partition [%s]", this.getClass().getSimpleName(), partition));
 
 
             while (doRun || (!inputQueue.isEmpty())) {
-                String indexPath = Globals.getConfig().getIndexBaseDirectory() + File.separator;
+                String today = DAY_FORMAT.format(System.currentTimeMillis());
+                String indexPath =
+                        Globals.getConfig().getIndexBaseDirectory() +
+                        File.separator;
                 String indexPathName = indexPath +
+                        today +
+                        File.separator +
                         this.getClass().getSimpleName() + "." +
                         java.util.UUID.randomUUID();
                 processor.createIndex(indexPathName);
@@ -74,7 +86,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                     processor.commitAndClose();
                     long count = processor.getThisRunCount();
                     if (count > 0) {
-                        publishIndex(processor, indexPath, indexPathName);
+                        publishIndex(processor, indexPath, today, indexPathName);
                     } else {
                         deleteUnusedIndex(indexPathName);
                     }
@@ -93,6 +105,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     abstract void publishIndex(Processor processor,
                                String indexPath,
+                               String today,
                                String indexPathName) throws IOException, AppException;
 
     abstract void deleteUnusedIndex(String indexPathName);

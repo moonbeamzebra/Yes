@@ -24,18 +24,23 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
 
     synchronized void publishIndex(Processor longTermProcessor,
                                    String indexPath,
+                                   String today,
                                    String indexPathName) throws IOException, AppException {
-        String newFileName = String.format("%s-%d.run.%d-%d.lucene",
+        String newFileName = String.format("%s-r%d-r%d-s%d-s%d.run.%d-%d.lucene",
                 partition,
+                longTermProcessor.getRuntimeTimestamps().getOlderRxTimestamp(),
                 longTermProcessor.getRuntimeTimestamps().getNewerRxTimestamp(),
+                longTermProcessor.getRuntimeTimestamps().getOlderSrcTimestamp(),
+                longTermProcessor.getRuntimeTimestamps().getNewerSrcTimestamp(),
                 longTermProcessor.getRuntimeTimestamps().getRunStartTimestamp(),
                 longTermProcessor.getRuntimeTimestamps().getRunEndTimestamp());
-        String newIndexPathName = indexPath + newFileName;
+        String todayAndNewFileName = today + File.separator + newFileName;
+        String newIndexPathName = indexPath + todayAndNewFileName;
         File dir = new File(indexPathName);
         File newDirName = new File(newIndexPathName);
         if (dir.isDirectory()) {
             if (dir.renameTo(newDirName)) {
-                masterIndex.addRecord(new MasterIndexRecord(newFileName, partition, longTermProcessor.getRuntimeTimestamps()));
+                masterIndex.addRecord(new MasterIndexRecord(todayAndNewFileName, partition, longTermProcessor.getRuntimeTimestamps()));
                 logger.info(String.format("Index [%s] published", newFileName));
             } else {
                 logger.error(String.format("Cannot rename [%s to %s]", indexPathName, newIndexPathName));
