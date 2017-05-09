@@ -33,7 +33,7 @@ public class YesManUI extends UI {
 
     private YesClient yesClient = new YesClient("127.0.0.1",9595);
 
-    private TimeRange timeRange = null;
+    //private TimeRange timeRange = null;
 
     /*
     * Hundreds of widgets. Vaadin's user interface components are just Java
@@ -75,14 +75,14 @@ public class YesManUI extends UI {
     @Autowired
     public YesManUI(CustomerRepository repo, CustomerEditor editor) {
 
-        try
-        {
-            timeRange = TimeRange.returnTimeRangeBackwardFromNow("last1y");
-        }
-        catch (AppException e)
-        {
-            e.printStackTrace();
-        }
+//        try
+//        {
+//            timeRange = TimeRange.returnTimeRangeBackwardFromNow("last1y");
+//        }
+//        catch (AppException e)
+//        {
+//            e.printStackTrace();
+//        }
 
         // See https://vaadin.com/blog/-/blogs/using-vaadin-grid
         // See https://vaadin.com/docs/-/part/framework/datamodel/datamodel-providers.html
@@ -254,16 +254,22 @@ public class YesManUI extends UI {
 
     // tag::listContacts[]
     public void listCustomers(String filterText) {
-        if (StringUtils.isEmpty(filterText)) {
+        try {
+            if (StringUtils.isEmpty(filterText)) {
 
-            logger.info(String.format("ROW COUNT: [%s]",Double.toString(eventList.getHeightByRows())));
+                logger.info(String.format("ROW COUNT: [%s]", Double.toString(eventList.getHeightByRows())));
 
-            eventList.setItems(yesClient.findAll(timeRange,"*", false));
+                eventList.setItems(yesClient.findAll(TimeRange.returnTimeRangeBackwardFromNow("last1y"), "*:*", true));
+            } else {
+                eventList.setHeightMode(HeightMode.ROW);
+                logger.info(String.format("ROW COUNT: [%s]", Double.toString(eventList.getHeightByRows())));
+                eventList.setItems(yesClient.findAll(TimeRange.returnTimeRangeBackwardFromNow("last1y"),
+                filterText, true));
+            }
         }
-        else {
-            eventList.setHeightMode(HeightMode.ROW);
-            logger.info(String.format("ROW COUNT: [%s]",Double.toString(eventList.getHeightByRows())));
-            eventList.setItems(yesClient.findAll(timeRange,filterText, false));
+        catch (AppException e)
+        {
+            e.printStackTrace();
         }
     }
     // end::listContacts[]

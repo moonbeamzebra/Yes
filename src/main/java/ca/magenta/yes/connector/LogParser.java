@@ -38,30 +38,36 @@ public class LogParser extends QueueProcessor {
         float msgPerSec;
 
         while (doRun) {
-            String logMsg = null;
-            try {
-                logMsg = takeFromQueue();
+            if (dispatcher.isEndDrainsCanDrain()) {
+                String logMsg = null;
                 try {
-                    dispatchParsingAndProcessing(logMsg, dispatcher);
-                } catch (JsonProcessingException e) {
-                    logger.error("JsonProcessingException", e);
+                    logMsg = takeFromQueue();
+                    try {
+                        dispatchParsingAndProcessing(logMsg, dispatcher);
+                    } catch (JsonProcessingException e) {
+                        logger.error("JsonProcessingException", e);
+                    }
+                } catch (InterruptedException e) {
+                    if (doRun)
+                        logger.error("InterruptedException", e);
                 }
-            } catch (InterruptedException e) {
-                if (doRun)
-                    logger.error("InterruptedException", e);
+                logger.debug("LogParser received: " + logMsg);
+
+                count++;
+
+                if ((count % printEvery) == 0) {
+                    now = System.currentTimeMillis();
+                    totalTime = now - previousNow;
+
+                    msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
+
+                    System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
+                    previousNow = now;
+                }
             }
-            logger.debug("LogParser received: " + logMsg);
-
-            count++;
-
-            if ((count % printEvery) == 0) {
-                now = System.currentTimeMillis();
-                totalTime = now - previousNow;
-
-                msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
-
-                System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
-                previousNow = now;
+            else
+            {
+                logger.warn(String.format("Partition:[%s] drains baddly", getName()));
             }
         }
 
@@ -134,5 +140,19 @@ public class LogParser extends QueueProcessor {
     void putInQueue(String message) throws InterruptedException {
 
         this.putInQueueImpl(message, Globals.getConfig().getQueueDepthWarningThreshold());
+    }
+
+    @Override
+    public boolean isEndDrainsCanDrain() {
+
+        if (isLocalQueueCanDrain())
+        {
+            if (dispatcher.isEndDrainsCanDrain())
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

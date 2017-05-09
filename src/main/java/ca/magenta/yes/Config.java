@@ -49,9 +49,9 @@ public class Config {
 
     private int processorQueueDepth = 300000;
 
-    private int logParserQueueDepth = 1000000;
+    private int logParserQueueDepth = 1000;
 
-    private int dispatcherQueueDepth = 1000000;
+    private int dispatcherQueueDepth = 2000;
 
     private float queueDepthWarningThreshold = (float) 0.8;
 
