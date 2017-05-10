@@ -43,7 +43,7 @@ public class GenericConnector extends AbstractTCPServerHandler {
                 String line = ""; // Just let go in
                 while ((doRun) && (line != null) ) {
 
-                    if (logParser.isEndDrainsCanDrain()) {
+                    if (logParser.isEndDrainsCanDrain(this)) {
                         line = in.readLine();
                         if (line != null) {
                             logParser.putInQueue(line);
@@ -51,8 +51,8 @@ public class GenericConnector extends AbstractTCPServerHandler {
                     }
                     else
                     {
-                        logger.warn(String.format("Partition:[%s] drains baddly", getName()));
-
+                        if (doRun)
+                            logger.warn(String.format("Partition:[%s] drains baddly", getName()));
                     }
                 }
             } catch (SocketException e) {

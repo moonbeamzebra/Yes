@@ -14,7 +14,7 @@ abstract public class Runner extends Thread {
         super(name);
     }
 
-    private synchronized void stopIt() {
+    protected synchronized void stopIt() {
         doRun = false;
     }
 
@@ -36,4 +36,7 @@ abstract public class Runner extends Thread {
         logger.debug(String.format("%s [%s] stopped", this.getClass().getSimpleName(), this.getName()));
     }
 
+    public boolean isDoRun() {
+        return doRun;
+    }
 }

@@ -5,16 +5,17 @@ import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Map;
 
-abstract public class AbstractTCPServer extends Thread {
+abstract public class AbstractTCPServer extends Runner {
 
     protected ServerSocket serverSocket;
     private int port;
-    protected boolean doRun = false;
+    //protected boolean doRun = false;
 
     private HashMap<String, AbstractTCPServerHandler> tcpServerHandlers = new HashMap<>();
 
     public AbstractTCPServer(String name, int port) {
-        this.setName(name);
+        super(name);
+        //this.setName(name);
         this.port = port;
     }
 
@@ -28,7 +29,8 @@ abstract public class AbstractTCPServer extends Thread {
     }
 
     synchronized public void stopServer() {
-        doRun = false;
+        stopIt();
+        //doRun = false;
         this.interrupt();
         try {
             serverSocket.close();

@@ -64,7 +64,7 @@ public abstract class QueueProcessor extends Runner {
         }
     }
 
-    public boolean isLocalQueueCanDrain()
+    public boolean isLocalQueueCanDrain(Runner callerRunner)
     {
         int retryCount = 0;
         float percentFull = inputQueue.size() / queueDepth;
@@ -74,7 +74,9 @@ public abstract class QueueProcessor extends Runner {
                 //logger.warn("CHOKE");
                 sleep(TIME_SLEEP_TO_DRAIN);
             } catch (InterruptedException e) {
-                logger.error(e.getClass().getSimpleName(), e);
+                if (callerRunner.isDoRun()) {
+                    logger.error(e.getClass().getSimpleName(), e);
+                }
                 return false;
             }
             retryCount ++;
@@ -85,7 +87,7 @@ public abstract class QueueProcessor extends Runner {
 
     }
 
-    public abstract boolean isEndDrainsCanDrain();
+    public abstract boolean isEndDrainsCanDrain(Runner callerRunner);
 
     public synchronized void letDrain() {
 

@@ -2,6 +2,7 @@ package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
+import ca.magenta.utils.Runner;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -52,7 +53,7 @@ public class Dispatcher extends QueueProcessor {
         long maxQueueLength = 0;
         try {
             while (doRun) {
-                if (longTermProcessorMgmt.isEndDrainsCanDrain()) {
+                if (longTermProcessorMgmt.isEndDrainsCanDrain(this)) {
                     String jsonMsg = takeFromQueue();
                     logger.debug("Dispatcher received: " + jsonMsg);
                     HashMap<String, Object> hashedMsg;
@@ -96,7 +97,8 @@ public class Dispatcher extends QueueProcessor {
                 }
                 else
                 {
-                    logger.warn(String.format("Partition:[%s] drains baddly", getName()));
+                    if (doRun)
+                        logger.warn(String.format("Partition:[%s] drains baddly", getName()));
                 }
             }
         } catch (InterruptedException e) {
@@ -135,12 +137,12 @@ public class Dispatcher extends QueueProcessor {
     }
 
     @Override
-    public boolean isEndDrainsCanDrain() {
+    public boolean isEndDrainsCanDrain(Runner callerRunner) {
 
-        if (isLocalQueueCanDrain())
+        if (isLocalQueueCanDrain(callerRunner))
         {
-            if (realTimeProcessorMgmt.isEndDrainsCanDrain()) {
-                if (longTermProcessorMgmt.isEndDrainsCanDrain()) {
+            if (realTimeProcessorMgmt.isEndDrainsCanDrain(callerRunner)) {
+                if (longTermProcessorMgmt.isEndDrainsCanDrain(callerRunner)) {
                     return true;
                 }
             }

@@ -179,12 +179,15 @@ public class YesClient {
 
     public static void printEntry(ObjectMapper mapper, NormalizedMsgRecord normalizedLogRecord, OutputOption outputOption) throws IOException {
 
-        // DEFAULT, RAW, JSON, TWO_LINER
+        // DEFAULT, SIMPLE, JSON, TWO_LINER
         switch (outputOption) {
             case JSON:
                 System.out.println(normalizedLogRecord.toJson(mapper));
                 break;
             case RAW:
+                System.out.println(normalizedLogRecord.getMessage());
+                break;
+            case SIMPLE:
                 System.out.println(String.format("[%s][%s] %s",
                         normalizedLogRecord.getPrettyRxTimestamp(),
                         normalizedLogRecord.getPartition(),
@@ -201,7 +204,7 @@ public class YesClient {
 
 
     public enum OutputOption {
-        DEFAULT, RAW, JSON, TWO_LINER
+        DEFAULT, RAW, SIMPLE, JSON, TWO_LINER
     }
 
 

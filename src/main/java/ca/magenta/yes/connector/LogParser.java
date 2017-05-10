@@ -2,6 +2,7 @@ package ca.magenta.yes.connector;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
+import ca.magenta.utils.Runner;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -38,7 +39,7 @@ public class LogParser extends QueueProcessor {
         float msgPerSec;
 
         while (doRun) {
-            if (dispatcher.isEndDrainsCanDrain()) {
+            if (dispatcher.isEndDrainsCanDrain(this)) {
                 String logMsg = null;
                 try {
                     logMsg = takeFromQueue();
@@ -67,7 +68,8 @@ public class LogParser extends QueueProcessor {
             }
             else
             {
-                logger.warn(String.format("Partition:[%s] drains baddly", getName()));
+                if (doRun)
+                    logger.warn(String.format("Partition:[%s] drains baddly", getName()));
             }
         }
 
@@ -143,11 +145,11 @@ public class LogParser extends QueueProcessor {
     }
 
     @Override
-    public boolean isEndDrainsCanDrain() {
+    public boolean isEndDrainsCanDrain(Runner callerRunner) {
 
-        if (isLocalQueueCanDrain())
+        if (isLocalQueueCanDrain(callerRunner))
         {
-            if (dispatcher.isEndDrainsCanDrain())
+            if (dispatcher.isEndDrainsCanDrain(callerRunner))
             {
                 return true;
             }

@@ -3,15 +3,12 @@ package ca.magenta.yes;
 import ca.magenta.yes.client.YesClient;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
-import ca.magenta.yes.data.NormalizedMsgRecord;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.net.Socket;
 
 public class Yes {
 
@@ -95,10 +92,13 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
                         rc = 1;
                     }
                 }
-                // --raw|--json|--2liner
-                else if (a_sArg.toLowerCase().equals("--raw")) {
-                    outputOption = YesClient.OutputOption.RAW;
-                    logger.info("Output: RAW");
+                // --simple|--json|--2liner
+                else if (a_sArg.toLowerCase().equals("--simple")) {
+                    outputOption = YesClient.OutputOption.SIMPLE;
+                    logger.info("Output: SIMPLE");
+                } else if (a_sArg.toLowerCase().equals("--raw")) {
+                        outputOption = YesClient.OutputOption.RAW;
+                        logger.info("Output: RAW");
                 } else if (a_sArg.toLowerCase().equals("--json")) {
                     outputOption = YesClient.OutputOption.JSON;
                     logger.info("Output: JSON");
@@ -160,14 +160,13 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             }
         }
 
-
         if (rc != 0) {
             System.err.println("Usage:");
             System.err.println("  Real Time:");
-            System.err.println("    Yes [--raw|--json|--2liner] -f -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
+            System.err.println("    Yes [--raw|--simple|--json|--2liner] -f -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
 
             System.err.println("  Long Term:");
-            System.err.println("    Yes  [--raw|--json|--2liner] {--limit=maxRowOutput} {--partition=partitionName} {--reverse} --time=periodString -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
+            System.err.println("    Yes  [--raw|--simple|--json|--2liner] {--limit=maxRowOutput} {--partition=partitionName} {--reverse} --time=periodString -apiServerAddr=apiServerAddr -apiServerPort=msgServerPort searchString");
             System.err.println("      periodString:");
             System.err.println("        FROMepoch1-TOepoch2");
             System.err.println("        FROMyyyy-MM-ddTHH:mm:ss.SSS-TOyyyy-MM-ddTHH:mm:ss.SSS");
