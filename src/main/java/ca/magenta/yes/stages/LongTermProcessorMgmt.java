@@ -3,6 +3,7 @@ package ca.magenta.yes.stages;
 import ca.magenta.utils.AppException;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
+import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,22 +27,23 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
                                    String indexPath,
                                    String today,
                                    String indexPathName) throws IOException, AppException {
-        String newFileName = String.format("%s-r%d-r%d-s%d-s%d.run.%d-%d.lucene",
-                partition,
-                longTermProcessor.getRuntimeTimestamps().getOlderRxTimestamp(),
-                longTermProcessor.getRuntimeTimestamps().getNewerRxTimestamp(),
-                longTermProcessor.getRuntimeTimestamps().getOlderSrcTimestamp(),
-                longTermProcessor.getRuntimeTimestamps().getNewerSrcTimestamp(),
-                longTermProcessor.getRuntimeTimestamps().getRunStartTimestamp(),
-                longTermProcessor.getRuntimeTimestamps().getRunEndTimestamp());
-        String todayAndNewFileName = today + File.separator + newFileName;
+//        String newFileName = String.format("%s-r%d-r%d-s%d-s%d.run.%d-%d.lucene",
+//                partition,
+//                longTermProcessor.getRuntimeTimestamps().getOlderRxTimestamp(),
+//                longTermProcessor.getRuntimeTimestamps().getNewerRxTimestamp(),
+//                longTermProcessor.getRuntimeTimestamps().getOlderSrcTimestamp(),
+//                longTermProcessor.getRuntimeTimestamps().getNewerSrcTimestamp(),
+//                longTermProcessor.getRuntimeTimestamps().getRunStartTimestamp(),
+//                longTermProcessor.getRuntimeTimestamps().getRunEndTimestamp());
+//        String todayAndNewFileName = today + File.separator + newFileName;
+        String todayAndNewFileName = NormalizedMsgRecord.forgeIndexName(indexPath, today, partition, longTermProcessor.getRuntimeTimestamps());
         String newIndexPathName = indexPath + todayAndNewFileName;
         File dir = new File(indexPathName);
         File newDirName = new File(newIndexPathName);
         if (dir.isDirectory()) {
             if (dir.renameTo(newDirName)) {
                 masterIndex.addRecord(new MasterIndexRecord(todayAndNewFileName, partition, longTermProcessor.getRuntimeTimestamps()));
-                logger.info(String.format("Index [%s] published", newFileName));
+                logger.info(String.format("Index [%s] published", todayAndNewFileName));
             } else {
                 logger.error(String.format("Cannot rename [%s to %s]", indexPathName, newIndexPathName));
             }

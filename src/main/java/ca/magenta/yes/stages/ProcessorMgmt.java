@@ -4,6 +4,7 @@ package ca.magenta.yes.stages;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.Globals;
+import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.slf4j.LoggerFactory;
 
@@ -46,11 +47,12 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                 String indexPath =
                         Globals.getConfig().getIndexBaseDirectory() +
                         File.separator;
-                String indexPathName = indexPath +
-                        today +
-                        File.separator +
-                        this.getClass().getSimpleName() + "." +
-                        java.util.UUID.randomUUID();
+//                String indexPathName = indexPath +
+//                        today +
+//                        File.separator +
+//                        this.getClass().getSimpleName() + "." +
+//                        java.util.UUID.randomUUID();
+                String indexPathName = NormalizedMsgRecord.forgeTempIndexName(indexPath, today, this.getClass().getSimpleName());
                 processor.createIndex(indexPathName);
                 Thread processorThread = new Thread(processor, processor.getClass().getSimpleName());
                 processorThread.start();

@@ -74,8 +74,10 @@ public abstract class QueueProcessor extends Runner {
                 //logger.warn("CHOKE");
                 sleep(TIME_SLEEP_TO_DRAIN);
             } catch (InterruptedException e) {
-                logger.error(e.getClass().getSimpleName(), e);
-                return false;
+                if (doRun) {
+                    logger.error(e.getClass().getSimpleName(), e);
+                    return false;
+                }
             }
             retryCount ++;
             percentFull = inputQueue.size() / queueDepth;

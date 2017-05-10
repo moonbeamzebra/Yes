@@ -14,6 +14,7 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -353,4 +354,29 @@ public class NormalizedMsgRecord {
         return new Sort(new SortField(UID_FIELD_NAME, SortField.Type.STRING,reverse));
     }
 
+    public static String forgeTempIndexName(String basePath, String relativePath, String prefix) {
+
+        return basePath +
+                relativePath +
+                File.separator +
+                prefix + "." +
+                java.util.UUID.randomUUID();
+    }
+
+    public static String forgeIndexName(String basePath, String relativePath, String partition, MasterIndexRecord.RuntimeTimestamps runtimeTimestamps) {
+
+        String newFileName = String.format("%s-r%d-r%d-s%d-s%d.run.%d-%d.lucene",
+                partition,
+                runtimeTimestamps.getOlderRxTimestamp(),
+                runtimeTimestamps.getNewerRxTimestamp(),
+                runtimeTimestamps.getOlderSrcTimestamp(),
+                runtimeTimestamps.getNewerSrcTimestamp(),
+                runtimeTimestamps.getRunStartTimestamp(),
+                runtimeTimestamps.getRunEndTimestamp());
+        String todayAndNewFileName = relativePath + File.separator + newFileName;
+
+        return todayAndNewFileName;
+
+
+    }
 }
