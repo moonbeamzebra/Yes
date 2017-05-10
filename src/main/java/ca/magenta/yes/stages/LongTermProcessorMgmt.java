@@ -1,6 +1,7 @@
 package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.Runner;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -79,7 +80,7 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
     }
 
     @Override
-    public boolean isEndDrainsCanDrain() {
-        return isLocalQueueCanDrain();
+    public boolean isEndDrainsCanDrain(Runner callerRunner) {
+        return isLocalQueueCanDrain(callerRunner);
     }
 }

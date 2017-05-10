@@ -2,6 +2,7 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.Runner;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.connector.common.IndexPublisher;
 import org.slf4j.Logger;
@@ -68,7 +69,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
 
     @Override
-    public boolean isEndDrainsCanDrain() {
-        return isLocalQueueCanDrain();
+    public boolean isEndDrainsCanDrain(Runner callerRunner) {
+        return isLocalQueueCanDrain(callerRunner);
     }
 }
