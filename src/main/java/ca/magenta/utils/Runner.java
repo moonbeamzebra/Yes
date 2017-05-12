@@ -14,9 +14,9 @@ abstract public class Runner extends Thread {
         super(name);
     }
 
-    public void gentleStopIt() {
-        doRun = false;
-    }
+    //public void gentleStopIt() {
+    //    doRun = false;
+    //}
 
     protected synchronized void stopIt() {
         doRun = false;
@@ -26,6 +26,17 @@ abstract public class Runner extends Thread {
         doRun = true;
         this.start();
         logger.debug(String.format("%s [%s] started", this.getClass().getSimpleName(), this.getName()));
+    }
+
+    public void gentlyStopInstance() {
+        doRun = false;
+        try {
+            this.join(500);
+        } catch (InterruptedException e) {
+            logger.error("InterruptedException", e);
+        }
+
+        logger.debug(String.format("%s [%s] gently ask to stop", this.getClass().getSimpleName(), this.getName()));
     }
 
     public synchronized void stopInstance() {

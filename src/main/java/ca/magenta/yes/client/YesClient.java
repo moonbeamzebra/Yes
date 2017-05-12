@@ -84,7 +84,7 @@ public class YesClient {
 
     }
 
-    public void showRealTimeEntries(String searchString, OutputOption outputOption) throws AppException {
+    public void showRealTimeEntries(Yes.State state, String searchString, OutputOption outputOption) throws AppException {
         try {
 
             Socket apiServer = new Socket(apiServerAddr, apiServerPort);
@@ -101,7 +101,7 @@ public class YesClient {
             String entry;
 
             ObjectMapper mapper = new ObjectMapper();
-            while ((entry = fromServer.readLine()) != null) {
+            while (state.doRun && (entry = fromServer.readLine()) != null) {
                 YesClient.printEntry(mapper,
                         new NormalizedMsgRecord(mapper, entry,false),
                         outputOption);

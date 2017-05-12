@@ -72,7 +72,7 @@ public class LongTermReader extends Runner {
 
     public void run() {
 
-        logger.debug("New LongTermReader " + this.getName() + " running");
+        logger.info("New LongTermReader " + this.getName() + " running");
 
         String errorMessage = "";
 
@@ -96,6 +96,7 @@ public class LongTermReader extends Runner {
             }
         }
 
+        logger.info("IndexSubscriber " + this.getName() + " stops");
     }
 
     synchronized  private void doLongTerm(String indexBaseDirectory,

@@ -51,13 +51,21 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             @Override
             public void run()
             {
+                System.err.println("Stopping ..." );
                 state.doRun = false;
                 mainThread.interrupt();
                 try {
-                    mainThread.join();
+                    if (realTime) {
+                        mainThread.join(600);
+                    }
+                    else
+                    {
+                        mainThread.join(2000);
+                    }
                 } catch (InterruptedException e) {
                     logger.error("InterruptedException", e);
                 }
+                System.err.println("Stopped!" );
             }
         });
 
@@ -70,10 +78,10 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
 
             YesClient yesClient = new YesClient(apiServerAddr, apiServerPort);
 
+            state.doRun = true;
             if (realTime) {
-                yesClient.showRealTimeEntries(searchString, outputOption);
+                yesClient.showRealTimeEntries(state, searchString, outputOption);
             } else if (longTerm) {
-                state.doRun = true;
                 yesClient.showLongTermEntries(state, partition, limit, periodTimeRange, searchString, reverse, outputOption);
             }
 

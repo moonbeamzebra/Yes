@@ -79,6 +79,8 @@ public class APIServer extends AbstractTCPServerHandler {
 
                     }
 
+                    realTimeReader.gentlyStopInstance();
+
                     realTimeReader.stopInstance();
 
                 } else if (mode == Control.YesQueryMode.LONG_TERM) {
@@ -123,7 +125,7 @@ public class APIServer extends AbstractTCPServerHandler {
                         logger.info("Client: " + inputLine);
                     }
 
-                    longTermReader.gentleStopIt();
+                    longTermReader.gentlyStopInstance();
 
                     longTermReader.stopInstance();
                 }

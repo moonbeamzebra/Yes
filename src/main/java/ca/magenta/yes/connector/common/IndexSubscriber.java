@@ -97,7 +97,7 @@ public abstract class IndexSubscriber extends Runner {
         RealTimeProcessorMgmt.indexPublisher().unsubscribe(this);
         queue.clear();
         queue = null;
-        logger.debug("IndexSubscriber " + this.getName() + " stops running; queue emptied");
+        logger.info("IndexSubscriber " + this.getName() + " stops running; queue emptied");
     }
 
     protected abstract void forward(String message);
