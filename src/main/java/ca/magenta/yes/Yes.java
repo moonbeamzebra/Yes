@@ -39,8 +39,27 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
     private static YesClient.OutputOption outputOption = YesClient.OutputOption.DEFAULT;
     private static TimeRange periodTimeRange = null;
     private static boolean reverse = false;
+    private static State state = new State();
+    private static Thread mainThread;
 
     public static void main(String[] args) throws IOException, ParseException, AppException {
+
+        mainThread = Thread.currentThread();
+
+        Runtime.getRuntime().addShutdownHook(new Thread()
+        {
+            @Override
+            public void run()
+            {
+                state.doRun = false;
+                mainThread.interrupt();
+                try {
+                    mainThread.join();
+                } catch (InterruptedException e) {
+                    logger.error("InterruptedException", e);
+                }
+            }
+        });
 
         logger.info("");
         logger.info("Running Yes version " + version);
@@ -54,7 +73,8 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             if (realTime) {
                 yesClient.showRealTimeEntries(searchString, outputOption);
             } else if (longTerm) {
-                yesClient.showLongTermEntries(partition, limit, periodTimeRange, searchString, reverse, outputOption);
+                state.doRun = true;
+                yesClient.showLongTermEntries(state, partition, limit, periodTimeRange, searchString, reverse, outputOption);
             }
 
         }
@@ -227,6 +247,11 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
         }
 
         return rc;
+    }
+
+    public static class State
+    {
+        public boolean doRun = false;
     }
 
 }

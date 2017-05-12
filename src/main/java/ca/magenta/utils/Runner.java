@@ -14,6 +14,10 @@ abstract public class Runner extends Thread {
         super(name);
     }
 
+    public void gentleStopIt() {
+        doRun = false;
+    }
+
     protected synchronized void stopIt() {
         doRun = false;
     }

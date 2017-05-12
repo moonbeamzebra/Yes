@@ -121,8 +121,9 @@ public class APIServer extends AbstractTCPServerHandler {
 
                     while ((inputLine = in.readLine()) != null) {
                         logger.info("Client: " + inputLine);
-
                     }
+
+                    longTermReader.gentleStopIt();
 
                     longTermReader.stopInstance();
                 }

@@ -2,6 +2,7 @@ package ca.magenta.yes.client;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.TimeRange;
+import ca.magenta.yes.Yes;
 import ca.magenta.yes.api.Control;
 import ca.magenta.yes.api.LongTermReader;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -30,7 +31,7 @@ public class YesClient {
     }
 
 
-    public void showLongTermEntries(String partition,
+    public void showLongTermEntries(Yes.State state, String partition,
                                     int limit,
                                     TimeRange periodTimeRange,
                                     String searchString,
@@ -55,22 +56,22 @@ public class YesClient {
             BufferedReader fromServer = new BufferedReader(new InputStreamReader(apiServer.getInputStream()));
 
             String entry;
-            boolean doRun = true;
 
             ObjectMapper mapper = new ObjectMapper();
             String lastMessage = "";
-            while (doRun && (entry = fromServer.readLine()) != null) {
+            while (state.doRun && (entry = fromServer.readLine()) != null) {
                 if (!(entry.startsWith(LongTermReader.END_DATA_STRING))) {
                     YesClient.printEntry(mapper,
                             new NormalizedMsgRecord(mapper, entry,false),
                             outputOption);
                 } else {
                     lastMessage = entry;
-                    doRun = false;
+                    state.doRun = false;
                 }
 
             }
 
+            toServer.close();
             fromServer.close();
             apiServer.close();
 
