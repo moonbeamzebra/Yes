@@ -26,25 +26,16 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
 
     synchronized void publishIndex(Processor longTermProcessor,
                                    String indexPath,
-                                   String today,
+                                   String relativePath,
                                    String indexPathName) throws IOException, AppException {
-//        String newFileName = String.format("%s-r%d-r%d-s%d-s%d.run.%d-%d.lucene",
-//                partition,
-//                longTermProcessor.getRuntimeTimestamps().getOlderRxTimestamp(),
-//                longTermProcessor.getRuntimeTimestamps().getNewerRxTimestamp(),
-//                longTermProcessor.getRuntimeTimestamps().getOlderSrcTimestamp(),
-//                longTermProcessor.getRuntimeTimestamps().getNewerSrcTimestamp(),
-//                longTermProcessor.getRuntimeTimestamps().getRunStartTimestamp(),
-//                longTermProcessor.getRuntimeTimestamps().getRunEndTimestamp());
-//        String todayAndNewFileName = today + File.separator + newFileName;
-        String todayAndNewFileName = NormalizedMsgRecord.forgeIndexName(indexPath, today, partition, longTermProcessor.getRuntimeTimestamps());
-        String newIndexPathName = indexPath + todayAndNewFileName;
+        String publishedFileName = NormalizedMsgRecord.forgePublishedFileName(relativePath, partition, longTermProcessor.getRuntimeTimestamps());
+        String newIndexPathName = indexPath + File.separator + publishedFileName;
         File dir = new File(indexPathName);
         File newDirName = new File(newIndexPathName);
         if (dir.isDirectory()) {
             if (dir.renameTo(newDirName)) {
-                masterIndex.addRecord(new MasterIndexRecord(todayAndNewFileName, partition, longTermProcessor.getRuntimeTimestamps()));
-                logger.info(String.format("Index [%s] published", todayAndNewFileName));
+                masterIndex.addRecord(new MasterIndexRecord(publishedFileName, partition, longTermProcessor.getRuntimeTimestamps()));
+                logger.info(String.format("Index [%s] published", publishedFileName));
             } else {
                 logger.error(String.format("Cannot rename [%s to %s]", indexPathName, newIndexPathName));
             }

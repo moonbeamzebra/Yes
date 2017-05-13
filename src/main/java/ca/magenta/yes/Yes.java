@@ -51,21 +51,21 @@ target/ca.magenta.yes-1.0-SNAPSHOT.jar \
             @Override
             public void run()
             {
-                System.err.println("Stopping ..." );
-                state.doRun = false;
-                mainThread.interrupt();
-                try {
-                    if (realTime) {
-                        mainThread.join(600);
+                if ((state.doRun)) {
+                    System.err.println("Stopping ...");
+                    state.doRun = false;
+                    mainThread.interrupt();
+                    try {
+                        if (realTime) {
+                            mainThread.join(600);
+                        } else {
+                            mainThread.join(2000);
+                        }
+                    } catch (InterruptedException e) {
+                        logger.error("InterruptedException", e);
                     }
-                    else
-                    {
-                        mainThread.join(2000);
-                    }
-                } catch (InterruptedException e) {
-                    logger.error("InterruptedException", e);
+                    System.err.println("Stopped!");
                 }
-                System.err.println("Stopped!" );
             }
         });
 

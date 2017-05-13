@@ -357,13 +357,14 @@ public class NormalizedMsgRecord {
     public static String forgeTempIndexName(String basePath, String relativePath, String prefix) {
 
         return basePath +
+                File.separator +
                 relativePath +
                 File.separator +
                 prefix + "." +
                 java.util.UUID.randomUUID();
     }
 
-    public static String forgeIndexName(String basePath, String relativePath, String partition, MasterIndexRecord.RuntimeTimestamps runtimeTimestamps) {
+    public static String forgePublishedFileName(String relativePath, String partition, MasterIndexRecord.RuntimeTimestamps runtimeTimestamps) {
 
         String newFileName = String.format("%s-r%d-r%d-s%d-s%d.run.%d-%d.lucene",
                 partition,

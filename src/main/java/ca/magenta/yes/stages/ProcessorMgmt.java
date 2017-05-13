@@ -20,7 +20,12 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private static final SimpleDateFormat DAY_FORMAT = new SimpleDateFormat("yyyy/MM/dd'GMT'");
+    //private static final SimpleDateFormat DAY_FORMAT = new SimpleDateFormat("yyyy/MM/dd'GMT'");
+    //private static final SimpleDateFormat DAY_FORMAT = new SimpleDateFormat("yyyy/MM/ddz");
+//    private static final SimpleDateFormat DAY_FORMAT =
+//            new SimpleDateFormat(String.format("yyyy%sMM%sddz",File.separator, File.separator));
+    private static final SimpleDateFormat DAY_FORMAT =
+            new SimpleDateFormat(String.format("yyyy%sMM%sdd'GMT'",File.separator, File.separator));
 
 
     private final long cuttingTime;
@@ -43,17 +48,11 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
 
             while (doRun || (!inputQueue.isEmpty())) {
-                String today = DAY_FORMAT.format(System.currentTimeMillis());
-                String indexPath =
-                        Globals.getConfig().getIndexBaseDirectory() +
-                        File.separator;
-//                String indexPathName = indexPath +
-//                        today +
-//                        File.separator +
-//                        this.getClass().getSimpleName() + "." +
-//                        java.util.UUID.randomUUID();
-                String indexPathName = NormalizedMsgRecord.forgeTempIndexName(indexPath, today, this.getClass().getSimpleName());
-                processor.createIndex(indexPathName);
+                String relativePathName = forgeRelativePathName();
+                //String relativePathName = partition + File.separator + DAY_FORMAT.format(System.currentTimeMillis());
+                String basePath = Globals.getConfig().getIndexBaseDirectory();
+                String tempIndexPathName = NormalizedMsgRecord.forgeTempIndexName(basePath, relativePathName, this.getClass().getSimpleName());
+                processor.createIndex(tempIndexPathName);
                 Thread processorThread = new Thread(processor, processor.getClass().getSimpleName());
                 processorThread.start();
 
@@ -88,9 +87,9 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                     processor.commitAndClose();
                     long count = processor.getThisRunCount();
                     if (count > 0) {
-                        publishIndex(processor, indexPath, today, indexPathName);
+                        publishIndex(processor, basePath, relativePathName, tempIndexPathName);
                     } else {
-                        deleteUnusedIndex(indexPathName);
+                        deleteUnusedIndex(tempIndexPathName);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -104,6 +103,11 @@ public abstract class ProcessorMgmt extends QueueProcessor {
         logger.info(String.format("[%s] stopped for partition [%s]", this.getClass().getSimpleName(), partition));
 
     }
+
+    protected String forgeRelativePathName()
+    {
+        return partition + File.separator + DAY_FORMAT.format(System.currentTimeMillis());
+    };
 
     abstract void publishIndex(Processor processor,
                                String indexPath,
