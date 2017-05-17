@@ -9,17 +9,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
+    public static final String SHORT_NAME = "RTPM";
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private static IndexPublisher indexPublisher = Globals.getIndexPublisher();
 
 
     public RealTimeProcessorMgmt(String name, long cuttingTime, String partition) {
-        super(name, partition, cuttingTime);
+        super(name, partition, (new StringBuilder()).append(RealTimeProcessor.SHORT_NAME).append('-').append(partition).toString(),cuttingTime);
 
 
     }
@@ -33,6 +35,11 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
         super.stopInstance();
     }
 
+
+    @Override
+    protected long giveRandom() {
+        return ThreadLocalRandom.current().nextInt(0, 10);
+    }
 
     @Override
     synchronized void publishIndex(Processor RealTimeProcessor,
@@ -56,9 +63,9 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
     @Override
-    Processor createProcessor(BlockingQueue<Object> queue) throws AppException {
+    Processor createProcessor(BlockingQueue<Object> queue, int queueDepth) throws AppException {
 
-        return new RealTimeProcessor(partition, queue);
+        return new RealTimeProcessor(partition, queue, queueDepth);
 
     }
 
@@ -71,5 +78,10 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     @Override
     public boolean isEndDrainsCanDrain(Runner callerRunner) {
         return isLocalQueueCanDrain(callerRunner);
+    }
+
+    @Override
+    protected String getShortName() {
+        return SHORT_NAME;
     }
 }

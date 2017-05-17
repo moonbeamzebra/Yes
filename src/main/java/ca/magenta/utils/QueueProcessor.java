@@ -11,11 +11,11 @@ public abstract class QueueProcessor extends Runner {
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     private final long TIME_SLEEP_TO_DRAIN = 50; // milliseconds
     private final long DRAIN_MAX_RETRY = 100; // total wait 50 X 100 = 5 seconds
-    private final float DRAINING_THREASHOLD = (float) 0.60; // 90%
+    private final float DRAINING_THREASHOLD = (float) 0.60; // 60%
 
     protected final String partition;
     protected final long printEvery;
-    private final int queueDepth;
+    protected final int queueDepth;
     protected final BlockingQueue<Object> inputQueue;
     protected long count = 0;
 
@@ -101,4 +101,40 @@ public abstract class QueueProcessor extends Runner {
             }
         }
     }
+
+    public static String buildReportString(String partition,
+                                           String shortName,
+                                           long reportCount,
+                                           long totalTime,
+                                           float msgPerSec,
+                                           long queueLength,
+                                           long hiWaterMarkQueueLength,
+                                           float msgPerSecSinceStart,
+                                           int queueDepth) {
+
+        return String.format("%s-%s: %d messages sent in %d msec; [%.0f msgs/sec] in queue: %d/%d/%d trend: [%f msgs/sec]",
+                partition,
+                shortName,
+                reportCount,
+                totalTime,
+                msgPerSec,
+                queueLength,
+                hiWaterMarkQueueLength,
+                queueDepth,
+                msgPerSecSinceStart);
+    }
+
+    public String buildReportString(long totalTime, float msgPerSec, long queueLength, long hiWaterMarkQueueLength, float msgPerSecSinceStart) {
+        return buildReportString(partition,
+                getShortName(),
+                printEvery,
+                totalTime,
+                msgPerSec,
+                queueLength,
+                hiWaterMarkQueueLength,
+                msgPerSecSinceStart,
+                queueDepth);
+    }
+
+    protected abstract String getShortName();
 }

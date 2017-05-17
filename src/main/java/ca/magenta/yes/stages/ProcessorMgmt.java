@@ -28,13 +28,18 @@ public abstract class ProcessorMgmt extends QueueProcessor {
             new SimpleDateFormat(String.format("yyyy%sMM%sdd'GMT'",File.separator, File.separator));
 
 
+    private final String processorThreadName;
+
     private final long cuttingTime;
 
-    ProcessorMgmt(String name, String partition, long cuttingTime) {
+    ProcessorMgmt(String name, String partition, String processorThreadName, long cuttingTime) {
 
         super(name, partition, Globals.getConfig().getProcessorQueueDepth(), 650000);
 
         this.cuttingTime = cuttingTime;
+
+        this.processorThreadName = processorThreadName;
+
     }
 
     public void run() {
@@ -42,7 +47,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
         try {
             DAY_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
 
-            Processor processor = createProcessor(inputQueue);
+            Processor processor = createProcessor(inputQueue, queueDepth);
 
             logger.info(String.format("[%s] started for partition [%s]", this.getClass().getSimpleName(), partition));
 
@@ -53,12 +58,12 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                 String basePath = Globals.getConfig().getIndexBaseDirectory();
                 String tempIndexPathName = NormalizedMsgRecord.forgeTempIndexName(basePath, relativePathName, this.getClass().getSimpleName());
                 processor.createIndex(tempIndexPathName);
-                Thread processorThread = new Thread(processor, processor.getClass().getSimpleName());
+                Thread processorThread = new Thread(processor, this.processorThreadName);
                 processorThread.start();
 
                 if (doRun) {
                     try {
-                        Thread.sleep(cuttingTime);
+                        Thread.sleep(cuttingTime + this.giveRandom());
                     } catch (InterruptedException e) {
                         if (doRun)
                             logger.error("InterruptedException", e);
@@ -104,6 +109,8 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     }
 
+    protected abstract long giveRandom();
+
     protected String forgeRelativePathName()
     {
         return partition + File.separator + DAY_FORMAT.format(System.currentTimeMillis());
@@ -116,7 +123,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     abstract void deleteUnusedIndex(String indexPathName);
 
-    abstract Processor createProcessor(BlockingQueue<Object> queue) throws AppException;
+    abstract Processor createProcessor(BlockingQueue<Object> queue, int queueDepth) throws AppException;
 
 
     synchronized void putInQueue(NormalizedMsgRecord normalizedMsgRecord) throws InterruptedException {

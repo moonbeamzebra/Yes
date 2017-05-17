@@ -17,9 +17,17 @@ import java.util.concurrent.BlockingQueue;
 public class LongTermProcessor extends Processor {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermProcessor.class.getPackage().getName());
+    static final String SHORT_NAME = "LTP";
 
-    LongTermProcessor(String name, String partition, BlockingQueue<Object> inputQueue) throws AppException {
-        super(partition, inputQueue);
+    LongTermProcessor(String partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
+        super(partition, inputQueue, queueDepth);
+    }
+
+    @Override
+    protected String getShortName() {
+
+        return SHORT_NAME;
+
     }
 
     synchronized public void createIndex(String indexPath) throws AppException {
@@ -35,7 +43,7 @@ public class LongTermProcessor extends Processor {
         try {
             Analyzer analyzer = new StandardAnalyzer();
 
-            logger.info("Indexing in '" + indexPath + "'");
+            logger.debug("Indexing in '" + indexPath + "'");
 
 
             indexDir = null;

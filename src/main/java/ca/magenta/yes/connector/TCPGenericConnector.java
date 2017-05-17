@@ -12,18 +12,19 @@ import java.net.Socket;
 import java.net.SocketException;
 
 public class TCPGenericConnector extends AbstractTCPServer {
+    public static final String SHORT_NAME = "TCPC";
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final LogParser logParser;
 
     private final Config config;
 
-    TCPGenericConnector(String partitionName, Config config, int port, MasterIndex masterIndex) {
-        super(partitionName, port);
+    TCPGenericConnector(String threadName, String partitionName, Config config, int port, MasterIndex masterIndex) {
+        super(threadName, port);
 
         this.config = config;
 
-        logParser = new LogParser(partitionName, partitionName, masterIndex);
+        logParser = new LogParser(LogParser.SHORT_NAME + "-" + partitionName, partitionName, masterIndex);
 
     }
 

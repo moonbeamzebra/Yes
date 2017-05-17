@@ -18,6 +18,7 @@ import java.util.HashMap;
 
 public class Dispatcher extends QueueProcessor {
 
+    public static final String SHORT_NAME = "DSPTCHR";
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
     private final LongTermProcessorMgmt longTermProcessorMgmt;
@@ -28,11 +29,11 @@ public class Dispatcher extends QueueProcessor {
 
         longTermProcessorMgmt =
                 new LongTermProcessorMgmt(masterIndex,
-                        "LongTermProcessorMgmt",
+                        LongTermProcessorMgmt.SHORT_NAME + "-" + partition,
                         Globals.getConfig().getLongTermCuttingTime(),
                         partition);
 
-        realTimeProcessorMgmt = new RealTimeProcessorMgmt("RealTimeProcessorMgmt", Globals.getConfig().getRealTimeCuttingTime(), partition);
+        realTimeProcessorMgmt = new RealTimeProcessorMgmt(RealTimeProcessorMgmt.SHORT_NAME + "-"+partition, Globals.getConfig().getRealTimeCuttingTime(), partition);
 
     }
 
@@ -50,9 +51,12 @@ public class Dispatcher extends QueueProcessor {
         float msgPerSec;
         float msgPerSecSinceStart;
         long queueLength;
-        long maxQueueLength = 0;
+        long hiWaterMarkQueueLength = 0;
         try {
             while (doRun) {
+                queueLength = inputQueue.size();
+                if (queueLength > hiWaterMarkQueueLength)
+                    hiWaterMarkQueueLength = queueLength;
                 if (longTermProcessorMgmt.isEndDrainsCanDrain(this)) {
                     String jsonMsg = takeFromQueue();
                     logger.debug("Dispatcher received: " + jsonMsg);
@@ -73,10 +77,6 @@ public class Dispatcher extends QueueProcessor {
                     }
 
                     count++;
-                    queueLength = inputQueue.size();
-                    if (queueLength > maxQueueLength)
-                        maxQueueLength = queueLength;
-
 
                     if ((count % printEvery) == 0) {
                         now = System.currentTimeMillis();
@@ -88,10 +88,13 @@ public class Dispatcher extends QueueProcessor {
 
                         msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
 
-                        System.out.println(partition + "-" + "Dispatcher: " + printEvery +
-                                " messages sent in " + totalTime +
-                                " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + maxQueueLength +
-                                " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
+                        String report = this.buildReportString(totalTime, msgPerSec, queueLength, hiWaterMarkQueueLength, msgPerSecSinceStart);
+
+                        System.out.println(report);
+//                        System.out.println(partition + "-" + "Dispatcher: " + printEvery +
+//                                " messages sent in " + totalTime +
+//                                " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + hiWaterMarkQueueLength +
+//                                " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
                         previousNow = now;
                     }
                 }
@@ -149,5 +152,10 @@ public class Dispatcher extends QueueProcessor {
         }
 
         return false;
+    }
+
+    @Override
+    protected String getShortName() {
+        return SHORT_NAME;
     }
 }

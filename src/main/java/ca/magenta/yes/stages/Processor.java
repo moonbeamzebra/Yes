@@ -1,6 +1,7 @@
 package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import org.apache.lucene.index.IndexWriter;
@@ -18,6 +19,7 @@ public abstract class Processor implements Runnable {
 
     private final String partition;
 
+
     private BlockingQueue<Object> inputQueue;
 
     Directory indexDir;
@@ -26,6 +28,7 @@ public abstract class Processor implements Runnable {
     private volatile boolean doRun = true;
 
     private MasterIndexRecord.RuntimeTimestamps runtimeTimestamps;
+    private final int queueDepth;
     private final long startTime;
     private long hiWaterMarkQueueLength = 0;
     private long previousNow = System.currentTimeMillis();
@@ -40,10 +43,12 @@ public abstract class Processor implements Runnable {
 
     private static final long printEvery = 100000;
 
-    Processor(String partition, BlockingQueue<Object> inputQueue) throws AppException {
+    Processor(String partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
 
         this.partition = partition;
         this.inputQueue = inputQueue;
+        this.queueDepth = queueDepth;
+
 
         this.startTime = System.currentTimeMillis();
 
@@ -110,14 +115,29 @@ public abstract class Processor implements Runnable {
         long totalTime = now - previousNow;
         float msgPerSec = ((float) reportCount / (float) totalTime) * 1000;
 
-        System.out.println(partition + "-" + this.getClass().getSimpleName() + ": " + reportCount +
-                " messages sent in " + totalTime +
-                " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + hiWaterMarkQueueLength +
-                " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
+        if (reportCount > 0) {
+            String report = QueueProcessor.buildReportString(partition,
+                    this.getShortName(),
+                    reportCount,
+                    totalTime,
+                    msgPerSec,
+                    queueLength,
+                    hiWaterMarkQueueLength,
+                    msgPerSecSinceStart,
+                    queueDepth);
+
+            System.out.println(report);
+//            System.out.println(partition + "-" + this.getClass().getSimpleName() + ": " + reportCount +
+//                    " messages sent in " + totalTime +
+//                    " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + hiWaterMarkQueueLength +
+//                    " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
+        }
         previousNow = now;
         reportCount = 0;
 
     }
+
+    protected abstract String getShortName();
 
     synchronized private void storeInLucene(NormalizedMsgRecord normalizedMsgRecord) throws AppException {
 

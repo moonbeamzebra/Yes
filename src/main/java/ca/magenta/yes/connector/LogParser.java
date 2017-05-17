@@ -17,7 +17,8 @@ import java.util.HashMap;
 
 public class LogParser extends QueueProcessor {
 
-    private final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName());
+    static final String SHORT_NAME = "LogP";
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final Dispatcher dispatcher;
 
@@ -25,7 +26,7 @@ public class LogParser extends QueueProcessor {
 
         super(name, partition, Globals.getConfig().getLogParserQueueDepth(), 100000);
 
-        dispatcher = new Dispatcher(this.partition, this.partition, masterIndex);
+        dispatcher = new Dispatcher(Dispatcher.SHORT_NAME + "-" + this.partition, this.partition, masterIndex);
     }
 
     public void run() {
@@ -33,12 +34,20 @@ public class LogParser extends QueueProcessor {
         logger.info(String.format("LogParser start running for partition [%s]", partition));
 
         count = 0;
+        long startTime = System.currentTimeMillis();
         long previousNow = System.currentTimeMillis();
         long now;
         long totalTime;
+        long totalTimeSinceStart;
         float msgPerSec;
+        float msgPerSecSinceStart;
+        long queueLength;
+        long hiWaterMarkQueueLength = 0;
 
         while (doRun) {
+            queueLength = inputQueue.size();
+            if (queueLength > hiWaterMarkQueueLength)
+                hiWaterMarkQueueLength = queueLength;
             if (dispatcher.isEndDrainsCanDrain(this)) {
                 String logMsg = null;
                 try {
@@ -60,9 +69,15 @@ public class LogParser extends QueueProcessor {
                     now = System.currentTimeMillis();
                     totalTime = now - previousNow;
 
+                    totalTimeSinceStart = now - startTime;
+                    msgPerSecSinceStart = ((float) count / (float) totalTimeSinceStart) * 1000;
+
                     msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
 
-                    System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
+                    String report = this.buildReportString(totalTime, msgPerSec, queueLength, hiWaterMarkQueueLength, msgPerSecSinceStart);
+
+                    System.out.println(report);
+                    // System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
                     previousNow = now;
                 }
             }
@@ -156,5 +171,10 @@ public class LogParser extends QueueProcessor {
         }
 
         return false;
+    }
+
+    @Override
+    protected String getShortName() {
+        return SHORT_NAME;
     }
 }

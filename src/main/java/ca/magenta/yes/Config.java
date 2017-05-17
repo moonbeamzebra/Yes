@@ -18,22 +18,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "ca.magenta.yes", ignoreUnknownFields = false)
 public class Config {
 
 
-    @NotNull
-    private String genericConnectorPorts;
-
 
     @NotNull
-    private int genericConnectorPortA;
-
-    @NotNull
-    private int genericConnectorPortB;
-
+    //private String genericConnectorPorts;
+    private List<String> genericConnectorPorts = new ArrayList<String>();
 
     @NotNull
     private int apiServerPort;
@@ -62,28 +58,20 @@ public class Config {
     @NotNull
     private String environment;
 
-    public String getGenericConnectorPorts() {
+//    public String getGenericConnectorPorts() {
+//        return genericConnectorPorts;
+//    }
+//
+//    public void setGenericConnectorPorts(String genericConnectorPorts) {
+//        this.genericConnectorPorts = genericConnectorPorts;
+//    }
+
+    public List<String> getGenericConnectorPorts() {
         return genericConnectorPorts;
     }
 
-    public void setGenericConnectorPorts(String genericConnectorPorts) {
+    public void setGenericConnectorPorts(List<String> genericConnectorPorts) {
         this.genericConnectorPorts = genericConnectorPorts;
-    }
-
-    public int getGenericConnectorPortA() {
-        return genericConnectorPortA;
-    }
-
-    public void setGenericConnectorPortA(int genericConnectorPortA) {
-        this.genericConnectorPortA = genericConnectorPortA;
-    }
-
-    public int getGenericConnectorPortB() {
-        return genericConnectorPortB;
-    }
-
-    public void setGenericConnectorPortB(int genericConnectorPortB) {
-        this.genericConnectorPortB = genericConnectorPortB;
     }
 
     public int getLongTermCuttingTime() {
