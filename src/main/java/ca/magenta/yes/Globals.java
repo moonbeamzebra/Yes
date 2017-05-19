@@ -8,6 +8,9 @@ import ca.magenta.yes.data.MasterIndex;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 @Component
 public class Globals {
 
@@ -23,11 +26,31 @@ public class Globals {
 
     private static Config config;
 
+    public static String getHostname() {
+        return hostname;
+    }
+
+    private static final String hostname;
+
     private static ConnectorManager connectorManager = null;
     private static IndexPublisher indexPublisher = null;
     private static TCPAPIServer tcpAPIServer = null;
     private static MasterIndex masterIndex = null;
 
+
+    static {
+
+        String tHostname = "UNKNOWN";
+
+        try {
+            tHostname = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            logger.error(e.getClass().getSimpleName(), e);
+        }
+
+        hostname =tHostname;
+
+    }
 
     public Globals(Config config) {
 

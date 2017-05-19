@@ -13,8 +13,8 @@ abstract public class AbstractTCPServer extends Runner {
 
     private HashMap<String, AbstractTCPServerHandler> tcpServerHandlers = new HashMap<>();
 
-    public AbstractTCPServer(String name, int port) {
-        super(name);
+    public AbstractTCPServer(String threadName, int port) {
+        super(threadName);
         //this.setName(name);
         this.port = port;
     }

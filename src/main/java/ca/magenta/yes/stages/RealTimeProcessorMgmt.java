@@ -5,6 +5,7 @@ import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.connector.common.IndexPublisher;
+import ca.magenta.yes.data.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,8 +21,9 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     private static IndexPublisher indexPublisher = Globals.getIndexPublisher();
 
 
-    public RealTimeProcessorMgmt(String name, long cuttingTime, String partition) {
-        super(name, partition, (new StringBuilder()).append(RealTimeProcessor.SHORT_NAME).append('-').append(partition).toString(),cuttingTime);
+    public RealTimeProcessorMgmt(String name, long cuttingTime, Partition partition) {
+        super(name, partition,
+                (new StringBuilder()).append(RealTimeProcessor.SHORT_NAME).append('-').append(partition.getInstanceName()).toString(),cuttingTime);
 
 
     }

@@ -4,6 +4,7 @@ import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import ca.magenta.yes.data.Partition;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
@@ -17,7 +18,7 @@ public abstract class Processor implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(Processor.class.getPackage().getName());
 
-    private final String partition;
+    private final Partition partition;
 
 
     private BlockingQueue<Object> inputQueue;
@@ -43,7 +44,7 @@ public abstract class Processor implements Runnable {
 
     private static final long printEvery = 100000;
 
-    Processor(String partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
+    Processor(Partition partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
 
         this.partition = partition;
         this.inputQueue = inputQueue;

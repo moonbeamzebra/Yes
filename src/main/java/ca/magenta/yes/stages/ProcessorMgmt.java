@@ -4,14 +4,13 @@ package ca.magenta.yes.stages;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.yes.Globals;
-import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import ca.magenta.yes.data.Partition;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
 import java.util.TimeZone;
 import java.util.concurrent.BlockingQueue;
 
@@ -32,7 +31,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     private final long cuttingTime;
 
-    ProcessorMgmt(String name, String partition, String processorThreadName, long cuttingTime) {
+    ProcessorMgmt(String name, Partition partition, String processorThreadName, long cuttingTime) {
 
         super(name, partition, Globals.getConfig().getProcessorQueueDepth(), 650000);
 
@@ -113,7 +112,9 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     protected String forgeRelativePathName()
     {
-        return partition + File.separator + DAY_FORMAT.format(System.currentTimeMillis());
+        return partition.getName() + File.separator +
+                Globals.getHostname() + File.separator +
+                DAY_FORMAT.format(System.currentTimeMillis());
     };
 
     abstract void publishIndex(Processor processor,

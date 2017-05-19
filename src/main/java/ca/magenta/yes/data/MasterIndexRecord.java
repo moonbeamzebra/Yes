@@ -28,7 +28,7 @@ public class MasterIndexRecord {
 
     private final RuntimeTimestamps runtimeTimestamps;
     private final String longTermIndexName;
-    private final String partition;
+    private final String partitionName;
 
     public MasterIndexRecord(Document masterIndexDoc) {
 
@@ -42,12 +42,12 @@ public class MasterIndexRecord {
         );
 
         this.longTermIndexName = masterIndexDoc.get(LONG_TERM_INDEX_NAME_FIELD_NAME);
-        this.partition = masterIndexDoc.get(PARTITION_FIELD_NAME);
+        this.partitionName = masterIndexDoc.get(PARTITION_FIELD_NAME);
     }
 
     public MasterIndexRecord(String longTermIndexName, String partition, RuntimeTimestamps runtimeTimestamps) {
         this.longTermIndexName = longTermIndexName;
-        this.partition = partition;
+        this.partitionName = partition;
         this.runtimeTimestamps = runtimeTimestamps;
     }
 
@@ -62,7 +62,7 @@ public class MasterIndexRecord {
         LuceneTools.storeSortedNumericDocValuesField(document, RUN_START_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getRunStartTimestamp());
         LuceneTools.storeSortedNumericDocValuesField(document, RUN_END_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getRunEndTimestamp());
 
-        LuceneTools.luceneStoreNonTokenizedString(document, PARTITION_FIELD_NAME, partition);
+        LuceneTools.luceneStoreNonTokenizedString(document, PARTITION_FIELD_NAME, partitionName);
 
         document.add(new StringField(LONG_TERM_INDEX_NAME_FIELD_NAME, longTermIndexName, Field.Store.YES));
 
@@ -73,7 +73,7 @@ public class MasterIndexRecord {
     @Override
     public String toString() {
         return "MasterIndexRecord{" +
-                "partition='" + partition +
+                "partition='" + partitionName +
                 "', longTermIndexName='" + longTermIndexName +
                 "', olderSrc=" + runtimeTimestamps.getOlderSrcTimestamp() +
                 ", newerSrc=" + runtimeTimestamps.getNewerSrcTimestamp() +

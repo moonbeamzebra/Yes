@@ -364,10 +364,10 @@ public class NormalizedMsgRecord {
                 java.util.UUID.randomUUID();
     }
 
-    public static String forgePublishedFileName(String relativePath, String partition, MasterIndexRecord.RuntimeTimestamps runtimeTimestamps) {
+    public static String forgePublishedFileName(String relativePath, Partition partition, MasterIndexRecord.RuntimeTimestamps runtimeTimestamps) {
 
         String newFileName = String.format("%s-r%d-r%d-s%d-s%d.run.%d-%d.lucene",
-                partition,
+                partition.getInstanceName(),
                 runtimeTimestamps.getOlderRxTimestamp(),
                 runtimeTimestamps.getNewerRxTimestamp(),
                 runtimeTimestamps.getOlderSrcTimestamp(),

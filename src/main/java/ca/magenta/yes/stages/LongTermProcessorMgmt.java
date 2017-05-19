@@ -5,6 +5,7 @@ import ca.magenta.utils.Runner;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import ca.magenta.yes.data.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,8 +21,9 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
 
     private final MasterIndex masterIndex;
 
-    LongTermProcessorMgmt(MasterIndex masterIndex, String name, long cuttingTime, String partition) {
-        super(name, partition, (new StringBuilder()).append(LongTermProcessor.SHORT_NAME).append('-').append(partition).toString(),cuttingTime);
+    LongTermProcessorMgmt(MasterIndex masterIndex, String name, long cuttingTime, Partition partition) {
+        super(name, partition,
+                (new StringBuilder()).append(LongTermProcessor.SHORT_NAME).append('-').append(partition.getInstanceName()).toString(),cuttingTime);
 
         this.masterIndex = masterIndex;
     }
@@ -41,7 +43,7 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
         File newDirName = new File(newIndexPathName);
         if (dir.isDirectory()) {
             if (dir.renameTo(newDirName)) {
-                masterIndex.addRecord(new MasterIndexRecord(publishedFileName, partition, longTermProcessor.getRuntimeTimestamps()));
+                masterIndex.addRecord(new MasterIndexRecord(publishedFileName, partition.getName(), longTermProcessor.getRuntimeTimestamps()));
                 logger.info(String.format("Index [%s] published", publishedFileName));
             } else {
                 logger.error(String.format("Cannot rename [%s to %s]", indexPathName, newIndexPathName));

@@ -6,6 +6,7 @@ import ca.magenta.utils.Runner;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import ca.magenta.yes.data.Partition;
 import ca.magenta.yes.stages.Dispatcher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,11 +23,11 @@ public class LogParser extends QueueProcessor {
 
     private final Dispatcher dispatcher;
 
-    LogParser(String name, String partition, MasterIndex masterIndex) {
+    LogParser(String name, Partition partition, MasterIndex masterIndex) {
 
         super(name, partition, Globals.getConfig().getLogParserQueueDepth(), 100000);
 
-        dispatcher = new Dispatcher(Dispatcher.SHORT_NAME + "-" + this.partition, this.partition, masterIndex);
+        dispatcher = new Dispatcher(Dispatcher.SHORT_NAME + "-" + partition.getInstanceName(), partition, masterIndex);
     }
 
     public void run() {
@@ -119,7 +120,7 @@ public class LogParser extends QueueProcessor {
 
         String msgType =  "pseudoCheckpoint";
 
-        HashMap<String, Object> hashedMsg = NormalizedMsgRecord.initiateMsgHash(logMsg, msgType, partition);
+        HashMap<String, Object> hashedMsg = NormalizedMsgRecord.initiateMsgHash(logMsg, msgType, partition.getName());
 
         // Let's parse pseudo Checkpoint logs
         // device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop

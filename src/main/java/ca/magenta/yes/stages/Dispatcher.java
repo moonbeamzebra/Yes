@@ -6,6 +6,7 @@ import ca.magenta.utils.Runner;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import ca.magenta.yes.data.Partition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,17 +24,19 @@ public class Dispatcher extends QueueProcessor {
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
     private final LongTermProcessorMgmt longTermProcessorMgmt;
 
-    public Dispatcher(String name, String partition, MasterIndex masterIndex ) {
+    public Dispatcher(String name, Partition partition, MasterIndex masterIndex ) {
 
         super(name, partition, Globals.getConfig().getDispatcherQueueDepth(), 650000);
 
         longTermProcessorMgmt =
                 new LongTermProcessorMgmt(masterIndex,
-                        LongTermProcessorMgmt.SHORT_NAME + "-" + partition,
+                        LongTermProcessorMgmt.SHORT_NAME + "-" + partition.getInstanceName(),
                         Globals.getConfig().getLongTermCuttingTime(),
                         partition);
 
-        realTimeProcessorMgmt = new RealTimeProcessorMgmt(RealTimeProcessorMgmt.SHORT_NAME + "-"+partition, Globals.getConfig().getRealTimeCuttingTime(), partition);
+        realTimeProcessorMgmt = new RealTimeProcessorMgmt(RealTimeProcessorMgmt.SHORT_NAME + "-"+partition.getInstanceName(),
+                Globals.getConfig().getRealTimeCuttingTime(),
+                partition);
 
     }
 

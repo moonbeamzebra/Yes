@@ -4,6 +4,7 @@ import ca.magenta.utils.AbstractTCPServer;
 import ca.magenta.utils.AppException;
 import ca.magenta.yes.Config;
 import ca.magenta.yes.data.MasterIndex;
+import ca.magenta.yes.data.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,12 +20,12 @@ public class TCPGenericConnector extends AbstractTCPServer {
 
     private final Config config;
 
-    TCPGenericConnector(String threadName, String partitionName, Config config, int port, MasterIndex masterIndex) {
+    TCPGenericConnector(String threadName, Partition partition, Config config, int port, MasterIndex masterIndex) {
         super(threadName, port);
 
         this.config = config;
 
-        logParser = new LogParser(LogParser.SHORT_NAME + "-" + partitionName, partitionName, masterIndex);
+        logParser = new LogParser(LogParser.SHORT_NAME + "-" + partition.getInstanceName(), partition, masterIndex);
 
     }
 

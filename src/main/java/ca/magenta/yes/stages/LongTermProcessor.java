@@ -2,6 +2,7 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
+import ca.magenta.yes.data.Partition;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
@@ -19,7 +20,7 @@ public class LongTermProcessor extends Processor {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermProcessor.class.getPackage().getName());
     static final String SHORT_NAME = "LTP";
 
-    LongTermProcessor(String partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
+    LongTermProcessor(Partition partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
         super(partition, inputQueue, queueDepth);
     }
 

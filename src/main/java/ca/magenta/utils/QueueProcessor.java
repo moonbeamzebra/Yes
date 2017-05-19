@@ -1,5 +1,6 @@
 package ca.magenta.utils;
 
+import ca.magenta.yes.data.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,7 +14,7 @@ public abstract class QueueProcessor extends Runner {
     private final long DRAIN_MAX_RETRY = 100; // total wait 50 X 100 = 5 seconds
     private final float DRAINING_THREASHOLD = (float) 0.60; // 60%
 
-    protected final String partition;
+    protected final Partition partition;
     protected final long printEvery;
     protected final int queueDepth;
     protected final BlockingQueue<Object> inputQueue;
@@ -21,7 +22,7 @@ public abstract class QueueProcessor extends Runner {
 
 
 
-    public QueueProcessor(String name, String partition, int queueDepth, long printEvery) {
+    public QueueProcessor(String name, Partition partition, int queueDepth, long printEvery) {
         super(name);
 
         this.partition = partition;
@@ -102,7 +103,7 @@ public abstract class QueueProcessor extends Runner {
         }
     }
 
-    public static String buildReportString(String partition,
+    public static String buildReportString(Partition partition,
                                            String shortName,
                                            long reportCount,
                                            long totalTime,
@@ -113,7 +114,7 @@ public abstract class QueueProcessor extends Runner {
                                            int queueDepth) {
 
         return String.format("%s-%s: %d messages sent in %d msec; [%.0f msgs/sec] in queue: %d/%d/%d trend: [%f msgs/sec]",
-                partition,
+                partition.getInstanceName(),
                 shortName,
                 reportCount,
                 totalTime,
