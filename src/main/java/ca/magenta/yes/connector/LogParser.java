@@ -6,6 +6,7 @@ import ca.magenta.utils.Runner;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
+import ca.magenta.yes.data.ParsedMessage;
 import ca.magenta.yes.data.Partition;
 import ca.magenta.yes.stages.Dispatcher;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,11 +22,15 @@ public class LogParser extends QueueProcessor {
     static final String SHORT_NAME = "LogP";
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
+    private final EffectiveMsgParser effectiveMsgParser;
+
     private final Dispatcher dispatcher;
 
-    LogParser(String name, Partition partition, MasterIndex masterIndex) {
+    LogParser(String name, Partition partition, MasterIndex masterIndex) throws AppException {
 
         super(name, partition, Globals.getConfig().getLogParserQueueDepth(), 100000);
+
+        effectiveMsgParser = getParserInstance();
 
         dispatcher = new Dispatcher(Dispatcher.SHORT_NAME + "-" + partition.getInstanceName(), partition, masterIndex);
     }
@@ -33,6 +38,8 @@ public class LogParser extends QueueProcessor {
     public void run() {
 
         logger.info(String.format("LogParser start running for partition [%s]", partition));
+
+        ObjectMapper objectMapper = new ObjectMapper();
 
         count = 0;
         long startTime = System.currentTimeMillis();
@@ -54,9 +61,9 @@ public class LogParser extends QueueProcessor {
                 try {
                     logMsg = takeFromQueue();
                     try {
-                        dispatchParsingAndProcessing(logMsg, dispatcher);
-                    } catch (JsonProcessingException e) {
-                        logger.error("JsonProcessingException", e);
+                        dispatchParsingAndProcessing(objectMapper, logMsg, dispatcher);
+                    } catch (JsonProcessingException | AppException e) {
+                        logger.error(e.getClass().getSimpleName(), e);
                     }
                 } catch (InterruptedException e) {
                     if (doRun)
@@ -116,36 +123,43 @@ public class LogParser extends QueueProcessor {
     }
 
 
-    private void dispatchParsingAndProcessing(String logMsg, Dispatcher dispatcher) throws JsonProcessingException, InterruptedException {
+    private void dispatchParsingAndProcessing(ObjectMapper objectMapper, String msg, Dispatcher dispatcher) throws JsonProcessingException, InterruptedException, AppException {
 
         String msgType =  "pseudoCheckpoint";
 
-        HashMap<String, Object> hashedMsg = NormalizedMsgRecord.initiateMsgHash(logMsg, msgType, partition.getName());
+        long receiveTime = System.currentTimeMillis();
 
-        // Let's parse pseudo Checkpoint logs
-        // device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop
-        String[] items = logMsg.split("\\|");
+        ParsedMessage parsedMessage = effectiveMsgParser.doParse(objectMapper, msg);
 
-        for (String item : items) {
-            if (logger.isDebugEnabled())
-                logger.debug(String.format("ITEM:[%s]", item));
-            int pos = item.indexOf("=");
-            if (pos != -1) {
-                String key = item.substring(0, pos);
-                String value = item.substring(pos + 1);
-
-                if (logger.isDebugEnabled())
-                    logger.debug(String.format("KEY:[%s]; VALUE:[%s]", key, value));
-
-                hashedMsg.put(key, value);
-
-            }
-        }
+        HashMap<String, Object> hashedMsg = NormalizedMsgRecord.initiateMsgHash(receiveTime, msg, partition.getName(), parsedMessage);
 
 
-        ObjectMapper mapper = new ObjectMapper();
 
-        String jsonMsg = mapper.writeValueAsString(hashedMsg);
+
+//        // Let's parse pseudo Checkpoint logs
+//        // device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop
+//        String[] items = msg.split("\\|");
+//
+//        for (String item : items) {
+//            if (logger.isDebugEnabled())
+//                logger.debug(String.format("ITEM:[%s]", item));
+//            int pos = item.indexOf("=");
+//            if (pos != -1) {
+//                String key = item.substring(0, pos);
+//                String value = item.substring(pos + 1);
+//
+//                if (logger.isDebugEnabled())
+//                    logger.debug(String.format("KEY:[%s]; VALUE:[%s]", key, value));
+//
+//                hashedMsg.put(key, value);
+//
+//            }
+//        }
+//
+//
+//        ObjectMapper mapper = new ObjectMapper();
+
+        String jsonMsg = objectMapper.writeValueAsString(hashedMsg);
 
         dispatcher.putInQueue(jsonMsg);
 
@@ -178,4 +192,30 @@ public class LogParser extends QueueProcessor {
     protected String getShortName() {
         return SHORT_NAME;
     }
+
+
+    private EffectiveMsgParser getParserInstance() throws AppException {
+        EffectiveMsgParser effectiveMsgParser = null;
+
+
+        String parserClass = partition.getParserClass();
+        if (parserClass == null) {
+            effectiveMsgParser = new DefaultEffectiveMsgParser();
+        } else {
+
+            try {
+                logger.info(String.format("Starting alternate Parser Class=[%s] ...", parserClass));
+
+                effectiveMsgParser = (EffectiveMsgParser) Class.forName(parserClass).newInstance();
+
+                logger.info("Started");
+
+            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                throw new AppException(e);
+            }
+        }
+
+        return effectiveMsgParser;
+    }
+
 }

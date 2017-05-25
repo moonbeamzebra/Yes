@@ -20,7 +20,7 @@ public class TCPGenericConnector extends AbstractTCPServer {
 
     private final Config config;
 
-    TCPGenericConnector(String threadName, Partition partition, Config config, int port, MasterIndex masterIndex) {
+    TCPGenericConnector(String threadName, Partition partition, Config config, int port, MasterIndex masterIndex) throws AppException {
         super(threadName, port);
 
         this.config = config;

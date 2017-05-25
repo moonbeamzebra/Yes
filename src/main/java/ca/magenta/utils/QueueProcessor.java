@@ -12,7 +12,7 @@ public abstract class QueueProcessor extends Runner {
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     private final long TIME_SLEEP_TO_DRAIN = 50; // milliseconds
     private final long DRAIN_MAX_RETRY = 100; // total wait 50 X 100 = 5 seconds
-    private final float DRAINING_THREASHOLD = (float) 0.60; // 60%
+    private final float DRAINING_THREASHOLD = (float) 0.70; // 70%
 
     protected final Partition partition;
     protected final long printEvery;

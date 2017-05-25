@@ -11,7 +11,6 @@ import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
-import org.apache.lucene.search.SortedNumericSortField;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
@@ -309,6 +308,19 @@ public class NormalizedMsgRecord {
         return String.format("%08X", breakerSequence);
     }
 
+    public static HashMap<String, Object> initiateMsgHash(long receiveTime, String msg, String partitionName, ParsedMessage parsedMessage) {
+
+        HashMap<String, Object> hashedMsg = parsedMessage.getMessageHashed();
+
+        hashedMsg.put(MESSAGE_FIELD_NAME, msg);
+        hashedMsg.put(MSG_TYPE_FIELD_NAME, parsedMessage.getType());
+        hashedMsg.put(PARTITION_FIELD_NAME, partitionName);
+
+        return hashedMsg;
+
+    }
+
+    @Deprecated
     public static HashMap<String, Object> initiateMsgHash(String logMsg, String msgType, String partition) {
 
         HashMap<String, Object> hashedMsg = new HashMap<>();

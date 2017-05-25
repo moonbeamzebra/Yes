@@ -7,7 +7,7 @@ java -jar ./target/ca.magenta.loggenerator-1.0-SNAPSHOT-jar-with-dependencies.ja
 -repeatCount=nostop \
 -tunningLoopCount=38000 \
 -eventFile=./logs.xlsx \
-148
+145
 >>>>>>>>>
 STATS: [27059.688 msgs/sec]
 
