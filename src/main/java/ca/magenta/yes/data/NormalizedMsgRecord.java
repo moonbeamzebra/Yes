@@ -23,12 +23,15 @@ import java.util.Map;
 
 public class NormalizedMsgRecord {
 
-    private static final String UID_FIELD_NAME = "_yes_uid";
-    private static final String RECEIVE_TIMESTAMP_FIELD_NAME = "_yes_rxTimestamp";
-    private static final String SOURCE_TIMESTAMP_FIELD_NAME = "_yes_srcTimestamp";
-    private static final String MESSAGE_FIELD_NAME = "_yes_message";
-    private static final String PARTITION_FIELD_NAME = "_yes_partition";
-    private static final String MSG_TYPE_FIELD_NAME = "_yes_msgType";
+    private static final String VAR_NAME_PREFIX = ".";
+    private static final String VAR_NAME_POSTFIX = ".";
+
+    private static final String UID_FIELD_NAME = VAR_NAME_PREFIX + "uid" + VAR_NAME_POSTFIX ;
+    private static final String RECEIVE_TIMESTAMP_FIELD_NAME = VAR_NAME_PREFIX + "rxTimestamp" + VAR_NAME_POSTFIX ;
+    private static final String SOURCE_TIMESTAMP_FIELD_NAME = VAR_NAME_PREFIX + "srcTimestamp" + VAR_NAME_POSTFIX ;
+    private static final String MESSAGE_FIELD_NAME = VAR_NAME_PREFIX + "message" + VAR_NAME_POSTFIX ;
+    private static final String PARTITION_FIELD_NAME = VAR_NAME_PREFIX + "partition" + VAR_NAME_POSTFIX ;
+    private static final String MSG_TYPE_FIELD_NAME = VAR_NAME_PREFIX + "msgType" + VAR_NAME_POSTFIX ;
     private static final String LOGSTASH_TIMESTAMP = "@timestamp";
     private static final SimpleDateFormat LOGSTASH_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
