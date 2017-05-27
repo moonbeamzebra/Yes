@@ -1,11 +1,17 @@
 package ca.magenta.yes.data;
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.Globals;
+import ca.magenta.yes.api.LongTermReader;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
+import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
@@ -13,11 +19,22 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Paths;
 
 public class MasterIndex {
 
-    private final Logger logger = LoggerFactory.getLogger(this.getClass().getSimpleName());
+    private static final Logger logger = LoggerFactory.getLogger(MasterIndex.class.getSimpleName());
+
+    private static final String OLDER_SOURCE_TIMESTAMP_FIELD_NAME = "olderSrcTimestamp";
+    private static final String NEWER_SOURCE_TIMESTAMP_FIELD_NAME = "newerSrcTimestamp";
+    private static final String OLDER_RECEIVE_TIMESTAMP_FIELD_NAME = "olderRxTimestamp";
+    private static final String NEWER_RECEIVE_TIMESTAMP_FIELD_NAME = "newerRxTimestamp";
+    private static final String RUN_START_TIMESTAMP_FIELD_NAME = "runStartTimestamp";
+    private static final String RUN_END_TIMESTAMP_FIELD_NAME = "runEndTimestamp";
+    private static final String PARTITION_FIELD_NAME = "partition";
+    private static final String LONG_TERM_INDEX_NAME_FIELD_NAME = "longTermIndexName";
+
 
     private static MasterIndex instance;
 
@@ -85,7 +102,7 @@ public class MasterIndex {
         return indexWriter;
     }
 
-    public Searcher getSearcher() {
+    private Searcher getSearcher() {
         return searcher;
     }
 
@@ -107,7 +124,199 @@ public class MasterIndex {
 
     public void addRecord(MasterIndexRecord masterIndexRecord) throws AppException {
 
-        addDocument(masterIndexRecord.toDocument());
+        addDocument(toDocument(masterIndexRecord));
 
     }
+
+    public void search(LongTermReader longTermReader,
+                       String indexBaseDirectory,
+                       String partition,
+                       TimeRange periodTimeRange,
+                       int limit,
+                       String searchString,
+                       boolean reverse,
+                       PrintWriter client) throws IOException, ParseException, QueryNodeException {
+
+        BooleanQuery bMasterSearch =
+                MasterIndex.buildSearchStringForTimeRangeAndPartition(Globals.DrivingTimestamp.RECEIVE_TIME,
+                        partition,
+                        periodTimeRange);
+
+        logger.info("TimeRange Search String In MasterIndex: " + bMasterSearch.toString());
+
+        // https://wiki.apache.org/lucene-java/ImproveSearchingSpeed
+
+        IndexSearcher indexSearcher;
+        Searcher searcher = this.getSearcher();
+        indexSearcher = searcher.getIndexSearcher();
+
+
+        int maxTotalHits = Globals.getConfig().getMaxTotalHit_MasterIndex();
+
+
+        // TODO Change the following
+        if (limit <= 0) limit = Integer.MAX_VALUE;
+
+        int soFarCount = 0;
+        Sort sort = MasterIndex.buildSort_receiveTimeDriving(reverse);
+        ScoreDoc lastScoreDoc = null;
+        int totalRead = maxTotalHits; // just to let enter in the following loop
+        if (indexSearcher != null) {
+            while (longTermReader.isDoRun() && (totalRead >= maxTotalHits) && (soFarCount < limit)) {
+                TopDocs results;
+
+                results = indexSearcher.searchAfter(lastScoreDoc, bMasterSearch, maxTotalHits, sort);
+
+                totalRead = results.scoreDocs.length;
+
+                for (ScoreDoc scoreDoc : results.scoreDocs) {
+                    lastScoreDoc = scoreDoc;
+                    Document doc = indexSearcher.doc(scoreDoc.doc);
+                    MasterIndexRecord masterIndexRecord = MasterIndex.valueOf(doc);
+                    soFarCount = longTermReader.searchInLongTermIndex(indexBaseDirectory,
+                            masterIndexRecord.getLongTermIndexName(),
+                            periodTimeRange,
+                            searchString,
+                            reverse,
+                            client,
+                            limit,
+                            soFarCount);
+                    if ( !longTermReader.isDoRun() || !(soFarCount < limit) )
+                    {
+                        break;
+                    }
+
+                }
+            }
+        }
+    }
+
+    private static BooleanQuery buildSearchStringForTimeRangeAndPartition(Globals.DrivingTimestamp drivingTimestamp,
+                                                                          String partition, TimeRange periodTimeRange) {
+
+        if (drivingTimestamp == Globals.DrivingTimestamp.SOURCE_TIME)
+        {
+            return buildSearchStringForTimeRangeAndPartition(partition,
+                    periodTimeRange,
+                    OLDER_SOURCE_TIMESTAMP_FIELD_NAME,
+                    NEWER_SOURCE_TIMESTAMP_FIELD_NAME);
+        }
+        else
+        {
+            return buildSearchStringForTimeRangeAndPartition(partition,
+                    periodTimeRange,
+                    OLDER_RECEIVE_TIMESTAMP_FIELD_NAME,
+                    NEWER_RECEIVE_TIMESTAMP_FIELD_NAME);
+        }
+    }
+
+    private static BooleanQuery buildSearchStringForTimeRangeAndPartition(String partition,
+                                                                          TimeRange periodTimeRange,
+                                                                          String olderTimestampFieldName,
+                                                                          String newerTimestampFieldName) {
+
+        // Files containing range at the end : left part
+        // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
+        BooleanQuery bMasterSearchLeftPart = new BooleanQuery.Builder().
+                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+                build();
+
+
+        // Range completely enclose the files range: middle part
+        // OlderTimeRange <= olderRxTimestamp AND newerRxTimestamp <= NewerTimeRange
+        BooleanQuery bMasterSearchMiddlePart = new BooleanQuery.Builder().
+                add(LongPoint.newRangeQuery(olderTimestampFieldName, periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(newerTimestampFieldName, 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
+                build();
+
+
+        // Files containing range at the beginning : right part
+        // olderRxTimestamp <= NewerTimeRange <= newerRxTimestamp
+        BooleanQuery bMasterSearchRightPart = new BooleanQuery.Builder().
+                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+                build();
+
+        // File range completely enclose the range: narrow part
+        // olderRxTimestamp <= OlderTimeRange AND NewerTimeRange <= newerRxTimestamp
+        BooleanQuery bMasterSearchNarrowPart = new BooleanQuery.Builder().
+                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
+                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
+                build();
+
+
+        BooleanQuery.Builder timeBooleanQueryBuilder = new BooleanQuery.Builder();
+        timeBooleanQueryBuilder.add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
+                add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD);
+
+
+        BooleanQuery.Builder returnedBooleanQueryBuilder;
+
+        if (partition != null) {
+            returnedBooleanQueryBuilder = new BooleanQuery.Builder();
+            StandardQueryParser queryParserHelper = new StandardQueryParser();
+            Query partitionQuery;
+            try {
+                partitionQuery = queryParserHelper.parse(String.format("%s:%s", PARTITION_FIELD_NAME, partition),
+                        PARTITION_FIELD_NAME);
+                returnedBooleanQueryBuilder.add(partitionQuery, BooleanClause.Occur.MUST);
+            } catch (QueryNodeException e) {
+                logger.error(e.getClass().getSimpleName(),e);
+            }
+            returnedBooleanQueryBuilder.add(timeBooleanQueryBuilder.build(),BooleanClause.Occur.MUST);
+        }
+        else
+        {
+            returnedBooleanQueryBuilder = timeBooleanQueryBuilder;
+        }
+
+        return returnedBooleanQueryBuilder.build();
+
+    }
+
+    private static Sort buildSort_receiveTimeDriving(boolean reverse) {
+        return new Sort(new SortedNumericSortField(OLDER_RECEIVE_TIMESTAMP_FIELD_NAME, SortField.Type.LONG, reverse));
+    }
+
+    private static MasterIndexRecord valueOf(Document masterIndexDoc) {
+
+        MasterIndexRecord masterIndexRecord = null;
+
+        MasterIndexRecord.RuntimeTimestamps runtimeTimestamps = new MasterIndexRecord.RuntimeTimestamps(
+                Long.valueOf(masterIndexDoc.get(OLDER_SOURCE_TIMESTAMP_FIELD_NAME)),
+                Long.valueOf(masterIndexDoc.get(NEWER_SOURCE_TIMESTAMP_FIELD_NAME)),
+                Long.valueOf(masterIndexDoc.get(OLDER_RECEIVE_TIMESTAMP_FIELD_NAME)),
+                Long.valueOf(masterIndexDoc.get(NEWER_RECEIVE_TIMESTAMP_FIELD_NAME)),
+                Long.valueOf(masterIndexDoc.get(RUN_START_TIMESTAMP_FIELD_NAME)),
+                Long.valueOf(masterIndexDoc.get(RUN_END_TIMESTAMP_FIELD_NAME))
+        );
+
+        return new MasterIndexRecord(masterIndexDoc.get(LONG_TERM_INDEX_NAME_FIELD_NAME),
+                masterIndexDoc.get(PARTITION_FIELD_NAME),
+                runtimeTimestamps);
+    }
+
+    Document toDocument(MasterIndexRecord masterIndexRecord) throws AppException {
+
+        Document document = new Document();
+
+        LuceneTools.storeSortedNumericDocValuesField(document, OLDER_SOURCE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getOlderSrcTimestamp());
+        LuceneTools.storeSortedNumericDocValuesField(document, NEWER_SOURCE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getNewerSrcTimestamp());
+        LuceneTools.storeSortedNumericDocValuesField(document, OLDER_RECEIVE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getOlderRxTimestamp());
+        LuceneTools.storeSortedNumericDocValuesField(document, NEWER_RECEIVE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getNewerRxTimestamp());
+        LuceneTools.storeSortedNumericDocValuesField(document, RUN_START_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getRunStartTimestamp());
+        LuceneTools.storeSortedNumericDocValuesField(document, RUN_END_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getRunEndTimestamp());
+
+        LuceneTools.luceneStoreNonTokenizedString(document, PARTITION_FIELD_NAME, masterIndexRecord.getPartitionName());
+
+        document.add(new StringField(LONG_TERM_INDEX_NAME_FIELD_NAME, masterIndexRecord.getLongTermIndexName(), Field.Store.YES));
+
+        return document;
+    }
+
+
+
 }

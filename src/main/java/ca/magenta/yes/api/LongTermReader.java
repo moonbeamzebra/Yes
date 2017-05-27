@@ -107,80 +107,89 @@ public class LongTermReader extends Runner {
                                           boolean reverse,
                                           PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
 
-        BooleanQuery bMasterSearch =
-                MasterIndexRecord.buildSearchStringForTimeRangeAndPartition(Globals.DrivingTimestamp.RECEIVE_TIME,
-                        partition,
-                        periodTimeRange);
+//        BooleanQuery bMasterSearch =
+//                MasterIndexRecord.buildSearchStringForTimeRangeAndPartition(Globals.DrivingTimestamp.RECEIVE_TIME,
+//                        partition,
+//                        periodTimeRange);
+//
+//        logger.info("TimeRange Search String In MasterIndex: " + bMasterSearch.toString());
+//
+//
+//        searchInMasterIndex(indexBaseDirectory, limit, bMasterSearch, periodTimeRange, searchString, reverse, client);
 
-        logger.info("TimeRange Search String In MasterIndex: " + bMasterSearch.toString());
-
-
-        searchInMasterIndex(indexBaseDirectory, limit, bMasterSearch, periodTimeRange, searchString, reverse, client);
+        masterIndex.search(this,
+                indexBaseDirectory,
+                partition,
+                periodTimeRange,
+                limit,
+                searchString,
+                reverse,
+                client);
     }
 
-    private void searchInMasterIndex(String indexBaseDirectory,
-                                     int limit,
-                                     Query indexQuery,
+//    private void searchInMasterIndex(String indexBaseDirectory,
+//                                     int limit,
+//                                     Query indexQuery,
+//                                     TimeRange periodTimeRange,
+//                                     String searchString,
+//                                     boolean reverse,
+//                                     PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
+//
+//        // https://wiki.apache.org/lucene-java/ImproveSearchingSpeed
+//
+//        IndexSearcher indexSearcher;
+//        Searcher searcher = masterIndex.getSearcher();
+//        indexSearcher = searcher.getIndexSearcher();
+//
+//
+//        int maxTotalHits = Globals.getConfig().getMaxTotalHit_MasterIndex();
+//
+//
+//        // TODO Change the following
+//        if (limit <= 0) limit = Integer.MAX_VALUE;
+//
+//        int soFarCount = 0;
+//        Sort sort = MasterIndexRecord.buildSort_receiveTimeDriving(reverse);
+//        ScoreDoc lastScoreDoc = null;
+//        int totalRead = maxTotalHits; // just to let enter in the following loop
+//        if (indexSearcher != null) {
+//            while (doRun && (totalRead >= maxTotalHits) && (soFarCount < limit)) {
+//                TopDocs results;
+//
+//                results = indexSearcher.searchAfter(lastScoreDoc, indexQuery, maxTotalHits, sort);
+//
+//                totalRead = results.scoreDocs.length;
+//
+//                for (ScoreDoc scoreDoc : results.scoreDocs) {
+//                    lastScoreDoc = scoreDoc;
+//                    Document doc = indexSearcher.doc(scoreDoc.doc);
+//                    MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
+//                    soFarCount = searchInLongTermIndex(indexBaseDirectory,
+//                            masterIndexRecord.getLongTermIndexName(),
+//                            periodTimeRange,
+//                            searchString,
+//                            reverse,
+//                            client,
+//                            limit,
+//                            soFarCount);
+//                    if ( !doRun || !(soFarCount < limit) )
+//                    {
+//                        break;
+//                    }
+//
+//                }
+//            }
+//        }
+//    }
+
+    public int searchInLongTermIndex(String indexBaseDirectory,
+                                     String longTermIndexName,
                                      TimeRange periodTimeRange,
                                      String searchString,
                                      boolean reverse,
-                                     PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
-
-        // https://wiki.apache.org/lucene-java/ImproveSearchingSpeed
-
-        IndexSearcher indexSearcher;
-        Searcher searcher = masterIndex.getSearcher();
-        indexSearcher = searcher.getIndexSearcher();
-
-
-        int maxTotalHits = Globals.getConfig().getMaxTotalHit_MasterIndex();
-
-
-        // TODO Change the following
-        if (limit <= 0) limit = Integer.MAX_VALUE;
-
-        int soFarCount = 0;
-        Sort sort = MasterIndexRecord.buildSort_receiveTimeDriving(reverse);
-        ScoreDoc lastScoreDoc = null;
-        int totalRead = maxTotalHits; // just to let enter in the following loop
-        if (indexSearcher != null) {
-            while (doRun && (totalRead >= maxTotalHits) && (soFarCount < limit)) {
-                TopDocs results;
-
-                results = indexSearcher.searchAfter(lastScoreDoc, indexQuery, maxTotalHits, sort);
-
-                totalRead = results.scoreDocs.length;
-
-                for (ScoreDoc scoreDoc : results.scoreDocs) {
-                    lastScoreDoc = scoreDoc;
-                    Document doc = indexSearcher.doc(scoreDoc.doc);
-                    MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
-                    soFarCount = searchInLongTermIndex(indexBaseDirectory,
-                            masterIndexRecord.getLongTermIndexName(),
-                            periodTimeRange,
-                            searchString,
-                            reverse,
-                            client,
-                            limit,
-                            soFarCount);
-                    if ( !doRun || !(soFarCount < limit) )
-                    {
-                        break;
-                    }
-
-                }
-            }
-        }
-    }
-
-    private int searchInLongTermIndex(String indexBaseDirectory,
-                                       String longTermIndexName,
-                                       TimeRange periodTimeRange,
-                                       String searchString,
-                                       boolean reverse,
-                                       PrintWriter client,
-                                       int limit,
-                                       int soFarCount) throws IOException, QueryNodeException, ParseException {
+                                     PrintWriter client,
+                                     int limit,
+                                     int soFarCount) throws IOException, QueryNodeException, ParseException {
 
 
         String indexNamePath = indexBaseDirectory + File.separator + longTermIndexName;
