@@ -13,7 +13,7 @@ public class AppException extends java.lang.Exception {
         super(problemDetail, cause);
     }
 
-    public AppException(ReflectiveOperationException e) {
+    public AppException(Throwable e) {
         super(e.getClass().getSimpleName(), e);
     }
 }

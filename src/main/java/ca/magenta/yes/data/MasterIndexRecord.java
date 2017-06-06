@@ -1,77 +1,22 @@
 package ca.magenta.yes.data;
 
-//import ca.magenta.utils.AppException;
-//import ca.magenta.utils.TimeRange;
-//import ca.magenta.yes.Globals;
-//import ca.magenta.yes.Yes;
-//import org.apache.lucene.document.Document;
-//import org.apache.lucene.document.Field;
-//import org.apache.lucene.document.LongPoint;
-//import org.apache.lucene.document.StringField;
-//import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
-//import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
-//import org.apache.lucene.search.*;
-//import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MasterIndexRecord {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(MasterIndexRecord.class.getName());
 
-//    static final String OLDER_SOURCE_TIMESTAMP_FIELD_NAME = "olderSrcTimestamp";
-//    static final String NEWER_SOURCE_TIMESTAMP_FIELD_NAME = "newerSrcTimestamp";
-//    static final String OLDER_RECEIVE_TIMESTAMP_FIELD_NAME = "olderRxTimestamp";
-//    static final String NEWER_RECEIVE_TIMESTAMP_FIELD_NAME = "newerRxTimestamp";
-//    private static final String RUN_START_TIMESTAMP_FIELD_NAME = "runStartTimestamp";
-//    private static final String RUN_END_TIMESTAMP_FIELD_NAME = "runEndTimestamp";
-//    static final String PARTITION_FIELD_NAME = "partition";
-//    private static final String LONG_TERM_INDEX_NAME_FIELD_NAME = "longTermIndexName";
-
+    static final int PARTITION_NAME_MAX_LENGTH = 20;
 
     private final RuntimeTimestamps runtimeTimestamps;
     private final String longTermIndexName;
     private final String partitionName;
-
-//    public MasterIndexRecord(Document masterIndexDoc) {
-//
-//        runtimeTimestamps = new RuntimeTimestamps(
-//                Long.valueOf(masterIndexDoc.get(OLDER_SOURCE_TIMESTAMP_FIELD_NAME)),
-//                Long.valueOf(masterIndexDoc.get(NEWER_SOURCE_TIMESTAMP_FIELD_NAME)),
-//                Long.valueOf(masterIndexDoc.get(OLDER_RECEIVE_TIMESTAMP_FIELD_NAME)),
-//                Long.valueOf(masterIndexDoc.get(NEWER_RECEIVE_TIMESTAMP_FIELD_NAME)),
-//                Long.valueOf(masterIndexDoc.get(RUN_START_TIMESTAMP_FIELD_NAME)),
-//                Long.valueOf(masterIndexDoc.get(RUN_END_TIMESTAMP_FIELD_NAME))
-//        );
-//
-//        this.longTermIndexName = masterIndexDoc.get(LONG_TERM_INDEX_NAME_FIELD_NAME);
-//        this.partitionName = masterIndexDoc.get(PARTITION_FIELD_NAME);
-//    }
 
     public MasterIndexRecord(String longTermIndexName, String partitionName, RuntimeTimestamps runtimeTimestamps) {
         this.longTermIndexName = longTermIndexName;
         this.partitionName = partitionName;
         this.runtimeTimestamps = runtimeTimestamps;
     }
-
-
-//    Document toDocument() throws AppException {
-//
-//        Document document = new Document();
-//
-//        LuceneTools.storeSortedNumericDocValuesField(document, OLDER_SOURCE_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getOlderSrcTimestamp());
-//        LuceneTools.storeSortedNumericDocValuesField(document, NEWER_SOURCE_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getNewerSrcTimestamp());
-//        LuceneTools.storeSortedNumericDocValuesField(document, OLDER_RECEIVE_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getOlderRxTimestamp());
-//        LuceneTools.storeSortedNumericDocValuesField(document, NEWER_RECEIVE_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getNewerRxTimestamp());
-//        LuceneTools.storeSortedNumericDocValuesField(document, RUN_START_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getRunStartTimestamp());
-//        LuceneTools.storeSortedNumericDocValuesField(document, RUN_END_TIMESTAMP_FIELD_NAME, runtimeTimestamps.getRunEndTimestamp());
-//
-//        LuceneTools.luceneStoreNonTokenizedString(document, PARTITION_FIELD_NAME, partitionName);
-//
-//        document.add(new StringField(LONG_TERM_INDEX_NAME_FIELD_NAME, longTermIndexName, Field.Store.YES));
-//
-//        return document;
-//    }
-
 
     @Override
     public String toString() {
@@ -98,96 +43,6 @@ public class MasterIndexRecord {
     String getPartitionName() {
         return partitionName;
     }
-
-
-//    public static BooleanQuery buildSearchStringForTimeRangeAndPartition(Globals.DrivingTimestamp drivingTimestamp,
-//                                                                         String partition, TimeRange periodTimeRange) {
-//
-//        if (drivingTimestamp == Globals.DrivingTimestamp.SOURCE_TIME)
-//        {
-//            return buildSearchStringForTimeRangeAndPartition(partition,
-//                    periodTimeRange,
-//                    OLDER_SOURCE_TIMESTAMP_FIELD_NAME,
-//                    NEWER_SOURCE_TIMESTAMP_FIELD_NAME);
-//        }
-//        else
-//        {
-//            return buildSearchStringForTimeRangeAndPartition(partition,
-//                    periodTimeRange,
-//                    OLDER_RECEIVE_TIMESTAMP_FIELD_NAME,
-//                    NEWER_RECEIVE_TIMESTAMP_FIELD_NAME);
-//        }
-//    }
-//
-//    private static BooleanQuery buildSearchStringForTimeRangeAndPartition(String partition,
-//                                                                          TimeRange periodTimeRange,
-//                                                                          String olderTimestampFieldName,
-//                                                                          String newerTimestampFieldName) {
-//
-//        // Files containing range at the end : left part
-//        // olderRxTimestamp <= OlderTimeRange <= newerRxTimestamp
-//        BooleanQuery bMasterSearchLeftPart = new BooleanQuery.Builder().
-//                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
-//                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-//                build();
-//
-//
-//        // Range completely enclose the files range: middle part
-//        // OlderTimeRange <= olderRxTimestamp AND newerRxTimestamp <= NewerTimeRange
-//        BooleanQuery bMasterSearchMiddlePart = new BooleanQuery.Builder().
-//                add(LongPoint.newRangeQuery(olderTimestampFieldName, periodTimeRange.getOlderTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-//                add(LongPoint.newRangeQuery(newerTimestampFieldName, 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
-//                build();
-//
-//
-//        // Files containing range at the beginning : right part
-//        // olderRxTimestamp <= NewerTimeRange <= newerRxTimestamp
-//        BooleanQuery bMasterSearchRightPart = new BooleanQuery.Builder().
-//                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getNewerTime()), BooleanClause.Occur.MUST).
-//                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-//                build();
-//
-//        // File range completely enclose the range: narrow part
-//        // olderRxTimestamp <= OlderTimeRange AND NewerTimeRange <= newerRxTimestamp
-//        BooleanQuery bMasterSearchNarrowPart = new BooleanQuery.Builder().
-//                add(LongPoint.newRangeQuery(olderTimestampFieldName, 0, periodTimeRange.getOlderTime()), BooleanClause.Occur.MUST).
-//                add(LongPoint.newRangeQuery(newerTimestampFieldName, periodTimeRange.getNewerTime(), Long.MAX_VALUE), BooleanClause.Occur.MUST).
-//                build();
-//
-//
-//        BooleanQuery.Builder timeBooleanQueryBuilder = new BooleanQuery.Builder();
-//        timeBooleanQueryBuilder.add(bMasterSearchLeftPart, BooleanClause.Occur.SHOULD).
-//                add(bMasterSearchMiddlePart, BooleanClause.Occur.SHOULD).
-//                add(bMasterSearchRightPart, BooleanClause.Occur.SHOULD).
-//                add(bMasterSearchNarrowPart, BooleanClause.Occur.SHOULD);
-//
-//
-//        BooleanQuery.Builder returnedBooleanQueryBuilder;
-//
-//        if (partition != null) {
-//            returnedBooleanQueryBuilder = new BooleanQuery.Builder();
-//            StandardQueryParser queryParserHelper = new StandardQueryParser();
-//            Query partitionQuery = null;
-//            try {
-//                partitionQuery = queryParserHelper.parse(String.format("%s:%s", PARTITION_FIELD_NAME, partition), PARTITION_FIELD_NAME);
-//                returnedBooleanQueryBuilder.add(partitionQuery, BooleanClause.Occur.MUST);
-//            } catch (QueryNodeException e) {
-//                logger.error(e.getClass().getSimpleName(),e);
-//            }
-//            returnedBooleanQueryBuilder.add(timeBooleanQueryBuilder.build(),BooleanClause.Occur.MUST);
-//        }
-//        else
-//        {
-//            returnedBooleanQueryBuilder = timeBooleanQueryBuilder;
-//        }
-//
-//        return returnedBooleanQueryBuilder.build();
-//
-//    }
-//
-//    public static Sort buildSort_receiveTimeDriving(boolean reverse) {
-//        return new Sort(new SortedNumericSortField(OLDER_RECEIVE_TIMESTAMP_FIELD_NAME, SortField.Type.LONG, reverse));
-//    }
 
     public static class RuntimeTimestamps {
 
@@ -237,27 +92,27 @@ public class MasterIndexRecord {
                 newerRxTimestamp = rxTimestamp;
         }
 
-        public long getOlderSrcTimestamp() {
+        long getOlderSrcTimestamp() {
             return olderSrcTimestamp;
         }
 
-        public long getNewerSrcTimestamp() {
+        long getNewerSrcTimestamp() {
             return newerSrcTimestamp;
         }
 
-        public long getOlderRxTimestamp() {
+        long getOlderRxTimestamp() {
             return olderRxTimestamp;
         }
 
-        public long getNewerRxTimestamp() {
+        long getNewerRxTimestamp() {
             return newerRxTimestamp;
         }
 
-        public long getRunStartTimestamp() {
+        long getRunStartTimestamp() {
             return runStartTimestamp;
         }
 
-        public long getRunEndTimestamp() {
+        long getRunEndTimestamp() {
             return runEndTimestamp;
         }
 

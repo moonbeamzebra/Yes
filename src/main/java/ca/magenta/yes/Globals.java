@@ -5,10 +5,14 @@ import ca.magenta.yes.api.TCPAPIServer;
 import ca.magenta.yes.connector.ConnectorManager;
 import ca.magenta.yes.connector.common.IndexPublisher;
 import ca.magenta.yes.data.MasterIndex;
+import ca.magenta.yes.data.MasterIndexJdbc;
+import ca.magenta.yes.data.MasterIndexLucene;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.UnknownHostException;
 
 @Component
@@ -61,15 +65,33 @@ public class Globals {
 
     static void startEverything() throws AppException {
 
-        startMasterIndex();
+        startMasterIndex(Globals.getConfig().getMasterIndexEndpoint());
         startIndexPublisher();
         startAPIServer();
         startConnectorManager();
 
     }
 
-    private static void startMasterIndex() throws AppException {
-        masterIndex = MasterIndex.getInstance();
+    private static void startMasterIndex(String masterIndexEndpoint) throws AppException {
+        try {
+            masterIndexEndpoint = masterIndexEndpoint.trim();
+            if (masterIndexEndpoint.startsWith("file+lucene")) {
+                masterIndexEndpoint = masterIndexEndpoint.replace("file+lucene", "file");
+                URL url = new URL(masterIndexEndpoint);
+                masterIndex = MasterIndexLucene.getInstance(url.getPath());
+            }
+            else if (masterIndexEndpoint.startsWith("jdbc")) {
+                masterIndex = MasterIndexJdbc.getInstance(masterIndexEndpoint);
+            }
+            else
+            {
+                throw new AppException(String.format("Unknown protocol for master index manipulation: [%s]", masterIndexEndpoint));
+            }
+        }
+        catch (MalformedURLException e)
+        {
+            throw new AppException(e);
+        }
     }
 
 

@@ -18,6 +18,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotNull;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,10 +26,10 @@ import java.util.List;
 @ConfigurationProperties(prefix = "ca.magenta.yes", ignoreUnknownFields = false)
 public class Config {
 
-
+    @NotNull
+    private String masterIndexEndpoint;
 
     @NotNull
-    //private String genericConnectorPorts;
     private List<String> genericConnectorPorts = new ArrayList<String>();
 
     @NotNull
@@ -58,13 +59,13 @@ public class Config {
     @NotNull
     private String environment;
 
-//    public String getGenericConnectorPorts() {
-//        return genericConnectorPorts;
-//    }
-//
-//    public void setGenericConnectorPorts(String genericConnectorPorts) {
-//        this.genericConnectorPorts = genericConnectorPorts;
-//    }
+    public String getMasterIndexEndpoint() {
+        return masterIndexEndpoint;
+    }
+
+    public void setMasterIndexEndpoint(String masterIndexEndpoint) {
+        this.masterIndexEndpoint = masterIndexEndpoint;
+    }
 
     public List<String> getGenericConnectorPorts() {
         return genericConnectorPorts;
