@@ -21,11 +21,16 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
 
     private final MasterIndex masterIndex;
 
+    private final LongTermIndexPublisher longTermIndexPublisher;
+
     LongTermProcessorMgmt(MasterIndex masterIndex, String name, long cuttingTime, Partition partition) {
         super(name, partition,
                 (new StringBuilder()).append(LongTermProcessor.SHORT_NAME).append('-').append(partition.getInstanceName()).toString(),cuttingTime);
 
         this.masterIndex = masterIndex;
+
+
+        this.longTermIndexPublisher = new LongTermIndexPublisher(name, partition,masterIndex);
     }
 
     @Override
@@ -36,21 +41,36 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
     synchronized void publishIndex(Processor longTermProcessor,
                                    String indexPath,
                                    String relativePath,
-                                   String indexPathName) throws IOException, AppException {
-        String publishedFileName = NormalizedMsgRecord.forgePublishedFileName(relativePath, partition, longTermProcessor.getRuntimeTimestamps());
-        String newIndexPathName = indexPath + File.separator + publishedFileName;
-        File dir = new File(indexPathName);
-        File newDirName = new File(newIndexPathName);
-        if (dir.isDirectory()) {
-            if (dir.renameTo(newDirName)) {
-                masterIndex.addRecord(new MasterIndexRecord(publishedFileName, partition.getName(), longTermProcessor.getRuntimeTimestamps()));
-                logger.info(String.format("Index [%s] published", publishedFileName));
-            } else {
-                logger.error(String.format("Cannot rename [%s to %s]", indexPathName, newIndexPathName));
-            }
-        } else {
-            logger.error(String.format("Unexpected error; [%s] is not a directory", newIndexPathName));
+                                   String tempIndexPathName) throws IOException, AppException {
+
+        LongTermIndexPublisher.Package publishPackage = new LongTermIndexPublisher.Package(
+                longTermProcessor.luceneIndexWriter,
+                indexPath,
+                relativePath,
+                tempIndexPathName,
+                longTermProcessor.getRuntimeTimestamps());
+
+        try {
+            longTermIndexPublisher.putInQueue(publishPackage);
+        } catch (InterruptedException e) {
+            logger.error("InterruptedException", e);
         }
+
+
+//        String publishedFileName = NormalizedMsgRecord.forgePublishedFileName(relativePath, partition, longTermProcessor.getRuntimeTimestamps());
+//        String newIndexPathName = indexPath + File.separator + publishedFileName;
+//        File dir = new File(tempIndexPathName);
+//        File newDirName = new File(newIndexPathName);
+//        if (dir.isDirectory()) {
+//            if (dir.renameTo(newDirName)) {
+//                masterIndex.addRecord(new MasterIndexRecord(publishedFileName, partition.getName(), longTermProcessor.getRuntimeTimestamps()));
+//                logger.info(String.format("Index [%s] published", publishedFileName));
+//            } else {
+//                logger.error(String.format("Cannot rename [%s to %s]", tempIndexPathName, newIndexPathName));
+//            }
+//        } else {
+//            logger.error(String.format("Unexpected error; [%s] is not a directory", newIndexPathName));
+//        }
     }
 
     synchronized void deleteUnusedIndex(String indexPathName) {
@@ -83,11 +103,38 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
 
     @Override
     public boolean isEndDrainsCanDrain(Runner callerRunner) {
-        return isLocalQueueCanDrain(callerRunner);
+
+        if (isLocalQueueCanDrain(callerRunner))
+        {
+            return longTermIndexPublisher.isEndDrainsCanDrain(callerRunner);
+        }
+
+        return false;
     }
 
     @Override
     protected String getShortName() {
         return SHORT_NAME;
     }
+
+    @Override
+    public synchronized void startInstance() throws AppException {
+
+        longTermIndexPublisher.startInstance();
+
+        super.startInstance();
+    }
+
+    @Override
+    public synchronized void stopInstance() {
+        super.stopInstance();
+
+        longTermIndexPublisher.letDrain();
+
+        longTermIndexPublisher.gentlyStopInstance(2000);
+
+        longTermIndexPublisher.stopInstance();
+
+    }
+
 }

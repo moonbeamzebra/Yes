@@ -46,12 +46,16 @@ public abstract class ProcessorMgmt extends QueueProcessor {
         try {
             DAY_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
 
-            Processor processor = createProcessor(inputQueue, queueDepth);
-
-            logger.info(String.format("[%s] started for partition [%s]", this.getClass().getSimpleName(), partition));
+            logger.info(String.format("[%s] started for partition [%s]", this.getClass().getSimpleName(), partition.getInstanceName()));
 
 
+            //Processor processor = createProcessor(inputQueue, queueDepth);
+            Processor processor = null;
+
+
+            long hiWaterMarkQueueLength = 0;
             while (doRun || (!inputQueue.isEmpty())) {
+                processor = createProcessor(inputQueue, queueDepth);
                 String relativePathName = forgeRelativePathName();
                 //String relativePathName = partition + File.separator + DAY_FORMAT.format(System.currentTimeMillis());
                 String basePath = Globals.getConfig().getIndexBaseDirectory();
@@ -84,11 +88,12 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                 }
                 if (logger.isDebugEnabled())
                     logger.debug("Stopped");
-                if (this instanceof LongTermProcessorMgmt)
-                    processor.printReport();
+                if (this instanceof LongTermProcessorMgmt) {
+                    hiWaterMarkQueueLength = processor.printReport(hiWaterMarkQueueLength);
+                }
 
                 try {
-                    processor.commitAndClose();
+                    //processor.commitAndClose();
                     long count = processor.getThisRunCount();
                     if (count > 0) {
                         publishIndex(processor, basePath, relativePathName, tempIndexPathName);
@@ -96,7 +101,9 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                         deleteUnusedIndex(tempIndexPathName);
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    logger.error(e.getClass().getSimpleName(), e);
+                } catch (Throwable e) {
+                    logger.error(e.getClass().getSimpleName(), e);
                 }
 
             }
@@ -104,7 +111,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
             logger.error("AppException", e);
         }
 
-        logger.info(String.format("[%s] stopped for partition [%s]", this.getClass().getSimpleName(), partition));
+        logger.info(String.format("[%s] stopped for partition [%s]", this.getClass().getSimpleName(), partition.getInstanceName()));
 
     }
 

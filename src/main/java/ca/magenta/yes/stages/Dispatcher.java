@@ -44,7 +44,7 @@ public class Dispatcher extends QueueProcessor {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        logger.info(String.format("New Dispatcher running for partition [%s]", partition));
+        logger.info(String.format("New Dispatcher running for partition [%s]", partition.getInstanceName()));
         count = 0;
         long startTime = System.currentTimeMillis();
         long previousNow = startTime;
@@ -112,7 +112,7 @@ public class Dispatcher extends QueueProcessor {
                 logger.error("InterruptedException", e);
         }
 
-        longTermProcessorMgmt.stopInstance();
+        //longTermProcessorMgmt.stopInstance();
     }
 
     public void putInQueue(String jsonMsg) throws InterruptedException {

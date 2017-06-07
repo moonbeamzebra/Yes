@@ -16,7 +16,7 @@ import java.util.concurrent.BlockingQueue;
 
 public abstract class Processor implements Runnable {
 
-    private static final Logger logger = LoggerFactory.getLogger(Processor.class.getPackage().getName());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private final Partition partition;
 
@@ -31,7 +31,7 @@ public abstract class Processor implements Runnable {
     private MasterIndexRecord.RuntimeTimestamps runtimeTimestamps;
     private final int queueDepth;
     private final long startTime;
-    private long hiWaterMarkQueueLength = 0;
+    //private long hiWaterMarkQueueLength = 0;
     private long previousNow = System.currentTimeMillis();
 
     private long count = 0;
@@ -64,6 +64,7 @@ public abstract class Processor implements Runnable {
         runtimeTimestamps = new MasterIndexRecord.RuntimeTimestamps();
         try {
 
+            long hiWaterMarkQueueLength = 0;
             while (doRun || !inputQueue.isEmpty()) {
                 NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
                 if (normalizedMsgRecord != null) {
@@ -80,10 +81,13 @@ public abstract class Processor implements Runnable {
 
                     } catch (AppException e) {
                         logger.error("AppException", e);
+                    } catch (Throwable e) {
+                        logger.error(e.getClass().getSimpleName(), e);
                     }
 
+
                     if (reportCount == printEvery) {
-                        printReport();
+                        hiWaterMarkQueueLength = printReport(hiWaterMarkQueueLength);
                     }
                 }
             }
@@ -94,6 +98,7 @@ public abstract class Processor implements Runnable {
             else if (logger.isDebugEnabled())
                 logger.debug("Processor manager asked to stop!");
         }
+
         runtimeTimestamps.setRunEndTimestamp(System.currentTimeMillis());
     }
 
@@ -103,7 +108,7 @@ public abstract class Processor implements Runnable {
 
     }
 
-    synchronized void printReport() {
+    synchronized long printReport(long hiWaterMarkQueueLength) {
         long queueLength = inputQueue.size();
         if (queueLength > hiWaterMarkQueueLength)
             hiWaterMarkQueueLength = queueLength;
@@ -135,6 +140,8 @@ public abstract class Processor implements Runnable {
         }
         previousNow = now;
         reportCount = 0;
+
+        return hiWaterMarkQueueLength;
 
     }
 

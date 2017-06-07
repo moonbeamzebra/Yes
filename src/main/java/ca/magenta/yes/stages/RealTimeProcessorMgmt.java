@@ -9,6 +9,7 @@ import ca.magenta.yes.data.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -44,16 +45,21 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
     }
 
     @Override
-    synchronized void publishIndex(Processor RealTimeProcessor,
+    synchronized void publishIndex(Processor realTimeProcessor,
                               String indexPath,
                               String today,
                               String indexPathName)
     {
+
         try {
+            realTimeProcessor.commitAndClose();
+
             //logger.info("indexPublisher.publish");
-            indexPublisher.publish(RealTimeProcessor.getIndexDir());
+            indexPublisher.publish(realTimeProcessor.getIndexDir());
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error("InterruptedException", e);
+        } catch (IOException e) {
+            logger.error("IOException", e);
         }
     }
 

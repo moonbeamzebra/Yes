@@ -37,7 +37,7 @@ public class LogParser extends QueueProcessor {
 
     public void run() {
 
-        logger.info(String.format("LogParser start running for partition [%s]", partition));
+        logger.info(String.format("LogParser start running for partition [%s]", partition.getInstanceName()));
 
         ObjectMapper objectMapper = new ObjectMapper();
 

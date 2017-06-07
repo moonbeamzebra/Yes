@@ -18,6 +18,9 @@ import java.sql.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
+// mvn install:install-file -Dfile=src/main/resources/postgresql-42.1.1.jar -DgroupId=postgresql -DartifactId=postgresql -Dversion=42.1.1 -Dpackaging=jar
+
 // https://www.cockroachlabs.com/docs/start-a-local-cluster-in-docker.html#os-linux
 // https://www.cockroachlabs.com/docs/build-a-java-app-with-cockroachdb.html
 // docker exec -it roach1 ./cockroach user set yesuser --insecure

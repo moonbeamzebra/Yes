@@ -28,15 +28,20 @@ abstract public class Runner extends Thread {
         logger.debug(String.format("%s [%s] started", this.getClass().getSimpleName(), this.getName()));
     }
 
-    public void gentlyStopInstance() {
+    public void gentlyStopInstance(long millis) {
         doRun = false;
         try {
-            this.join(500);
+            logger.info(String.format("%s [%s] gently ask to stop; wait %d millis", this.getClass().getSimpleName(), this.getName(), millis));
+            this.join(millis);
         } catch (InterruptedException e) {
             logger.error("InterruptedException", e);
         }
 
         logger.debug(String.format("%s [%s] gently ask to stop", this.getClass().getSimpleName(), this.getName()));
+    }
+
+    public void gentlyStopInstance() {
+        gentlyStopInstance(500);
     }
 
     public synchronized void stopInstance() {
