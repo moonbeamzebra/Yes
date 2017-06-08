@@ -46,7 +46,6 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
     @Override
     synchronized void publishIndex(Processor realTimeProcessor,
-                              String indexPath,
                               String today,
                               String indexPathName)
     {

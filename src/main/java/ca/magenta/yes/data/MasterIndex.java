@@ -31,7 +31,6 @@ public abstract class MasterIndex {
     abstract public void addRecord(MasterIndexRecord masterIndexRecord) throws AppException;
 
     abstract public void search(LongTermReader longTermReader,
-                       String indexBaseDirectory,
                        String partition,
                        TimeRange periodTimeRange,
                        int limit,

@@ -2,6 +2,7 @@ package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
+import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -39,13 +40,12 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
     }
 
     synchronized void publishIndex(Processor longTermProcessor,
-                                   String indexPath,
                                    String relativePath,
                                    String tempIndexPathName) throws IOException, AppException {
 
         LongTermIndexPublisher.Package publishPackage = new LongTermIndexPublisher.Package(
                 longTermProcessor.luceneIndexWriter,
-                indexPath,
+                Globals.getConfig().getLtIndexBaseDirectory(),
                 relativePath,
                 tempIndexPathName,
                 longTermProcessor.getRuntimeTimestamps());
@@ -55,22 +55,6 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
         } catch (InterruptedException e) {
             logger.error("InterruptedException", e);
         }
-
-
-//        String publishedFileName = NormalizedMsgRecord.forgePublishedFileName(relativePath, partition, longTermProcessor.getRuntimeTimestamps());
-//        String newIndexPathName = indexPath + File.separator + publishedFileName;
-//        File dir = new File(tempIndexPathName);
-//        File newDirName = new File(newIndexPathName);
-//        if (dir.isDirectory()) {
-//            if (dir.renameTo(newDirName)) {
-//                masterIndex.addRecord(new MasterIndexRecord(publishedFileName, partition.getName(), longTermProcessor.getRuntimeTimestamps()));
-//                logger.info(String.format("Index [%s] published", publishedFileName));
-//            } else {
-//                logger.error(String.format("Cannot rename [%s to %s]", tempIndexPathName, newIndexPathName));
-//            }
-//        } else {
-//            logger.error(String.format("Unexpected error; [%s] is not a directory", newIndexPathName));
-//        }
     }
 
     synchronized void deleteUnusedIndex(String indexPathName) {

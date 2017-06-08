@@ -125,7 +125,6 @@ public class MasterIndexLucene extends MasterIndex {
 
     @Override
     public void search(LongTermReader longTermReader,
-                       String indexBaseDirectory,
                        String partition,
                        TimeRange periodTimeRange,
                        int limit,
@@ -169,8 +168,7 @@ public class MasterIndexLucene extends MasterIndex {
                     lastScoreDoc = scoreDoc;
                     Document doc = indexSearcher.doc(scoreDoc.doc);
                     MasterIndexRecord masterIndexRecord = MasterIndexLucene.valueOf(doc);
-                    soFarCount = longTermReader.searchInLongTermIndex(indexBaseDirectory,
-                            masterIndexRecord.getLongTermIndexName(),
+                    soFarCount = longTermReader.searchInLongTermIndex(masterIndexRecord.getLongTermIndexName(),
                             periodTimeRange,
                             searchString,
                             reverse,

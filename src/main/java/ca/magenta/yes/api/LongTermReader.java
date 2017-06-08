@@ -36,7 +36,7 @@ public class LongTermReader extends Runner {
 
     private final PrintWriter client;
 
-    private final String indexBaseDirectory;
+    //private final String indexBaseDirectory;
     private final MasterIndex masterIndex;
 
 
@@ -60,7 +60,7 @@ public class LongTermReader extends Runner {
 
         super(name);
 
-        this.indexBaseDirectory = indexBaseDirectory;
+        //this.indexBaseDirectory = indexBaseDirectory;
         this.periodTimeRange = periodTimeRange;
         this.partition = partition;
         this.limit = limit;
@@ -77,7 +77,7 @@ public class LongTermReader extends Runner {
         String errorMessage = "";
 
         try {
-            doLongTerm(indexBaseDirectory, periodTimeRange, partition, limit, searchString, reverse, client);
+            doLongTerm(periodTimeRange, partition, limit, searchString, reverse, client);
         } catch (IOException e) {
             logger.error("IOException", e);
             errorMessage = " ERROR: " + e.getMessage();
@@ -99,26 +99,15 @@ public class LongTermReader extends Runner {
         logger.info("IndexSubscriber " + this.getName() + " stops");
     }
 
-    synchronized  private void doLongTerm(String indexBaseDirectory,
-                                          TimeRange periodTimeRange,
+    synchronized  private void doLongTerm(TimeRange periodTimeRange,
                                           String partition,
                                           int limit,
                                           String searchString,
                                           boolean reverse,
                                           PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
 
-//        BooleanQuery bMasterSearch =
-//                MasterIndexRecord.buildSearchStringForTimeRangeAndPartition(Globals.DrivingTimestamp.RECEIVE_TIME,
-//                        partition,
-//                        periodTimeRange);
-//
-//        logger.info("TimeRange Search String In MasterIndex: " + bMasterSearch.toString());
-//
-//
-//        searchInMasterIndex(indexBaseDirectory, limit, bMasterSearch, periodTimeRange, searchString, reverse, client);
 
         masterIndex.search(this,
-                indexBaseDirectory,
                 partition,
                 periodTimeRange,
                 limit,
@@ -127,63 +116,8 @@ public class LongTermReader extends Runner {
                 client);
     }
 
-//    private void searchInMasterIndex(String indexBaseDirectory,
-//                                     int limit,
-//                                     Query indexQuery,
-//                                     TimeRange periodTimeRange,
-//                                     String searchString,
-//                                     boolean reverse,
-//                                     PrintWriter client) throws IOException, QueryNodeException, ParseException, AppException {
-//
-//        // https://wiki.apache.org/lucene-java/ImproveSearchingSpeed
-//
-//        IndexSearcher indexSearcher;
-//        Searcher searcher = masterIndex.getSearcher();
-//        indexSearcher = searcher.getIndexSearcher();
-//
-//
-//        int maxTotalHits = Globals.getConfig().getMaxTotalHit_MasterIndex();
-//
-//
-//        // TODO Change the following
-//        if (limit <= 0) limit = Integer.MAX_VALUE;
-//
-//        int soFarCount = 0;
-//        Sort sort = MasterIndexRecord.buildSort_receiveTimeDriving(reverse);
-//        ScoreDoc lastScoreDoc = null;
-//        int totalRead = maxTotalHits; // just to let enter in the following loop
-//        if (indexSearcher != null) {
-//            while (doRun && (totalRead >= maxTotalHits) && (soFarCount < limit)) {
-//                TopDocs results;
-//
-//                results = indexSearcher.searchAfter(lastScoreDoc, indexQuery, maxTotalHits, sort);
-//
-//                totalRead = results.scoreDocs.length;
-//
-//                for (ScoreDoc scoreDoc : results.scoreDocs) {
-//                    lastScoreDoc = scoreDoc;
-//                    Document doc = indexSearcher.doc(scoreDoc.doc);
-//                    MasterIndexRecord masterIndexRecord = new MasterIndexRecord(doc);
-//                    soFarCount = searchInLongTermIndex(indexBaseDirectory,
-//                            masterIndexRecord.getLongTermIndexName(),
-//                            periodTimeRange,
-//                            searchString,
-//                            reverse,
-//                            client,
-//                            limit,
-//                            soFarCount);
-//                    if ( !doRun || !(soFarCount < limit) )
-//                    {
-//                        break;
-//                    }
-//
-//                }
-//            }
-//        }
-//    }
 
-    public int searchInLongTermIndex(String indexBaseDirectory,
-                                     String longTermIndexName,
+    public int searchInLongTermIndex(String longTermIndexName,
                                      TimeRange periodTimeRange,
                                      String searchString,
                                      boolean reverse,
@@ -192,7 +126,7 @@ public class LongTermReader extends Runner {
                                      int soFarCount) throws IOException, QueryNodeException, ParseException {
 
 
-        String indexNamePath = indexBaseDirectory + File.separator + longTermIndexName;
+        String indexNamePath = Globals.getConfig().getLtIndexBaseDirectory() + File.separator + longTermIndexName;
 
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
         IndexSearcher searcher = new IndexSearcher(reader);

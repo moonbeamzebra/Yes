@@ -57,9 +57,8 @@ public abstract class ProcessorMgmt extends QueueProcessor {
             while (doRun || (!inputQueue.isEmpty())) {
                 processor = createProcessor(inputQueue, queueDepth);
                 String relativePathName = forgeRelativePathName();
-                //String relativePathName = partition + File.separator + DAY_FORMAT.format(System.currentTimeMillis());
-                String basePath = Globals.getConfig().getIndexBaseDirectory();
-                String tempIndexPathName = NormalizedMsgRecord.forgeTempIndexName(basePath, relativePathName, this.getClass().getSimpleName());
+                String baseTmpPath = Globals.getConfig().getTmpIndexBaseDirectory();
+                String tempIndexPathName = NormalizedMsgRecord.forgeTempIndexName(baseTmpPath, relativePathName, this.getClass().getSimpleName());
                 processor.createIndex(tempIndexPathName);
                 Thread processorThread = new Thread(processor, this.processorThreadName);
                 processorThread.start();
@@ -96,7 +95,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                     //processor.commitAndClose();
                     long count = processor.getThisRunCount();
                     if (count > 0) {
-                        publishIndex(processor, basePath, relativePathName, tempIndexPathName);
+                        publishIndex(processor, relativePathName, tempIndexPathName);
                     } else {
                         deleteUnusedIndex(tempIndexPathName);
                     }
@@ -125,7 +124,6 @@ public abstract class ProcessorMgmt extends QueueProcessor {
     };
 
     abstract void publishIndex(Processor processor,
-                               String indexPath,
                                String today,
                                String indexPathName) throws IOException, AppException;
 

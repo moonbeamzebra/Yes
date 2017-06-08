@@ -132,7 +132,6 @@ public class MasterIndexJdbc extends MasterIndex {
 
     @Override
     public void search(LongTermReader longTermReader,
-                       String indexBaseDirectory,
                        String partition,
                        TimeRange periodTimeRange,
                        int limit,
@@ -161,8 +160,7 @@ public class MasterIndexJdbc extends MasterIndex {
                 while (longTermReader.isDoRun() && rs.next() && (soFarCount < limit)) {
                     MasterIndexRecord masterIndexRecord = MasterIndexJdbc.valueOf(rs);
                     //System.out.println(masterIndexRecord.toString());
-                    soFarCount = longTermReader.searchInLongTermIndex(indexBaseDirectory,
-                            masterIndexRecord.getLongTermIndexName(),
+                    soFarCount = longTermReader.searchInLongTermIndex(masterIndexRecord.getLongTermIndexName(),
                             periodTimeRange,
                             searchString,
                             reverse,

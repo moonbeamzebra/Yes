@@ -44,6 +44,13 @@ public class Config {
     @NotNull
     private String indexBaseDirectory;
 
+
+    @NotNull
+    private String tmpIndexBaseDirectory;
+
+    @NotNull
+    private String ltIndexBaseDirectory;
+
     private int processorQueueDepth = 300000;
 
     private int logParserQueueDepth = 1000;
@@ -89,6 +96,22 @@ public class Config {
 
     public void setIndexBaseDirectory(String indexBaseDirectory) {
         this.indexBaseDirectory = indexBaseDirectory;
+    }
+
+    public String getTmpIndexBaseDirectory() {
+        return tmpIndexBaseDirectory;
+    }
+
+    public void setTmpIndexBaseDirectory(String tmpIndexBaseDirectory) {
+        this.tmpIndexBaseDirectory = tmpIndexBaseDirectory;
+    }
+
+    public String getLtIndexBaseDirectory() {
+        return ltIndexBaseDirectory;
+    }
+
+    public void setLtIndexBaseDirectory(String ltIndexBaseDirectory) {
+        this.ltIndexBaseDirectory = ltIndexBaseDirectory;
     }
 
     public int getRealTimeCuttingTime() {
