@@ -49,7 +49,6 @@ public class LongTermReader extends Runner {
 
 
     LongTermReader(String name,
-                   String indexBaseDirectory,
                    TimeRange periodTimeRange,
                    String partition,
                    int limit,

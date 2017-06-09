@@ -34,20 +34,22 @@ public class MasterIndexLucene extends MasterIndex {
 
     private Searcher searcher = null;
 
-    public static MasterIndex getInstance(String masterIndexEndpoint) throws AppException {
+    public static MasterIndex getInstance(String masterIndexPathName) throws AppException {
         if (instance == null) {
-            instance = new MasterIndexLucene();
+            instance = new MasterIndexLucene(masterIndexPathName);
         }
         return instance;
     }
 
-    private MasterIndexLucene() throws AppException {
+    private MasterIndexLucene(String masterIndexPathName) throws AppException {
         super();
-        String masterIndexPathName = Globals.getConfig().getIndexBaseDirectory() +
+        String fullMasterIndexPathName = masterIndexPathName +
                 File.separator +
                 "master.lucene";
 
-        indexWriter = openIndexWriter(masterIndexPathName);
+        logger.info(String.format("Lucene MasterIndex path: [%s]",fullMasterIndexPathName));
+
+        indexWriter = openIndexWriter(fullMasterIndexPathName);
 
         searcher = Searcher.getInstance(indexWriter, false);
 

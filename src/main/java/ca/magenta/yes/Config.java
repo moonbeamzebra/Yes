@@ -41,8 +41,8 @@ public class Config {
     // Default: 200 millliseconds
     private int realTimeCuttingTime = 200;
 
-    @NotNull
-    private String indexBaseDirectory;
+//    @NotNull
+//    private String indexBaseDirectory;
 
 
     @NotNull
@@ -90,13 +90,13 @@ public class Config {
         this.longTermCuttingTime = longTermCuttingTime;
     }
 
-    public String getIndexBaseDirectory() {
-        return indexBaseDirectory;
-    }
-
-    public void setIndexBaseDirectory(String indexBaseDirectory) {
-        this.indexBaseDirectory = indexBaseDirectory;
-    }
+//    public String getIndexBaseDirectory() {
+//        return indexBaseDirectory;
+//    }
+//
+//    public void setIndexBaseDirectory(String indexBaseDirectory) {
+//        this.indexBaseDirectory = indexBaseDirectory;
+//    }
 
     public String getTmpIndexBaseDirectory() {
         return tmpIndexBaseDirectory;

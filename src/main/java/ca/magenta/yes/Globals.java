@@ -125,7 +125,6 @@ public class Globals {
         if ((tcpAPIServer == null) || (!tcpAPIServer.isAlive())) {
             tcpAPIServer = new TCPAPIServer("single",
                     config.getApiServerPort(),
-                    config.getIndexBaseDirectory(),
                     masterIndex);
             tcpAPIServer.startServer();
         }

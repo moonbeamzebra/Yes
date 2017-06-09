@@ -23,14 +23,14 @@ public class APIServer extends AbstractTCPServerHandler {
 
     private static Logger logger = Logger.getLogger(APIServer.class);
 
-    private final String indexBaseDirectory;
+    //private final String indexBaseDirectory;
     private final MasterIndex masterIndex;
 
-    public APIServer(AbstractTCPServer tcpServer, String name, Socket handlerSocket, String indexBaseDirectory, MasterIndex masterIndex) {
+    public APIServer(AbstractTCPServer tcpServer, String name, Socket handlerSocket, MasterIndex masterIndex) {
 
         super(tcpServer, name, handlerSocket);
 
-        this.indexBaseDirectory = indexBaseDirectory;
+        //this.indexBaseDirectory = indexBaseDirectory;
         this.masterIndex = masterIndex;
     }
 
@@ -110,7 +110,6 @@ public class APIServer extends AbstractTCPServerHandler {
                     logger.info("reverse: " + reverse);
 
                     LongTermReader longTermReader = new LongTermReader(threadName,
-                            indexBaseDirectory,
                             periodTimeRange,
                             partition,
                             limit,

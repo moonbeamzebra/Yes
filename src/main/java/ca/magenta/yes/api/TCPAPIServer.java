@@ -13,14 +13,14 @@ public class TCPAPIServer extends AbstractTCPServer {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private final String indexBaseDirectory;
+    //private final String indexBaseDirectory;
     private final MasterIndex masterIndex;
 
 
-    public TCPAPIServer(String partitionName, int port, String indexBaseDirectory, MasterIndex masterIndex) {
+    public TCPAPIServer(String partitionName, int port, MasterIndex masterIndex) {
         super(partitionName, port);
 
-        this.indexBaseDirectory = indexBaseDirectory;
+        //this.indexBaseDirectory = indexBaseDirectory;
         this.masterIndex = masterIndex;
     }
 
@@ -33,7 +33,7 @@ public class TCPAPIServer extends AbstractTCPServer {
                 Socket socket = serverSocket.accept();
 
                 String nameStr = this.getName() + "-" + getClientCount();
-                APIServer apiServer = new APIServer(this, nameStr, socket, indexBaseDirectory, masterIndex);
+                APIServer apiServer = new APIServer(this, nameStr, socket, masterIndex);
                 addTcpServerHandler(apiServer);
                 apiServer.start();
             } catch (SocketException e) {
