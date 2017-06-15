@@ -57,7 +57,7 @@ public class LongTermProcessor extends Processor {
             indexWriter = new IndexWriter(indexDir, iwc);
 
         } catch (IOException e) {
-            throw new AppException(e.getMessage(), e);
+            throw new AppException(String.format("%s on %s",e.getMessage(), indexPath), e);
         }
 
         this.luceneIndexWriter = indexWriter;

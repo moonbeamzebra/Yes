@@ -379,7 +379,7 @@ public class NormalizedMsgRecord {
                 java.util.UUID.randomUUID();
     }
 
-    public static String forgePublishedFileName(String relativePath, Partition partition, MasterIndexRecord.RuntimeTimestamps runtimeTimestamps) {
+    public static String forgePublishedFileName(Partition partition, MasterIndexRecord.RuntimeTimestamps runtimeTimestamps) {
 
         String newFileName = String.format("%s-r%d-r%d-s%d-s%d.run.%d-%d.lucene",
                 partition.getInstanceName(),
@@ -389,9 +389,11 @@ public class NormalizedMsgRecord {
                 runtimeTimestamps.getNewerSrcTimestamp(),
                 runtimeTimestamps.getRunStartTimestamp(),
                 runtimeTimestamps.getRunEndTimestamp());
-        String todayAndNewFileName = relativePath + File.separator + newFileName;
 
-        return todayAndNewFileName;
+        return newFileName;
+//        String todayAndNewFileName = relativePath + File.separator + newFileName;
+//
+//        return todayAndNewFileName;
 
 
     }

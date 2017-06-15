@@ -1,5 +1,12 @@
 Branch 0.81-cleanup
 =============
+
+==============
+sudo diskutil erasevolume HFS+ 'RAMDisk' `hdiutil attach -nomount ram://1165430`
+mkdir /Volumes/RAMDisk/tmp
+
+==============
+
 java -jar ./target/ca.magenta.loggenerator-1.0-SNAPSHOT-jar-with-dependencies.jar \
 -msgServerAddr=127.0.0.1 \
 -msgServerPort=7540 \

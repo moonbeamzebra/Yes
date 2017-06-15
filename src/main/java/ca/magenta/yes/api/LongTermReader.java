@@ -127,6 +127,8 @@ public class LongTermReader extends Runner {
 
         String indexNamePath = Globals.getConfig().getLtIndexBaseDirectory() + File.separator + longTermIndexName;
 
+        logger.info(String.format("longTermIndexName: {%s}", indexNamePath));
+        logger.info(String.format("indexNamePath: {%s}", indexNamePath));
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
         IndexSearcher searcher = new IndexSearcher(reader);
 

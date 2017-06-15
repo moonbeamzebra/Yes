@@ -8,8 +8,8 @@ import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.data.Partition;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.FileUtils;
 import org.apache.lucene.index.IndexWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,44 +46,47 @@ public class LongTermIndexPublisher extends QueueProcessor {
             queueLength = inputQueue.size();
             if (queueLength > hiWaterMarkQueueLength)
                 hiWaterMarkQueueLength = queueLength;
-            Package aPackage = null;
+            Package aPackage;
             try {
                 aPackage = takeFromQueue();
 
                 aPackage.luceneIndexWriter.commit();
-                if (logger.isTraceEnabled())
-                {
+                if (logger.isTraceEnabled()) {
                     logger.trace("Index commited");
                 }
 
                 aPackage.luceneIndexWriter.close();
-                if (logger.isTraceEnabled())
-                {
+                if (logger.isTraceEnabled()) {
                     logger.trace("Index closed");
                 }
 
-
-                String publishedFileName = NormalizedMsgRecord.forgePublishedFileName(aPackage.relativePath, partition, aPackage.runtimeTimestamps);
-                String newIndexPathName = aPackage.indexPath + File.separator + publishedFileName;
-                File dir = new File(aPackage.tempIndexPathName);
+                String newIndexPath = aPackage.indexPath + File.separator + aPackage.relativePath;
+                String publishedFileName = NormalizedMsgRecord.forgePublishedFileName(partition, aPackage.runtimeTimestamps);
+                String newIndexPathName = newIndexPath + File.separator + publishedFileName;
+                File tmpDirName = new File(aPackage.tempIndexPathName);
+                File newDir = new File(newIndexPath);
                 File newDirName = new File(newIndexPathName);
-                if (dir.isDirectory()) {
-                    if (dir.renameTo(newDirName)) {
-                        masterIndex.addRecord(new MasterIndexRecord(publishedFileName, partition.getName(), aPackage.runtimeTimestamps));
-                        logger.info(String.format("Index [%s] published", publishedFileName));
-                    } else {
-                        logger.error(String.format("Cannot rename [%s to %s]", aPackage.tempIndexPathName, newIndexPathName));
-                    }
-                } else {
-                    logger.error(String.format("Unexpected error; [%s] is not a directory", newIndexPathName));
+                logger.info(String.format("Moving/Copying [%s] to [%s]", tmpDirName.getAbsoluteFile(), newDir.getAbsoluteFile()));
+                FileUtils.moveToDirectory(tmpDirName, newDir, true);
+                String oldNameNewPathStr = newIndexPath + File.separator + tmpDirName.getName();
+                File oldNameNewPath = new File(oldNameNewPathStr);
+                logger.info(String.format("Renaming [%s] to [%s]", oldNameNewPath.getAbsoluteFile(), newDirName.getAbsoluteFile()));
+                if (oldNameNewPath.renameTo(newDirName.getAbsoluteFile())) {
+
+                    String todayAndPublishedFileName = aPackage.relativePath + File.separator + publishedFileName;
+                    masterIndex.addRecord(new MasterIndexRecord(todayAndPublishedFileName, partition.getName(), aPackage.runtimeTimestamps));
+                    logger.info(String.format("Index [%s] published in [%s]", todayAndPublishedFileName, aPackage.indexPath));
                 }
+                else
+                {
+                    logger.error(String.format("ERROR Renaming [%s] to [%s]", oldNameNewPath.getAbsoluteFile(), newDirName.getAbsoluteFile()));
+                }
+
             } catch (InterruptedException e) {
                 if (doRun)
-                    logger.error("InterruptedException", e);
-            } catch (AppException e) {
-                logger.error("AppException", e);
-            } catch (IOException e) {
-                logger.error("IOException", e);
+                    logger.error(e.getClass().getSimpleName(), e);
+            } catch (AppException | IOException e) {
+                logger.error(e.getClass().getSimpleName(), e);
             }
             logger.debug("LongTermIndexPublisher received package");
 
@@ -114,8 +117,7 @@ public class LongTermIndexPublisher extends QueueProcessor {
 
         Package aPackage = (Package) inputQueue.take();
 
-        if (logger.isTraceEnabled())
-        {
+        if (logger.isTraceEnabled()) {
             logger.trace("Package taken");
         }
 
@@ -140,8 +142,7 @@ public class LongTermIndexPublisher extends QueueProcessor {
 
     void putInQueue(Package publishPackage) throws InterruptedException {
 
-        if (logger.isTraceEnabled())
-        {
+        if (logger.isTraceEnabled()) {
             logger.trace("Index publiched");
         }
         this.putInQueueImpl(publishPackage, Globals.getConfig().getQueueDepthWarningThreshold());
