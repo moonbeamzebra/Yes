@@ -9,7 +9,7 @@ mkdir /Volumes/RAMDisk/tmp
 
 java -jar ./target/ca.magenta.loggenerator-1.0-SNAPSHOT-jar-with-dependencies.jar \
 -msgServerAddr=127.0.0.1 \
--msgServerPort=7540 \
+-msgServerPort=7543 \
 -multiThreaded \
 -repeatCount=nostop \
 -tunningLoopCount=38000 \

@@ -22,10 +22,18 @@ class LuceneTools {
         document.add(new SortedDocValuesField(key, new BytesRef(value)));
     }
 
-    static void storeSortedNumericDocValuesField(Document document, String key, long value) {
+    static void storeSortedLongNumericDocValuesField(Document document, String key, long value) {
 
         document.add(new SortedNumericDocValuesField(key, value));
         document.add(new LongPoint(key, value));
+        document.add(new StoredField(key, value));
+
+    }
+
+    static void storeSortedIntNumericDocValuesField(Document document, String key, int value) {
+
+        document.add(new SortedNumericDocValuesField(key, value));
+        document.add(new IntPoint(key, value));
         document.add(new StoredField(key, value));
 
     }

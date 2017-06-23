@@ -1,4 +1,4 @@
-package ca.magenta.yes;
+package ca.magenta.NewTry;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
@@ -26,6 +26,10 @@ public class TestSortAndSearchRange {
         Analyzer standardAnalyzer = new StandardAnalyzer();
         Directory indexDir = FSDirectory.open(Paths.get(indexPath));
         IndexWriterConfig iwc = new IndexWriterConfig(standardAnalyzer);
+
+        Query query = null;
+        String field = "age";
+        QueryParser parser = new QueryParser(field, new StandardAnalyzer());
 
         iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
@@ -111,7 +115,11 @@ public class TestSortAndSearchRange {
         }
 
         sort = new Sort(new SortedNumericSortField("age", SortField.Type.LONG, false));
-        docs = searcher.search(LongPoint.newRangeQuery("age", 19, 20), 100, sort);
+        query = parser.parse("age:[19 TO 20]");
+        query = LongPoint.newRangeQuery("age", 19, 20);
+        System.out.println("Searching for: " + query.toString());
+        //docs = searcher.search(LongPoint.newRangeQuery("age", 19, 20), 100, sort);
+        docs = searcher.search(query, 100, sort);
         System.out.println("Sorted by age");
         for (ScoreDoc scoreDoc : docs.scoreDocs) {
 
@@ -120,7 +128,7 @@ public class TestSortAndSearchRange {
         }
 
         StandardQueryParser queryParserHelper = new StandardQueryParser();
-        Query query = queryParserHelper.parse("name:b*", "message");
+        query = queryParserHelper.parse("name:b*", "message");
 
 
         //http://makble.com/how-to-do-term-query-in-lucene-index-example

@@ -1,4 +1,4 @@
-package ca.magenta.yes;
+package ca.magenta.NewTry;
 
 import ca.magenta.utils.AppException;
 import org.apache.lucene.analysis.Analyzer;

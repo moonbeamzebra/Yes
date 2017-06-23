@@ -297,12 +297,12 @@ public class MasterIndexLucene extends MasterIndex {
 
         Document document = new Document();
 
-        LuceneTools.storeSortedNumericDocValuesField(document, OLDER_SOURCE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getOlderSrcTimestamp());
-        LuceneTools.storeSortedNumericDocValuesField(document, NEWER_SOURCE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getNewerSrcTimestamp());
-        LuceneTools.storeSortedNumericDocValuesField(document, OLDER_RECEIVE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getOlderRxTimestamp());
-        LuceneTools.storeSortedNumericDocValuesField(document, NEWER_RECEIVE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getNewerRxTimestamp());
-        LuceneTools.storeSortedNumericDocValuesField(document, RUN_START_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getRunStartTimestamp());
-        LuceneTools.storeSortedNumericDocValuesField(document, RUN_END_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getRunEndTimestamp());
+        LuceneTools.storeSortedLongNumericDocValuesField(document, OLDER_SOURCE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getOlderSrcTimestamp());
+        LuceneTools.storeSortedLongNumericDocValuesField(document, NEWER_SOURCE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getNewerSrcTimestamp());
+        LuceneTools.storeSortedLongNumericDocValuesField(document, OLDER_RECEIVE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getOlderRxTimestamp());
+        LuceneTools.storeSortedLongNumericDocValuesField(document, NEWER_RECEIVE_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getNewerRxTimestamp());
+        LuceneTools.storeSortedLongNumericDocValuesField(document, RUN_START_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getRunStartTimestamp());
+        LuceneTools.storeSortedLongNumericDocValuesField(document, RUN_END_TIMESTAMP_FIELD_NAME, masterIndexRecord.getRuntimeTimestamps().getRunEndTimestamp());
 
         LuceneTools.luceneStoreNonTokenizedString(document, PARTITION_FIELD_NAME, masterIndexRecord.getPartitionName());
 

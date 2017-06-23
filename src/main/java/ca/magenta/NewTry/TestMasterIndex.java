@@ -1,4 +1,4 @@
-package ca.magenta.yes;
+package ca.magenta.NewTry;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;

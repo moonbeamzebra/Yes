@@ -26,12 +26,12 @@ public class NormalizedMsgRecord {
     private static final String VAR_NAME_PREFIX = ".";
     private static final String VAR_NAME_POSTFIX = ".";
 
-    private static final String UID_FIELD_NAME = VAR_NAME_PREFIX + "uid" + VAR_NAME_POSTFIX ;
-    private static final String RECEIVE_TIMESTAMP_FIELD_NAME = VAR_NAME_PREFIX + "rxTimestamp" + VAR_NAME_POSTFIX ;
-    private static final String SOURCE_TIMESTAMP_FIELD_NAME = VAR_NAME_PREFIX + "srcTimestamp" + VAR_NAME_POSTFIX ;
-    private static final String MESSAGE_FIELD_NAME = VAR_NAME_PREFIX + "message" + VAR_NAME_POSTFIX ;
-    private static final String PARTITION_FIELD_NAME = VAR_NAME_PREFIX + "partition" + VAR_NAME_POSTFIX ;
-    private static final String MSG_TYPE_FIELD_NAME = VAR_NAME_PREFIX + "msgType" + VAR_NAME_POSTFIX ;
+    private static final String UID_FIELD_NAME = VAR_NAME_PREFIX + "uid" + VAR_NAME_POSTFIX;
+    private static final String RECEIVE_TIMESTAMP_FIELD_NAME = VAR_NAME_PREFIX + "rxTimestamp" + VAR_NAME_POSTFIX;
+    private static final String SOURCE_TIMESTAMP_FIELD_NAME = VAR_NAME_PREFIX + "srcTimestamp" + VAR_NAME_POSTFIX;
+    private static final String MESSAGE_FIELD_NAME = VAR_NAME_PREFIX + "message" + VAR_NAME_POSTFIX;
+    private static final String PARTITION_FIELD_NAME = VAR_NAME_PREFIX + "partition" + VAR_NAME_POSTFIX;
+    private static final String MSG_TYPE_FIELD_NAME = VAR_NAME_PREFIX + "msgType" + VAR_NAME_POSTFIX;
     private static final String LOGSTASH_TIMESTAMP = "@timestamp";
     private static final SimpleDateFormat LOGSTASH_TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
@@ -108,9 +108,8 @@ public class NormalizedMsgRecord {
 
         data = mapper.readValue(jsonMsg, HashMap.class);
 
-        if (data.isEmpty())
-        {
-            logger.error(String.format("NormalizedMsgRecord::NormalizedMsgRecord DataPart is empty ; isInitPhase:[%b]",isInitPhase));
+        if (data.isEmpty()) {
+            logger.error(String.format("NormalizedMsgRecord::NormalizedMsgRecord DataPart is empty ; isInitPhase:[%b]", isInitPhase));
         }
 
         long epoch = System.currentTimeMillis();
@@ -152,43 +151,35 @@ public class NormalizedMsgRecord {
     public void store(IndexWriter luceneIndexWriter) throws AppException {
         Document document = new Document();
 
-        LuceneTools.luceneStoreSortedDoc(document, RECEIVE_TIMESTAMP_FIELD_NAME, toStringTimestamp(rxTimestamp));
-        LuceneTools.luceneStoreSortedDoc(document, SOURCE_TIMESTAMP_FIELD_NAME, toStringTimestamp(srcTimestamp));
         LuceneTools.luceneStoreSortedDoc(document, UID_FIELD_NAME, uid);
+
+        LuceneTools.luceneStoreSortedDoc(document, RECEIVE_TIMESTAMP_FIELD_NAME, toStringTimestamp(rxTimestamp));
+        //LuceneTools.storeSortedLongNumericDocValuesField(document, RECEIVE_TIMESTAMP_FIELD_NAME, rxTimestamp);
+        LuceneTools.luceneStoreSortedDoc(document, SOURCE_TIMESTAMP_FIELD_NAME, toStringTimestamp(srcTimestamp));
+        //LuceneTools.storeSortedLongNumericDocValuesField(document, SOURCE_TIMESTAMP_FIELD_NAME, srcTimestamp);
+
         document.add(new TextField(MESSAGE_FIELD_NAME, message, Field.Store.YES));
         LuceneTools.luceneStoreNonTokenizedString(document, PARTITION_FIELD_NAME, partition);
         LuceneTools.luceneStoreNonTokenizedString(document, MSG_TYPE_FIELD_NAME, msgType);
 
 
-        if ( ! data.isEmpty() ) {
+        if (!data.isEmpty()) {
             for (Map.Entry<String, Object> fieldE : data.entrySet()) {
                 String key = fieldE.getKey();
-                if ((!RECEIVE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
-                        (!SOURCE_TIMESTAMP_FIELD_NAME.endsWith(key)) &&
-                        (!UID_FIELD_NAME.endsWith(key)) &&
-                        (!MESSAGE_FIELD_NAME.endsWith(key)) &&
-                        (!PARTITION_FIELD_NAME.endsWith(key)) &&
-                        (!MSG_TYPE_FIELD_NAME.endsWith(key))) {
-                    if (fieldE.getValue() instanceof Integer) {
-                        document.add(new IntPoint(fieldE.getKey(), (Integer) fieldE.getValue()));
-                        document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Integer) fieldE.getValue()));
-                        document.add(new StoredField(fieldE.getKey(), (Integer) fieldE.getValue()));
-                    } else if (fieldE.getValue() instanceof Long) {
-                        document.add(new LongPoint(fieldE.getKey(), (Long) fieldE.getValue()));
-                        document.add(new SortedNumericDocValuesField(fieldE.getKey(), (Long) fieldE.getValue()));
-                        document.add(new StoredField(fieldE.getKey(), (Long) fieldE.getValue()));
-                        if (logger.isDebugEnabled()) {
-                            long longValue = (Long) fieldE.getValue();
-                            logger.debug(String.format("ADDED:[%s];[%d]", fieldE.getKey(), longValue));
-                        }
-                    } else {
-                        LuceneTools.luceneStoreNonTokenizedString(document, fieldE.getKey(), (String) fieldE.getValue());
+
+                if (fieldE.getValue() instanceof Integer) {
+                    LuceneTools.storeSortedIntNumericDocValuesField(document, key, (Integer) fieldE.getValue());
+                } else if (fieldE.getValue() instanceof Long) {
+                    LuceneTools.storeSortedLongNumericDocValuesField(document, key, (Long) fieldE.getValue());
+                    if (logger.isDebugEnabled()) {
+                        long longValue = (Long) fieldE.getValue();
+                        logger.debug(String.format("ADDED:[%s];[%d]", key, longValue));
                     }
+                } else {
+                    LuceneTools.luceneStoreNonTokenizedString(document, fieldE.getKey(), (String) fieldE.getValue());
                 }
             }
-        }
-        else
-        {
+        } else {
             //logger.warn(String.format("NormalizedMsgRecord::store DataPart is empty in [%s]", getUid()));
         }
 
@@ -238,7 +229,7 @@ public class NormalizedMsgRecord {
         StringBuilder sb = new StringBuilder();
         sb.append('{').append(embeddedToJson());
 
-        if ( !  data.isEmpty() ) {
+        if (!data.isEmpty()) {
 
             String dataPart = null;
             try {
@@ -250,15 +241,11 @@ public class NormalizedMsgRecord {
 
             if ((dataPart != null) && (dataPart.length() > 2)) {
                 sb.append(',').append(dataPart.substring(1));
-            }
-            else
-            {
-                logger.error(String.format("NormalizedMsgRecord::toJson Data Part [%s] was NULL or empty in [%s]",dataPart, getUid()));
+            } else {
+                logger.error(String.format("NormalizedMsgRecord::toJson Data Part [%s] was NULL or empty in [%s]", dataPart, getUid()));
                 sb.append('}');
             }
-        }
-        else
-        {
+        } else {
             //logger.warn(String.format("NormalizedMsgRecord::toJson Data Part is empty in [%s]", getUid()));
             sb.append('}');
         }
@@ -366,7 +353,7 @@ public class NormalizedMsgRecord {
     }
 
     public static Sort buildSort_uidDriving(boolean reverse) {
-        return new Sort(new SortField(UID_FIELD_NAME, SortField.Type.STRING,reverse));
+        return new Sort(new SortField(UID_FIELD_NAME, SortField.Type.STRING, reverse));
     }
 
     public static String forgeTempIndexName(String basePath, String relativePath, String prefix) {
