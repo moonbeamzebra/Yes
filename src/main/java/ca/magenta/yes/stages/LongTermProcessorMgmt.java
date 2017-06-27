@@ -4,8 +4,6 @@ import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
-import ca.magenta.yes.data.MasterIndexRecord;
-import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.data.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,20 +16,16 @@ import java.util.concurrent.ThreadLocalRandom;
 class LongTermProcessorMgmt extends ProcessorMgmt {
 
     private static final Logger logger = LoggerFactory.getLogger(LongTermProcessorMgmt.class.getName());
-    public static final String SHORT_NAME = "LTPM";
-
-    private final MasterIndex masterIndex;
+    static final String SHORT_NAME = "LTPM";
 
     private final LongTermIndexPublisher longTermIndexPublisher;
 
     LongTermProcessorMgmt(MasterIndex masterIndex, String name, long cuttingTime, Partition partition) {
         super(name, partition,
-                (new StringBuilder()).append(LongTermProcessor.SHORT_NAME).append('-').append(partition.getInstanceName()).toString(),cuttingTime);
-
-        this.masterIndex = masterIndex;
+                (new StringBuilder()).append(LongTermProcessor.SHORT_NAME).append('-').append(partition.getInstanceName()).toString(), cuttingTime);
 
 
-        this.longTermIndexPublisher = new LongTermIndexPublisher(name, partition,masterIndex);
+        this.longTermIndexPublisher = new LongTermIndexPublisher(name, partition, masterIndex);
     }
 
     @Override
@@ -58,42 +52,45 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
     }
 
     synchronized void deleteUnusedIndex(String indexPathName) {
-        logger.debug(String.format("Delete unused index [%s]", indexPathName));
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("Delete unused index [{}]", indexPathName);
+        }
 
         File index = new File(indexPathName);
         String[] entries = index.list();
         if (entries != null) {
             for (String s : entries) {
-                logger.trace(String.format("Delete [%s]", s));
+                if (logger.isTraceEnabled()) logger.trace("Delete [{}]", s);
                 File currentFile = new File(index.getPath(), s);
-                if (currentFile.delete())
-                    logger.trace("Done");
-                else
-                    logger.error(String.format("Cannot delete [%s/%s]", index.getPath(), s));
+                if (currentFile.delete()) {
+                    if (logger.isTraceEnabled()) logger.trace("Done");
+                }
+                else {
+                    logger.error("Cannot delete [{}/{}]", index.getPath(), s);
+                }
             }
         }
-        logger.trace(String.format("Delete dir [%s]", indexPathName));
-        if (index.delete())
-            logger.trace("Done");
-        else
-            logger.error(String.format("Cannot delete [%s]", indexPathName));
+        if (logger.isTraceEnabled()) logger.trace("Delete dir [{}]", indexPathName);
+        if (index.delete()) {
+            if (logger.isTraceEnabled()) logger.trace("Done");
+        }
+        else {
+            logger.error("Cannot delete [{}]", indexPathName);
+        }
     }
 
     Processor createProcessor(BlockingQueue<Object> queue, int queueDepth) throws AppException {
 
-        return new LongTermProcessor(partition, queue, queueDepth);
+        return new LongTermProcessor(this, partition, queue, queueDepth);
 
     }
 
     @Override
     public boolean isEndDrainsCanDrain(Runner callerRunner) {
 
-        if (isLocalQueueCanDrain(callerRunner))
-        {
-            return longTermIndexPublisher.isEndDrainsCanDrain(callerRunner);
-        }
+        return isLocalQueueCanDrain(callerRunner) && longTermIndexPublisher.isEndDrainsCanDrain(callerRunner);
 
-        return false;
     }
 
     @Override

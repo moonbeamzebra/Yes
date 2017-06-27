@@ -12,10 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
 
 public class Dispatcher extends QueueProcessor {
 
@@ -24,7 +20,7 @@ public class Dispatcher extends QueueProcessor {
     private final RealTimeProcessorMgmt realTimeProcessorMgmt;
     private final LongTermProcessorMgmt longTermProcessorMgmt;
 
-    public Dispatcher(String name, Partition partition, MasterIndex masterIndex ) {
+    public Dispatcher(String name, Partition partition, MasterIndex masterIndex) {
 
         super(name, partition, Globals.getConfig().getDispatcherQueueDepth(), 650000);
 
@@ -34,17 +30,18 @@ public class Dispatcher extends QueueProcessor {
                         Globals.getConfig().getLongTermCuttingTime(),
                         partition);
 
-        realTimeProcessorMgmt = new RealTimeProcessorMgmt(RealTimeProcessorMgmt.SHORT_NAME + "-"+partition.getInstanceName(),
+        realTimeProcessorMgmt = new RealTimeProcessorMgmt(RealTimeProcessorMgmt.SHORT_NAME + "-" + partition.getInstanceName(),
                 Globals.getConfig().getRealTimeCuttingTime(),
                 partition);
 
     }
 
+    @Override
     public void run() {
 
         ObjectMapper mapper = new ObjectMapper();
 
-        logger.info(String.format("New Dispatcher running for partition [%s]", partition.getInstanceName()));
+        logger.info("New Dispatcher running for partition [{}]", partition.getInstanceName());
         count = 0;
         long startTime = System.currentTimeMillis();
         long previousNow = startTime;
@@ -62,17 +59,16 @@ public class Dispatcher extends QueueProcessor {
                     hiWaterMarkQueueLength = queueLength;
                 if (longTermProcessorMgmt.isEndDrainsCanDrain(this)) {
                     String jsonMsg = takeFromQueue();
-                    logger.debug("Dispatcher received: " + jsonMsg);
-                    HashMap<String, Object> hashedMsg;
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Dispatcher received: {}", jsonMsg);
+                    }
                     try {
                         NormalizedMsgRecord normalizedMsgRecord = new NormalizedMsgRecord(mapper, jsonMsg, true);
-                        //                    hashedMsg = mapper.readValue(jsonMsg, HashMap.class);
-                        //                    logger.debug("hashMsg received OBJ: " + hashedMsg.toString());
-                        //
-                        //                    NormalizedMsgRecord.initiateTimestampsInMsgHash(hashedMsg);
 
-                        if (logger.isDebugEnabled())
+                        if (logger.isDebugEnabled()) {
                             logger.debug("Before putInQueue");
+                        }
                         longTermProcessorMgmt.putInQueue(normalizedMsgRecord);
                         realTimeProcessorMgmt.putInQueue(normalizedMsgRecord);
                     } catch (IOException e) {
@@ -94,17 +90,11 @@ public class Dispatcher extends QueueProcessor {
                         String report = this.buildReportString(totalTime, msgPerSec, queueLength, hiWaterMarkQueueLength, msgPerSecSinceStart);
 
                         System.out.println(report);
-//                        System.out.println(partition + "-" + "Dispatcher: " + printEvery +
-//                                " messages sent in " + totalTime +
-//                                " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + hiWaterMarkQueueLength +
-//                                " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
                         previousNow = now;
                     }
-                }
-                else
-                {
+                } else {
                     if (doRun)
-                        logger.warn(String.format("Partition:[%s] drains baddly", getName()));
+                        logger.warn("Partition:[{}] drains badly", getName());
                 }
             }
         } catch (InterruptedException e) {
@@ -112,7 +102,6 @@ public class Dispatcher extends QueueProcessor {
                 logger.error("InterruptedException", e);
         }
 
-        //longTermProcessorMgmt.stopInstance();
     }
 
     public void putInQueue(String jsonMsg) throws InterruptedException {
@@ -145,16 +134,10 @@ public class Dispatcher extends QueueProcessor {
     @Override
     public boolean isEndDrainsCanDrain(Runner callerRunner) {
 
-        if (isLocalQueueCanDrain(callerRunner))
-        {
-            if (realTimeProcessorMgmt.isEndDrainsCanDrain(callerRunner)) {
-                if (longTermProcessorMgmt.isEndDrainsCanDrain(callerRunner)) {
-                    return true;
-                }
-            }
-        }
+        return isLocalQueueCanDrain(callerRunner) &&
+                realTimeProcessorMgmt.isEndDrainsCanDrain(callerRunner) &&
+                longTermProcessorMgmt.isEndDrainsCanDrain(callerRunner);
 
-        return false;
     }
 
     @Override

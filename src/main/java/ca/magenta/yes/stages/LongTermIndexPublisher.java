@@ -8,7 +8,6 @@ import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.data.Partition;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.lucene.index.IndexWriter;
 import org.slf4j.Logger;
@@ -25,11 +24,10 @@ public class LongTermIndexPublisher extends QueueProcessor {
     private final MasterIndex masterIndex;
 
 
+    @Override
     public void run() {
 
-        logger.info(String.format("LongTermIndexPublisher start running for partition [%s]", partition.getInstanceName()));
-
-        ObjectMapper objectMapper = new ObjectMapper();
+        logger.info("LongTermIndexPublisher start running for partition [{}]", partition.getInstanceName());
 
         count = 0;
         long startTime = System.currentTimeMillis();
@@ -52,7 +50,7 @@ public class LongTermIndexPublisher extends QueueProcessor {
 
                 aPackage.luceneIndexWriter.commit();
                 if (logger.isTraceEnabled()) {
-                    logger.trace("Index commited");
+                    logger.trace("Index committed");
                 }
 
                 aPackage.luceneIndexWriter.close();
@@ -66,20 +64,18 @@ public class LongTermIndexPublisher extends QueueProcessor {
                 File tmpDirName = new File(aPackage.tempIndexPathName);
                 File newDir = new File(newIndexPath);
                 File newDirName = new File(newIndexPathName);
-                logger.info(String.format("Moving/Copying [%s] to [%s]", tmpDirName.getAbsoluteFile(), newDir.getAbsoluteFile()));
+                logger.info("Moving/Copying [{}] to [{}]", tmpDirName.getAbsoluteFile(), newDir.getAbsoluteFile());
                 FileUtils.moveToDirectory(tmpDirName, newDir, true);
                 String oldNameNewPathStr = newIndexPath + File.separator + tmpDirName.getName();
                 File oldNameNewPath = new File(oldNameNewPathStr);
-                logger.info(String.format("Renaming [%s] to [%s]", oldNameNewPath.getAbsoluteFile(), newDirName.getAbsoluteFile()));
+                logger.info("Renaming [{}] to [{}]", oldNameNewPath.getAbsoluteFile(), newDirName.getAbsoluteFile());
                 if (oldNameNewPath.renameTo(newDirName.getAbsoluteFile())) {
 
                     String todayAndPublishedFileName = aPackage.relativePath + File.separator + publishedFileName;
                     masterIndex.addRecord(new MasterIndexRecord(todayAndPublishedFileName, partition.getName(), aPackage.runtimeTimestamps));
-                    logger.info(String.format("Index [%s] published in [%s]", todayAndPublishedFileName, aPackage.indexPath));
-                }
-                else
-                {
-                    logger.error(String.format("ERROR Renaming [%s] to [%s]", oldNameNewPath.getAbsoluteFile(), newDirName.getAbsoluteFile()));
+                    logger.info("Index [{}] published in [{}]", todayAndPublishedFileName, aPackage.indexPath);
+                } else {
+                    logger.error("ERROR Renaming [{}] to [{}]", oldNameNewPath.getAbsoluteFile(), newDirName.getAbsoluteFile());
                 }
 
             } catch (InterruptedException e) {
@@ -88,7 +84,9 @@ public class LongTermIndexPublisher extends QueueProcessor {
             } catch (AppException | IOException e) {
                 logger.error(e.getClass().getSimpleName(), e);
             }
-            logger.debug("LongTermIndexPublisher received package");
+            if (logger.isDebugEnabled()) {
+                logger.debug("LongTermIndexPublisher received package");
+            }
 
             count++;
 
@@ -104,12 +102,11 @@ public class LongTermIndexPublisher extends QueueProcessor {
                 String report = this.buildReportString(totalTime, msgPerSec, queueLength, hiWaterMarkQueueLength, msgPerSecSinceStart);
 
                 System.out.println(report);
-                // System.out.println(printEvery + " messages sent in " + totalTime + " msec; [" + msgPerSec + " msgs/sec] in queue: " + inputQueue.size());
                 previousNow = now;
             }
         }
 
-        logger.info(String.format("LongTermIndexPublisher stop running for partition [%s]", partition.getInstanceName()));
+        logger.info("LongTermIndexPublisher stop running for partition [{}]", partition.getInstanceName());
 
     }
 
@@ -143,7 +140,7 @@ public class LongTermIndexPublisher extends QueueProcessor {
     void putInQueue(Package publishPackage) throws InterruptedException {
 
         if (logger.isTraceEnabled()) {
-            logger.trace("Index publiched");
+            logger.trace("Index published");
         }
         this.putInQueueImpl(publishPackage, Globals.getConfig().getQueueDepthWarningThreshold());
     }

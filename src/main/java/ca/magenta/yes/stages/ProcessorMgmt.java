@@ -19,17 +19,15 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    //private static final SimpleDateFormat DAY_FORMAT = new SimpleDateFormat("yyyy/MM/dd'GMT'");
-    //private static final SimpleDateFormat DAY_FORMAT = new SimpleDateFormat("yyyy/MM/ddz");
-//    private static final SimpleDateFormat DAY_FORMAT =
-//            new SimpleDateFormat(String.format("yyyy%sMM%sddz",File.separator, File.separator));
-    private static final SimpleDateFormat DAY_FORMAT =
-            new SimpleDateFormat(String.format("yyyy%sMM%sdd'GMT'",File.separator, File.separator));
+    private final SimpleDateFormat dayFormat =
+            new SimpleDateFormat(String.format("yyyy%sMM%sdd'GMT'", File.separator, File.separator));
 
 
     private final String processorThreadName;
 
     private final long cuttingTime;
+
+    long soFarHiWaterMarkQueueLength = 0;
 
     ProcessorMgmt(String name, Partition partition, String processorThreadName, long cuttingTime) {
 
@@ -41,19 +39,17 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     }
 
+    @Override
     public void run() {
 
         try {
-            DAY_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
+            dayFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
 
-            logger.info(String.format("[%s] started for partition [%s]", this.getClass().getSimpleName(), partition.getInstanceName()));
+            logger.info("[{}] started for partition [{}]", this.getClass().getSimpleName(), partition.getInstanceName());
 
+            Processor processor;
 
-            //Processor processor = createProcessor(inputQueue, queueDepth);
-            Processor processor = null;
-
-
-            long hiWaterMarkQueueLength = 0;
+            //long hiWaterMarkQueueLength = 0;
             while (doRun || (!inputQueue.isEmpty())) {
                 processor = createProcessor(inputQueue, queueDepth);
                 String relativePathName = forgeRelativePathName();
@@ -76,8 +72,9 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                     this.letDrain();
                 }
 
-                if (logger.isDebugEnabled())
+                if (logger.isDebugEnabled()) {
                     logger.debug("Time to rotate...stop the thread");
+                }
                 processor.stopIt();
                 processorThread.interrupt();
                 try {
@@ -85,18 +82,19 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                 } catch (InterruptedException e) {
                     logger.error("InterruptedException", e);
                 }
-                if (logger.isDebugEnabled())
+                if (logger.isDebugEnabled()) {
                     logger.debug("Stopped");
+                }
                 if (this instanceof LongTermProcessorMgmt) {
-                    hiWaterMarkQueueLength = processor.printReport(hiWaterMarkQueueLength);
+                    soFarHiWaterMarkQueueLength = processor.printReport(soFarHiWaterMarkQueueLength);
                 }
 
                 try {
-                    //processor.commitAndClose();
                     long count = processor.getThisRunCount();
                     if (count > 0) {
                         publishIndex(processor, relativePathName, tempIndexPathName);
                     } else {
+                        processor.commitAndClose();
                         deleteUnusedIndex(tempIndexPathName);
                     }
                 } catch (IOException e) {
@@ -110,18 +108,17 @@ public abstract class ProcessorMgmt extends QueueProcessor {
             logger.error("AppException", e);
         }
 
-        logger.info(String.format("[%s] stopped for partition [%s]", this.getClass().getSimpleName(), partition.getInstanceName()));
+        logger.info("[%s] stopped for partition [{}]", this.getClass().getSimpleName(), partition.getInstanceName());
 
     }
 
     protected abstract long giveRandom();
 
-    protected String forgeRelativePathName()
-    {
+    private String forgeRelativePathName() {
         return partition.getName() + File.separator +
                 Globals.getHostname() + File.separator +
-                DAY_FORMAT.format(System.currentTimeMillis());
-    };
+                dayFormat.format(System.currentTimeMillis());
+    }
 
     abstract void publishIndex(Processor processor,
                                String today,
@@ -137,4 +134,13 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
         this.putInQueueImpl(normalizedMsgRecord, Globals.getConfig().getQueueDepthWarningThreshold());
     }
+
+    public long getSoFarHiWaterMarkQueueLength() {
+        return soFarHiWaterMarkQueueLength;
+    }
+
+    public void setSoFarHiWaterMarkQueueLength(long soFarHiWaterMarkQueueLength) {
+        this.soFarHiWaterMarkQueueLength = soFarHiWaterMarkQueueLength;
+    }
+
 }

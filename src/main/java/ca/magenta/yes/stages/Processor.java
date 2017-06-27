@@ -18,8 +18,9 @@ public abstract class Processor implements Runnable {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private final Partition partition;
+    private final ProcessorMgmt processorMgmt;
 
+    private final Partition partition;
 
     private BlockingQueue<Object> inputQueue;
 
@@ -31,7 +32,6 @@ public abstract class Processor implements Runnable {
     private MasterIndexRecord.RuntimeTimestamps runtimeTimestamps;
     private final int queueDepth;
     private final long startTime;
-    //private long hiWaterMarkQueueLength = 0;
     private long previousNow = System.currentTimeMillis();
 
     private long count = 0;
@@ -42,36 +42,40 @@ public abstract class Processor implements Runnable {
         doRun = false;
     }
 
-    private static final long printEvery = 100000;
+    private static final long PRINT_EVERY = 100000;
 
-    Processor(Partition partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
+    Processor(ProcessorMgmt processorMgmt, Partition partition, BlockingQueue<Object> inputQueue, int queueDepth) {
+
+        this.processorMgmt = processorMgmt;
 
         this.partition = partition;
         this.inputQueue = inputQueue;
         this.queueDepth = queueDepth;
 
-
         this.startTime = System.currentTimeMillis();
 
     }
 
+    @Override
     public void run() {
-        if (logger.isDebugEnabled())
-            logger.debug(String.format("New [%s] running", this.getClass().getSimpleName()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("New [{}] running", this.getClass().getSimpleName());
+        }
         doRun = true;
         thisRunCount = 0;
         reportCount = 0;
         runtimeTimestamps = new MasterIndexRecord.RuntimeTimestamps();
         try {
 
-            long hiWaterMarkQueueLength = 0;
+            //long hiWaterMarkQueueLength = 0;
             while (doRun || !inputQueue.isEmpty()) {
                 NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
                 if (normalizedMsgRecord != null) {
                     long srcTimestamp = normalizedMsgRecord.getSrcTimestamp();
                     long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
-                    if (logger.isDebugEnabled())
-                        logger.debug("Processor received: " + normalizedMsgRecord.toString());
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Processor received: {}", normalizedMsgRecord.toString());
+                    }
                     runtimeTimestamps.compute(srcTimestamp, rxTimestamp);
                     try {
                         storeInLucene(normalizedMsgRecord);
@@ -85,9 +89,10 @@ public abstract class Processor implements Runnable {
                         logger.error(e.getClass().getSimpleName(), e);
                     }
 
+                    if (reportCount == PRINT_EVERY) {
 
-                    if (reportCount == printEvery) {
-                        hiWaterMarkQueueLength = printReport(hiWaterMarkQueueLength);
+                        long soFarHiWaterMarkQueueLength = printReport(processorMgmt.getSoFarHiWaterMarkQueueLength());
+                        processorMgmt.setSoFarHiWaterMarkQueueLength(soFarHiWaterMarkQueueLength);
                     }
                 }
             }
@@ -95,9 +100,11 @@ public abstract class Processor implements Runnable {
         } catch (InterruptedException e) {
             if (doRun)
                 logger.error("InterruptedException", e);
-            else if (logger.isDebugEnabled())
+            else if (logger.isDebugEnabled()) {
                 logger.debug("Processor manager asked to stop!");
+            }
         }
+
 
         runtimeTimestamps.setRunEndTimestamp(System.currentTimeMillis());
     }
@@ -108,10 +115,13 @@ public abstract class Processor implements Runnable {
 
     }
 
-    synchronized long printReport(long hiWaterMarkQueueLength) {
+    synchronized long printReport(long previousHiWaterMarkQueueLength) {
         long queueLength = inputQueue.size();
-        if (queueLength > hiWaterMarkQueueLength)
-            hiWaterMarkQueueLength = queueLength;
+
+        long newHiWaterMarkQueueLength = previousHiWaterMarkQueueLength;
+        if (queueLength > newHiWaterMarkQueueLength) {
+            newHiWaterMarkQueueLength = queueLength;
+        }
 
         long now = System.currentTimeMillis();
 
@@ -128,31 +138,28 @@ public abstract class Processor implements Runnable {
                     totalTime,
                     msgPerSec,
                     queueLength,
-                    hiWaterMarkQueueLength,
+                    newHiWaterMarkQueueLength,
                     msgPerSecSinceStart,
                     queueDepth);
 
             System.out.println(report);
-//            System.out.println(partition + "-" + this.getClass().getSimpleName() + ": " + reportCount +
-//                    " messages sent in " + totalTime +
-//                    " msec; [" + msgPerSec + " msgs/sec] in queue: " + queueLength + "/" + hiWaterMarkQueueLength +
-//                    " trend: [" + msgPerSecSinceStart + " msgs/sec] ");
         }
         previousNow = now;
         reportCount = 0;
 
-        return hiWaterMarkQueueLength;
+        return newHiWaterMarkQueueLength;
 
     }
 
     protected abstract String getShortName();
 
-    synchronized private void storeInLucene(NormalizedMsgRecord normalizedMsgRecord) throws AppException {
+    private synchronized void storeInLucene(NormalizedMsgRecord normalizedMsgRecord) throws AppException {
 
         normalizedMsgRecord.store(luceneIndexWriter);
 
-        if (logger.isDebugEnabled())
+        if (logger.isDebugEnabled()) {
             logger.debug("Document added");
+        }
     }
 
     public abstract void createIndex(String indexPath) throws AppException;
@@ -176,8 +183,9 @@ public abstract class Processor implements Runnable {
 
             return (NormalizedMsgRecord) obj;
         } else {
-            logger.error(String.format("Unexpected value type: want HashMap; got [%s]", obj.getClass().getSimpleName()));
+            logger.error("Unexpected value type: want HashMap; got [{}]", obj.getClass().getSimpleName());
             return null;
         }
     }
+
 }

@@ -16,28 +16,18 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
-    public static final String SHORT_NAME = "RTPM";
+    static final String SHORT_NAME = "RTPM";
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     private static IndexPublisher indexPublisher = Globals.getIndexPublisher();
 
 
-    public RealTimeProcessorMgmt(String name, long cuttingTime, Partition partition) {
+    RealTimeProcessorMgmt(String name, long cuttingTime, Partition partition) {
         super(name, partition,
-                (new StringBuilder()).append(RealTimeProcessor.SHORT_NAME).append('-').append(partition.getInstanceName()).toString(),cuttingTime);
+                (new StringBuilder()).append(RealTimeProcessor.SHORT_NAME).append('-').append(partition.getInstanceName()).toString(), cuttingTime);
 
 
     }
-
-    @Override
-    public synchronized void startInstance() throws AppException {
-        super.startInstance();
-    }
-
-    public synchronized void stopInstance() {
-        super.stopInstance();
-    }
-
 
     @Override
     protected long giveRandom() {
@@ -46,14 +36,12 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
     @Override
     synchronized void publishIndex(Processor realTimeProcessor,
-                              String today,
-                              String indexPathName)
-    {
+                                   String today,
+                                   String indexPathName) {
 
         try {
             realTimeProcessor.commitAndClose();
 
-            //logger.info("indexPublisher.publish");
             indexPublisher.publish(realTimeProcessor.getIndexDir());
         } catch (InterruptedException e) {
             logger.error("InterruptedException", e);
@@ -64,15 +52,14 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
 
     @Override
-    synchronized  void deleteUnusedIndex(String indexPathName)
-    {
-        ;
+    synchronized void deleteUnusedIndex(String indexPathName) {
+        // In case of RealTime, indexes are in RAM and will destroyed by the cabbage collector
     }
 
     @Override
     Processor createProcessor(BlockingQueue<Object> queue, int queueDepth) throws AppException {
 
-        return new RealTimeProcessor(partition, queue, queueDepth);
+        return new RealTimeProcessor(this, partition, queue, queueDepth);
 
     }
 

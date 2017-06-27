@@ -20,8 +20,8 @@ public class LongTermProcessor extends Processor {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermProcessor.class.getPackage().getName());
     static final String SHORT_NAME = "LTP";
 
-    LongTermProcessor(Partition partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
-        super(partition, inputQueue, queueDepth);
+    LongTermProcessor(ProcessorMgmt processorMgmt, Partition partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
+        super(processorMgmt, partition, inputQueue, queueDepth);
     }
 
     @Override
@@ -31,25 +31,23 @@ public class LongTermProcessor extends Processor {
 
     }
 
-    synchronized public void createIndex(String indexPath) throws AppException {
+    public synchronized void createIndex(String indexPath) throws AppException {
 
         // RAMDirectory to FSDirectory
         // http://stackoverflow.com/questions/3913180/how-to-integrate-ramdirectory-into-fsdirectory-in-lucene
         // https://wiki.apache.org/lucene-java/ImproveIndexingSpeed
 
-
-
         IndexWriter indexWriter;
 
         try {
-            Analyzer analyzer = new StandardAnalyzer();
-
-            logger.debug("Indexing in '" + indexPath + "'");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Indexing in '{}'", indexPath);
+            }
 
 
             indexDir = null;
             indexDir = FSDirectory.open(Paths.get(indexPath));
-            IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+            IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer());
 
             // Add new documents to an existing index:
             iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
@@ -57,7 +55,7 @@ public class LongTermProcessor extends Processor {
             indexWriter = new IndexWriter(indexDir, iwc);
 
         } catch (IOException e) {
-            throw new AppException(String.format("%s on %s",e.getMessage(), indexPath), e);
+            throw new AppException(String.format("%s on %s", e.getMessage(), indexPath), e);
         }
 
         this.luceneIndexWriter = indexWriter;
