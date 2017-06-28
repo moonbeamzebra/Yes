@@ -27,7 +27,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     private final long cuttingTime;
 
-    long soFarHiWaterMarkQueueLength = 0;
+    private long soFarHiWaterMarkQueueLength = 0;
 
     ProcessorMgmt(String name, Partition partition, String processorThreadName, long cuttingTime) {
 
@@ -49,7 +49,6 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
             Processor processor;
 
-            //long hiWaterMarkQueueLength = 0;
             while (doRun || (!inputQueue.isEmpty())) {
                 processor = createProcessor(inputQueue, queueDepth);
                 String relativePathName = forgeRelativePathName();
@@ -135,11 +134,11 @@ public abstract class ProcessorMgmt extends QueueProcessor {
         this.putInQueueImpl(normalizedMsgRecord, Globals.getConfig().getQueueDepthWarningThreshold());
     }
 
-    public long getSoFarHiWaterMarkQueueLength() {
+    long getSoFarHiWaterMarkQueueLength() {
         return soFarHiWaterMarkQueueLength;
     }
 
-    public void setSoFarHiWaterMarkQueueLength(long soFarHiWaterMarkQueueLength) {
+    void setSoFarHiWaterMarkQueueLength(long soFarHiWaterMarkQueueLength) {
         this.soFarHiWaterMarkQueueLength = soFarHiWaterMarkQueueLength;
     }
 

@@ -45,11 +45,6 @@ public class Dispatcher extends QueueProcessor {
         count = 0;
         long startTime = System.currentTimeMillis();
         long previousNow = startTime;
-        long now;
-        long totalTime;
-        long totalTimeSinceStart;
-        float msgPerSec;
-        float msgPerSecSinceStart;
         long queueLength;
         long hiWaterMarkQueueLength = 0;
         try {
@@ -63,35 +58,11 @@ public class Dispatcher extends QueueProcessor {
                     {
                         logger.debug("Dispatcher received: {}", jsonMsg);
                     }
-                    try {
-                        NormalizedMsgRecord normalizedMsgRecord = new NormalizedMsgRecord(mapper, jsonMsg, true);
-
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Before putInQueue");
-                        }
-                        longTermProcessorMgmt.putInQueue(normalizedMsgRecord);
-                        realTimeProcessorMgmt.putInQueue(normalizedMsgRecord);
-                    } catch (IOException e) {
-                        logger.error("IOException", e);
-                    }
+                    putInQueues(mapper, jsonMsg);
 
                     count++;
 
-                    if ((count % printEvery) == 0) {
-                        now = System.currentTimeMillis();
-                        totalTime = now - previousNow;
-
-                        totalTimeSinceStart = now - startTime;
-                        msgPerSecSinceStart = ((float) count / (float) totalTimeSinceStart) * 1000;
-
-
-                        msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
-
-                        String report = this.buildReportString(totalTime, msgPerSec, queueLength, hiWaterMarkQueueLength, msgPerSecSinceStart);
-
-                        System.out.println(report);
-                        previousNow = now;
-                    }
+                    previousNow = printReport(startTime, previousNow, queueLength, hiWaterMarkQueueLength);
                 } else {
                     if (doRun)
                         logger.warn("Partition:[{}] drains badly", getName());
@@ -102,6 +73,43 @@ public class Dispatcher extends QueueProcessor {
                 logger.error("InterruptedException", e);
         }
 
+    }
+
+    private long printReport(long startTime, long lastReportTimestamp, long queueLength, long hiWaterMarkQueueLength) {
+        long newlastReportTimestamp = lastReportTimestamp;
+        long now = System.currentTimeMillis();
+        if ((count % printEvery) == 0) {
+            long totalTime = now - lastReportTimestamp;
+
+            long totalTimeSinceStart = now - startTime;
+            float msgPerSecSinceStart = ((float) count / (float) totalTimeSinceStart) * 1000;
+
+
+            float msgPerSec = ((float) printEvery / (float) totalTime) * 1000;
+
+            String report = this.buildReportString(totalTime, msgPerSec, queueLength, hiWaterMarkQueueLength, msgPerSecSinceStart);
+
+            System.out.println(report);
+
+            newlastReportTimestamp = now;
+        }
+
+        return newlastReportTimestamp;
+
+    }
+
+    private void putInQueues(ObjectMapper mapper, String jsonMsg) throws InterruptedException {
+        try {
+            NormalizedMsgRecord normalizedMsgRecord = new NormalizedMsgRecord(mapper, jsonMsg, true);
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Before putInQueue");
+            }
+            longTermProcessorMgmt.putInQueue(normalizedMsgRecord);
+            realTimeProcessorMgmt.putInQueue(normalizedMsgRecord);
+        } catch (IOException e) {
+            logger.error("IOException", e);
+        }
     }
 
     public void putInQueue(String jsonMsg) throws InterruptedException {

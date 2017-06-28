@@ -67,7 +67,6 @@ public abstract class Processor implements Runnable {
         runtimeTimestamps = new MasterIndexRecord.RuntimeTimestamps();
         try {
 
-            //long hiWaterMarkQueueLength = 0;
             while (doRun || !inputQueue.isEmpty()) {
                 NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
                 if (normalizedMsgRecord != null) {
