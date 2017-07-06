@@ -3,6 +3,7 @@ package ca.magenta.yes.connector;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.utils.Runner;
+import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -56,7 +57,8 @@ public class LogParser extends QueueProcessor {
             queueLength = inputQueue.size();
             if (queueLength > hiWaterMarkQueueLength)
                 hiWaterMarkQueueLength = queueLength;
-            if (dispatcher.isEndDrainsCanDrain(this)) {
+            try {
+                dispatcher.isEndDrainsCanDrain(this);
                 String logMsg = null;
                 try {
                     logMsg = takeFromQueue();
@@ -89,10 +91,15 @@ public class LogParser extends QueueProcessor {
                     previousNow = now;
                 }
             }
-            else
+            catch (StopWaitAsked e )
             {
                 if (doRun)
-                    logger.warn(String.format("Partition:[%s] drains baddly", getName()));
+                    logger.warn("Stop Wait Asked");
+            }
+            catch (InterruptedException e )
+            {
+                if (doRun)
+                    logger.error(e.getClass().getSimpleName(), e);
             }
         }
 
@@ -179,9 +186,21 @@ public class LogParser extends QueueProcessor {
 
         if (isLocalQueueCanDrain(callerRunner))
         {
-            if (dispatcher.isEndDrainsCanDrain(callerRunner))
-            {
-                return true;
+            try {
+                if (dispatcher.isEndDrainsCanDrain(callerRunner))
+                {
+                    return true;
+                }
+            } catch (StopWaitAsked stopWaitAsked) {
+                if (doRun)
+                {
+                    logger.warn("Stop Wait Asked");
+                }
+            } catch (InterruptedException e) {
+                if (doRun)
+                {
+                    logger.error(e.getClass().getSimpleName(), e);
+                }
             }
         }
 

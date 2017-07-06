@@ -3,6 +3,7 @@ package ca.magenta.yes.stages;
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
 import ca.magenta.utils.Runner;
+import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -52,10 +53,10 @@ public class Dispatcher extends QueueProcessor {
                 queueLength = inputQueue.size();
                 if (queueLength > hiWaterMarkQueueLength)
                     hiWaterMarkQueueLength = queueLength;
-                if (longTermProcessorMgmt.isEndDrainsCanDrain(this)) {
+                try {
+                    longTermProcessorMgmt.isEndDrainsCanDrain(this);
                     String jsonMsg = takeFromQueue();
-                    if (logger.isDebugEnabled())
-                    {
+                    if (logger.isDebugEnabled()) {
                         logger.debug("Dispatcher received: {}", jsonMsg);
                     }
                     putInQueues(mapper, jsonMsg);
@@ -63,9 +64,13 @@ public class Dispatcher extends QueueProcessor {
                     count++;
 
                     previousNow = printReport(startTime, previousNow, queueLength, hiWaterMarkQueueLength);
-                } else {
+                }
+                catch (StopWaitAsked e)
+                {
                     if (doRun)
-                        logger.warn("Partition:[{}] drains badly", getName());
+                    {
+                        logger.error("Stop Wait Asked");
+                    }
                 }
             }
         } catch (InterruptedException e) {
@@ -140,7 +145,7 @@ public class Dispatcher extends QueueProcessor {
     }
 
     @Override
-    public boolean isEndDrainsCanDrain(Runner callerRunner) {
+    public boolean isEndDrainsCanDrain(Runner callerRunner) throws StopWaitAsked, InterruptedException {
 
         return isLocalQueueCanDrain(callerRunner) &&
                 realTimeProcessorMgmt.isEndDrainsCanDrain(callerRunner) &&

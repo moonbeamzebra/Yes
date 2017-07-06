@@ -2,7 +2,8 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
-import ca.magenta.utils.QueueProcessor;
+import ca.magenta.utils.queuing.MyBlockingQueue;
+import ca.magenta.utils.queuing.MyQueueProcessor;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.data.Partition;
@@ -12,10 +13,9 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
-import java.util.concurrent.BlockingQueue;
 
 
-public abstract class ProcessorMgmt extends QueueProcessor {
+public abstract class ProcessorMgmt extends MyQueueProcessor {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
@@ -56,6 +56,7 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                 String tempIndexPathName = NormalizedMsgRecord.forgeTempIndexName(baseTmpPath, relativePathName, this.getClass().getSimpleName());
                 processor.createIndex(tempIndexPathName);
                 Thread processorThread = new Thread(processor, this.processorThreadName);
+                inputQueue.resetWaitState();
                 processorThread.start();
 
                 if (doRun) {
@@ -75,7 +76,8 @@ public abstract class ProcessorMgmt extends QueueProcessor {
                     logger.debug("Time to rotate...stop the thread");
                 }
                 processor.stopIt();
-                processorThread.interrupt();
+                //inputQueue.stopWait();
+                //processorThread.interrupt();
                 try {
                     processorThread.join();
                 } catch (InterruptedException e) {
@@ -125,13 +127,13 @@ public abstract class ProcessorMgmt extends QueueProcessor {
 
     abstract void deleteUnusedIndex(String indexPathName);
 
-    abstract Processor createProcessor(BlockingQueue<Object> queue, int queueDepth) throws AppException;
+    abstract Processor createProcessor(MyBlockingQueue queue, int queueDepth) throws AppException;
 
 
     synchronized void putInQueue(NormalizedMsgRecord normalizedMsgRecord) throws InterruptedException {
 
 
-        this.putInQueueImpl(normalizedMsgRecord, Globals.getConfig().getQueueDepthWarningThreshold());
+        this.putIntoQueue(normalizedMsgRecord, Globals.getConfig().getQueueDepthWarningThreshold());
     }
 
     long getSoFarHiWaterMarkQueueLength() {

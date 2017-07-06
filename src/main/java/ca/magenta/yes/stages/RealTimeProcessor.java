@@ -2,6 +2,7 @@ package ca.magenta.yes.stages;
 
 
 import ca.magenta.utils.AppException;
+import ca.magenta.utils.queuing.MyBlockingQueue;
 import ca.magenta.yes.data.Partition;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
@@ -16,7 +17,7 @@ public class RealTimeProcessor extends Processor {
 
     static final String SHORT_NAME = "RTP";
 
-    RealTimeProcessor(ProcessorMgmt processorMgmt, Partition partition, BlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
+    RealTimeProcessor(ProcessorMgmt processorMgmt, Partition partition, MyBlockingQueue<Object> inputQueue, int queueDepth) throws AppException {
         super(processorMgmt, partition, inputQueue, queueDepth);
     }
 

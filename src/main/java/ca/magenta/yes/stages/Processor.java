@@ -2,6 +2,8 @@ package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.QueueProcessor;
+import ca.magenta.utils.queuing.MyBlockingQueue;
+import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
 import ca.magenta.yes.data.Partition;
@@ -22,7 +24,7 @@ public abstract class Processor implements Runnable {
 
     private final Partition partition;
 
-    private BlockingQueue<Object> inputQueue;
+    private MyBlockingQueue<Object> inputQueue;
 
     Directory indexDir;
     IndexWriter luceneIndexWriter;
@@ -40,11 +42,13 @@ public abstract class Processor implements Runnable {
 
     synchronized void stopIt() {
         doRun = false;
+
+        inputQueue.stopWait();
     }
 
-    private static final long PRINT_EVERY = 100000;
+    private static final long PRINT_EVERY = 50000;
 
-    Processor(ProcessorMgmt processorMgmt, Partition partition, BlockingQueue<Object> inputQueue, int queueDepth) {
+    Processor(ProcessorMgmt processorMgmt, Partition partition, MyBlockingQueue<Object> inputQueue, int queueDepth) {
 
         this.processorMgmt = processorMgmt;
 
@@ -68,30 +72,38 @@ public abstract class Processor implements Runnable {
         try {
 
             while (doRun || !inputQueue.isEmpty()) {
-                NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
-                if (normalizedMsgRecord != null) {
-                    long srcTimestamp = normalizedMsgRecord.getSrcTimestamp();
-                    long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
+                try {
+                    NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
+                    if (normalizedMsgRecord != null) {
+                        long srcTimestamp = normalizedMsgRecord.getSrcTimestamp();
+                        long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Processor received: {}", normalizedMsgRecord.toString());
+                        }
+                        runtimeTimestamps.compute(srcTimestamp, rxTimestamp);
+                        try {
+                            storeInLucene(normalizedMsgRecord);
+                            count++;
+                            thisRunCount++;
+                            reportCount++;
+
+                        } catch (AppException e) {
+                            logger.error("AppException", e);
+                        } catch (Throwable e) {
+                            logger.error(e.getClass().getSimpleName(), e);
+                        }
+
+                        if (reportCount == PRINT_EVERY) {
+
+                            long soFarHiWaterMarkQueueLength = printReport(processorMgmt.getSoFarHiWaterMarkQueueLength());
+                            processorMgmt.setSoFarHiWaterMarkQueueLength(soFarHiWaterMarkQueueLength);
+                        }
+                    }
+                }
+                catch (StopWaitAsked e)
+                {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Processor received: {}", normalizedMsgRecord.toString());
-                    }
-                    runtimeTimestamps.compute(srcTimestamp, rxTimestamp);
-                    try {
-                        storeInLucene(normalizedMsgRecord);
-                        count++;
-                        thisRunCount++;
-                        reportCount++;
-
-                    } catch (AppException e) {
-                        logger.error("AppException", e);
-                    } catch (Throwable e) {
-                        logger.error(e.getClass().getSimpleName(), e);
-                    }
-
-                    if (reportCount == PRINT_EVERY) {
-
-                        long soFarHiWaterMarkQueueLength = printReport(processorMgmt.getSoFarHiWaterMarkQueueLength());
-                        processorMgmt.setSoFarHiWaterMarkQueueLength(soFarHiWaterMarkQueueLength);
+                        logger.debug("Stop Wait Asked !");
                     }
                 }
             }
@@ -130,7 +142,7 @@ public abstract class Processor implements Runnable {
         long totalTime = now - previousNow;
         float msgPerSec = ((float) reportCount / (float) totalTime) * 1000;
 
-        if (reportCount > 0) {
+        //if (reportCount > 0) {
             String report = QueueProcessor.buildReportString(partition,
                     this.getShortName(),
                     reportCount,
@@ -142,7 +154,7 @@ public abstract class Processor implements Runnable {
                     queueDepth);
 
             System.out.println(report);
-        }
+        //}
         previousNow = now;
         reportCount = 0;
 
@@ -156,8 +168,8 @@ public abstract class Processor implements Runnable {
 
         normalizedMsgRecord.store(luceneIndexWriter);
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Document added");
+        if (logger.isTraceEnabled()) {
+            logger.trace("Document added");
         }
     }
 
@@ -175,7 +187,7 @@ public abstract class Processor implements Runnable {
         return indexDir;
     }
 
-    private NormalizedMsgRecord takeFromQueue() throws InterruptedException {
+    private NormalizedMsgRecord takeFromQueue() throws InterruptedException, StopWaitAsked {
 
         Object obj = inputQueue.take();
         if (obj instanceof NormalizedMsgRecord) {

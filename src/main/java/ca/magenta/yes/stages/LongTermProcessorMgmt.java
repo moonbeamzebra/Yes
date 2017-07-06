@@ -2,6 +2,8 @@ package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.Runner;
+import ca.magenta.utils.queuing.MyBlockingQueue;
+import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.Partition;
@@ -10,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
 class LongTermProcessorMgmt extends ProcessorMgmt {
@@ -80,14 +81,14 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
         }
     }
 
-    Processor createProcessor(BlockingQueue<Object> queue, int queueDepth) throws AppException {
+    Processor createProcessor(MyBlockingQueue queue, int queueDepth) throws AppException {
 
         return new LongTermProcessor(this, partition, queue, queueDepth);
 
     }
 
     @Override
-    public boolean isEndDrainsCanDrain(Runner callerRunner) {
+    public boolean isEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
 
         return isLocalQueueCanDrain(callerRunner) && longTermIndexPublisher.isEndDrainsCanDrain(callerRunner);
 

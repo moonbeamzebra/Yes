@@ -1,5 +1,6 @@
 package ca.magenta.utils;
 
+import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.data.Partition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,7 +89,7 @@ public abstract class QueueProcessor extends Runner {
 
     }
 
-    public abstract boolean isEndDrainsCanDrain(Runner callerRunner);
+    public abstract boolean isEndDrainsCanDrain(Runner callerRunner) throws StopWaitAsked, InterruptedException;
 
     public synchronized void letDrain() {
 

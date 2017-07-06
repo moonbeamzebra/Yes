@@ -21,14 +21,14 @@ STATS: [27059.688 msgs/sec]
 java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.jar  \
 -apiServerAddr=127.0.0.1 \
 -apiServerPort=9595 \
---raw \
+--simple \
 --time=last30m \
 10.10.10.30
 
 java -jar -Dloader.main=ca.magenta.yes.Yes target/ca.magenta.yes-1.0-SNAPSHOT.jar  \
 -apiServerAddr=127.0.0.1 \
 -apiServerPort=9595 \
---raw \
+--simple \
 -f \
 10.10.10.30
 
