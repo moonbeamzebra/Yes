@@ -1,8 +1,8 @@
 package ca.magenta.yes.connector;
 
 import ca.magenta.utils.AppException;
-import ca.magenta.utils.QueueProcessor;
 import ca.magenta.utils.Runner;
+import ca.magenta.utils.queuing.MyQueueProcessor;
 import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 
 
-public class LogParser extends QueueProcessor {
+public class LogParser extends MyQueueProcessor<String> {
 
     static final String SHORT_NAME = "LogP";
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
@@ -58,7 +58,7 @@ public class LogParser extends QueueProcessor {
             if (queueLength > hiWaterMarkQueueLength)
                 hiWaterMarkQueueLength = queueLength;
             try {
-                dispatcher.isEndDrainsCanDrain(this);
+                dispatcher.waitWhileEndDrainsCanDrain(this);
                 String logMsg = null;
                 try {
                     logMsg = takeFromQueue();
@@ -140,71 +140,27 @@ public class LogParser extends QueueProcessor {
 
         HashMap<String, Object> hashedMsg = NormalizedMsgRecord.initiateMsgHash(receiveTime, msg, partition.getName(), parsedMessage);
 
-
-
-
-//        // Let's parse pseudo Checkpoint logs
-//        // device=fw01|source=10.10.10.10|dest=20.20.20.20|port=80|action=drop
-//        String[] items = msg.split("\\|");
-//
-//        for (String item : items) {
-//            if (logger.isDebugEnabled())
-//                logger.debug(String.format("ITEM:[%s]", item));
-//            int pos = item.indexOf("=");
-//            if (pos != -1) {
-//                String key = item.substring(0, pos);
-//                String value = item.substring(pos + 1);
-//
-//                if (logger.isDebugEnabled())
-//                    logger.debug(String.format("KEY:[%s]; VALUE:[%s]", key, value));
-//
-//                hashedMsg.put(key, value);
-//
-//            }
-//        }
-//
-//
-//        ObjectMapper mapper = new ObjectMapper();
-
         String jsonMsg = objectMapper.writeValueAsString(hashedMsg);
 
-        dispatcher.putInQueue(jsonMsg);
+        dispatcher.putIntoQueue(jsonMsg);
 
     }
 
-    private String takeFromQueue() throws InterruptedException {
-        return (String) inputQueue.take();
-    }
-
-    void putInQueue(String message) throws InterruptedException {
-
-        this.putInQueueImpl(message, Globals.getConfig().getQueueDepthWarningThreshold());
-    }
+//    private String takeFromQueue() throws InterruptedException, StopWaitAsked {
+//        return inputQueue.take();
+//    }
+//
+//    void putInQueue(String message) throws InterruptedException {
+//
+//        this.putIntoQueue(message);
+//    }
 
     @Override
-    public boolean isEndDrainsCanDrain(Runner callerRunner) {
+    public void waitWhileEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
 
-        if (isLocalQueueCanDrain(callerRunner))
-        {
-            try {
-                if (dispatcher.isEndDrainsCanDrain(callerRunner))
-                {
-                    return true;
-                }
-            } catch (StopWaitAsked stopWaitAsked) {
-                if (doRun)
-                {
-                    logger.warn("Stop Wait Asked");
-                }
-            } catch (InterruptedException e) {
-                if (doRun)
-                {
-                    logger.error(e.getClass().getSimpleName(), e);
-                }
-            }
-        }
+        dispatcher.waitWhileEndDrainsCanDrain(callerRunner);
 
-        return false;
+        this.waitWhileLocalQueueCanDrain(callerRunner);
     }
 
     @Override
@@ -223,7 +179,7 @@ public class LogParser extends QueueProcessor {
         } else {
 
             try {
-                logger.info(String.format("Starting alternate Parser Class=[%s] ...", parserClass));
+                logger.info("Starting alternate Parser Class=[{}] ...", parserClass);
 
                 effectiveMsgParser = (EffectiveMsgParser) Class.forName(parserClass).newInstance();
 

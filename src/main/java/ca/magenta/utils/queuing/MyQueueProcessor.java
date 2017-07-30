@@ -26,32 +26,22 @@ public abstract class MyQueueProcessor<T> extends Runner {
         this.inputQueue = new MyBlockingQueue<>(this.queueDepth);
     }
 
-    protected void putIntoQueue(T element, float queueDepthWarningThreshold) throws InterruptedException {
+    public void putIntoQueue(T element) throws InterruptedException {
 
         inputQueue.put(element);
     }
 
-    public boolean isLocalQueueCanDrain(Runner callerRunner) throws StopWaitAsked, InterruptedException {
-        inputQueue.waitForWellDrain();
+    protected T takeFromQueue() throws StopWaitAsked, InterruptedException {
+        return inputQueue.take();
+    }
 
-        return true;
+
+    protected void waitWhileLocalQueueCanDrain(Runner callerRunner) throws StopWaitAsked, InterruptedException {
+        inputQueue.waitForWellDrain();
 
     }
 
-    public abstract boolean isEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked;
-
-//    public synchronized void letDrain() {
-//
-//        logger.info(String.format("[%s]:Test queue emptiness [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition.getInstanceName()));
-//        while (!inputQueue.isEmpty()) {
-//            logger.info(String.format("[%s]:Let drain [%d][%s]", this.getClass().getSimpleName(), inputQueue.size(), partition.getInstanceName()));
-//            try {
-//                wait(200);
-//            } catch (InterruptedException e) {
-//                logger.error("InterruptedException", e);
-//            }
-//        }
-//    }
+    public abstract void waitWhileEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked;
 
     public void letDrain() {
 
@@ -82,7 +72,7 @@ public abstract class MyQueueProcessor<T> extends Runner {
                 msgPerSecSinceStart);
     }
 
-    public String buildReportString(long totalTime, float msgPerSec, long queueLength, long hiWaterMarkQueueLength, float msgPerSecSinceStart) {
+    protected String buildReportString(long totalTime, float msgPerSec, long queueLength, long hiWaterMarkQueueLength, float msgPerSecSinceStart) {
         return buildReportString(partition,
                 getShortName(),
                 printEvery,

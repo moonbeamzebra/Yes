@@ -10,7 +10,7 @@ public class MyBlockingQueue<T> {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private static final float DRAINING_THREASHOLD = (float) 0.70; // 70%
+    private static final float DRAINING_THRESHOLD = (float) 0.30; // 70%
 
 
     private Queue<T> queue = new LinkedList<>();
@@ -51,13 +51,10 @@ public class MyBlockingQueue<T> {
     }
 
 
-    synchronized void waitForWellDrain() throws InterruptedException, StopWaitAsked {
+    synchronized void waitForWellDrain() throws InterruptedException {
 
-        while ( DRAINING_THREASHOLD < (queue.size() / capacity)) {
+        while ( DRAINING_THRESHOLD < (queue.size() / capacity)) {
             wait();
-            //if (!waitTimeMode) {
-            //    throw new StopWaitAsked();
-            // }
         }
     }
 
@@ -76,15 +73,18 @@ public class MyBlockingQueue<T> {
         return queue.isEmpty();
     }
 
-    public synchronized void letDrain(String ownerName) {
+    synchronized void letDrain(String ownerName) {
 
         logger.info("Test queue emptiness {} in {}", queue.size(), ownerName);
         while (!queue.isEmpty()) {
-            logger.info("Let drain {} in {}", queue.size(), ownerName);
+            if ((queue.size() % 1000) == 0) {
+                logger.info("Let drain {} in {}", queue.size(), ownerName);
+            }
             try {
                 wait();
             } catch (InterruptedException e) {
-                logger.error("InterruptedException", e);
+                logger.warn("Interrupted!", e);
+                Thread.currentThread().interrupt();
             }
         }
     }

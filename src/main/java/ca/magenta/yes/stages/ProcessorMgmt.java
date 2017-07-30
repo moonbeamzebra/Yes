@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
 
-public abstract class ProcessorMgmt extends MyQueueProcessor {
+public abstract class ProcessorMgmt extends MyQueueProcessor<NormalizedMsgRecord> {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
@@ -133,7 +133,7 @@ public abstract class ProcessorMgmt extends MyQueueProcessor {
     synchronized void putInQueue(NormalizedMsgRecord normalizedMsgRecord) throws InterruptedException {
 
 
-        this.putIntoQueue(normalizedMsgRecord, Globals.getConfig().getQueueDepthWarningThreshold());
+        this.putIntoQueue(normalizedMsgRecord);
     }
 
     long getSoFarHiWaterMarkQueueLength() {

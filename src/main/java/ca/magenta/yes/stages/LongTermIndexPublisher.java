@@ -1,9 +1,9 @@
 package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
-import ca.magenta.utils.QueueProcessor;
 import ca.magenta.utils.Runner;
-import ca.magenta.yes.Globals;
+import ca.magenta.utils.queuing.MyQueueProcessor;
+import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.data.MasterIndex;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 
-public class LongTermIndexPublisher extends QueueProcessor {
+public class LongTermIndexPublisher extends MyQueueProcessor<LongTermIndexPublisher.Package> {
 
     private static final String SHORT_NAME = "LTIPub";
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
@@ -78,6 +78,9 @@ public class LongTermIndexPublisher extends QueueProcessor {
                     logger.error("ERROR Renaming [{}] to [{}]", oldNameNewPath.getAbsoluteFile(), newDirName.getAbsoluteFile());
                 }
 
+            } catch (StopWaitAsked e) {
+                if (doRun)
+                    logger.error(e.getClass().getSimpleName(), e);
             } catch (InterruptedException e) {
                 if (doRun)
                     logger.error(e.getClass().getSimpleName(), e);
@@ -110,16 +113,16 @@ public class LongTermIndexPublisher extends QueueProcessor {
 
     }
 
-    private Package takeFromQueue() throws InterruptedException {
-
-        Package aPackage = (Package) inputQueue.take();
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("Package taken");
-        }
-
-        return aPackage;
-    }
+//    private Package takeFromQueue() throws InterruptedException, StopWaitAsked {
+//
+//        Package aPackage = (Package) inputQueue.take();
+//
+//        if (logger.isTraceEnabled()) {
+//            logger.trace("Package taken");
+//        }
+//
+//        return aPackage;
+//    }
 
     LongTermIndexPublisher(String name, Partition partition, MasterIndex masterIndex) {
         super(name, partition, 10, 20);
@@ -128,8 +131,10 @@ public class LongTermIndexPublisher extends QueueProcessor {
     }
 
     @Override
-    public boolean isEndDrainsCanDrain(Runner callerRunner) {
-        return isLocalQueueCanDrain(callerRunner);
+    public void waitWhileEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
+
+        waitWhileLocalQueueCanDrain(callerRunner);
+
     }
 
     @Override
@@ -137,13 +142,13 @@ public class LongTermIndexPublisher extends QueueProcessor {
         return SHORT_NAME;
     }
 
-    void putInQueue(Package publishPackage) throws InterruptedException {
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("Index published");
-        }
-        this.putInQueueImpl(publishPackage, Globals.getConfig().getQueueDepthWarningThreshold());
-    }
+//    void putInQueue(Package publishPackage) throws InterruptedException {
+//
+//        if (logger.isTraceEnabled()) {
+//            logger.trace("Index published");
+//        }
+//        this.putIntoQueue(publishPackage);
+//    }
 
 
     static class Package {

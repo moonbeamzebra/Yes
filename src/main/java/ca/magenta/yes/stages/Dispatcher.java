@@ -1,8 +1,8 @@
 package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
-import ca.magenta.utils.QueueProcessor;
 import ca.magenta.utils.Runner;
+import ca.magenta.utils.queuing.MyQueueProcessor;
 import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class Dispatcher extends QueueProcessor {
+public class Dispatcher extends MyQueueProcessor<String> {
 
     public static final String SHORT_NAME = "DSPTCHR";
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
@@ -54,7 +54,7 @@ public class Dispatcher extends QueueProcessor {
                 if (queueLength > hiWaterMarkQueueLength)
                     hiWaterMarkQueueLength = queueLength;
                 try {
-                    longTermProcessorMgmt.isEndDrainsCanDrain(this);
+                    longTermProcessorMgmt.waitWhileEndDrainsCanDrain(this);
                     String jsonMsg = takeFromQueue();
                     if (logger.isDebugEnabled()) {
                         logger.debug("Dispatcher received: {}", jsonMsg);
@@ -117,14 +117,14 @@ public class Dispatcher extends QueueProcessor {
         }
     }
 
-    public void putInQueue(String jsonMsg) throws InterruptedException {
-
-        this.putInQueueImpl(jsonMsg, Globals.getConfig().getQueueDepthWarningThreshold());
-    }
-
-    private String takeFromQueue() throws InterruptedException {
-        return (String) inputQueue.take();
-    }
+//    public void putInQueue(String jsonMsg) throws InterruptedException {
+//
+//        this.putIntoQueue(jsonMsg);
+//    }
+//
+//    private String takeFromQueue() throws InterruptedException, StopWaitAsked {
+//        return this.takeFromQueue();
+//    }
 
     @Override
     public synchronized void startInstance() throws AppException {
@@ -145,11 +145,11 @@ public class Dispatcher extends QueueProcessor {
     }
 
     @Override
-    public boolean isEndDrainsCanDrain(Runner callerRunner) throws StopWaitAsked, InterruptedException {
+    public void waitWhileEndDrainsCanDrain(Runner callerRunner) throws StopWaitAsked, InterruptedException {
 
-        return isLocalQueueCanDrain(callerRunner) &&
-                realTimeProcessorMgmt.isEndDrainsCanDrain(callerRunner) &&
-                longTermProcessorMgmt.isEndDrainsCanDrain(callerRunner);
+        realTimeProcessorMgmt.waitWhileEndDrainsCanDrain(callerRunner);
+        longTermProcessorMgmt.waitWhileEndDrainsCanDrain(callerRunner);
+        this.waitWhileLocalQueueCanDrain(callerRunner);
 
     }
 

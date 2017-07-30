@@ -1,8 +1,8 @@
 package ca.magenta.yes.stages;
 
 import ca.magenta.utils.AppException;
-import ca.magenta.utils.QueueProcessor;
 import ca.magenta.utils.queuing.MyBlockingQueue;
+import ca.magenta.utils.queuing.MyQueueProcessor;
 import ca.magenta.utils.queuing.StopWaitAsked;
 import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
 
 
 public abstract class Processor implements Runnable {
@@ -143,7 +142,7 @@ public abstract class Processor implements Runnable {
         float msgPerSec = ((float) reportCount / (float) totalTime) * 1000;
 
         //if (reportCount > 0) {
-            String report = QueueProcessor.buildReportString(partition,
+            String report = MyQueueProcessor.buildReportString(partition,
                     this.getShortName(),
                     reportCount,
                     totalTime,

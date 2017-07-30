@@ -2,15 +2,14 @@ package ca.magenta.yes.connector;
 
 import ca.magenta.utils.AbstractTCPServer;
 import ca.magenta.utils.AbstractTCPServerHandler;
+import ca.magenta.utils.queuing.StopWaitAsked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
-import java.net.SocketException;
 
 public class GenericConnector extends AbstractTCPServerHandler {
 
@@ -33,50 +32,45 @@ public class GenericConnector extends AbstractTCPServerHandler {
         String clientIP = handlerSocket.getInetAddress().toString();
         int clientPort = handlerSocket.getPort();
 
-        logger.info(String.format("Received a connection from %s:%s", clientIP, clientPort));
+        logger.info("Received a connection from {}:{}", clientIP, clientPort);
 
-        try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(handlerSocket.getInputStream()));
-            PrintWriter out = new PrintWriter(handlerSocket.getOutputStream());
+        try (
+                InputStreamReader isr = new InputStreamReader(handlerSocket.getInputStream());
+                BufferedReader in = new BufferedReader(isr);
+                )
+        {
 
-            try {
-                String line = ""; // Just let go in
-                while ((doRun) && (line != null) ) {
-
-                    if (logParser.isEndDrainsCanDrain(this)) {
-                        line = in.readLine();
-                        if (line != null) {
-                            logParser.putInQueue(line);
-                        }
-                    }
-                    else
-                    {
-                        if (doRun)
-                            logger.warn(String.format("Partition:[%s] drains baddly", getName()));
-                    }
-                }
-            } catch (SocketException e) {
-                if (doRun)
-                    logger.error("SocketException", e);
-            } catch (IOException e) {
-                if (doRun)
-                    logger.error("IOException", e);
-            } catch (InterruptedException e) {
-                if (doRun)
-                    logger.error("InterruptedException", e);
-            }
+            processQueue(in);
 
             in.close();
-            out.close();
+            isr.close();
             handlerSocket.close();
 
         } catch (IOException e) {
             if (doRun)
                 logger.error("IOException", e);
         }
+
         tcpServer.removeTcpServerHandler(this);
 
-        logger.info(String.format("Connection closed from %s:%s", clientIP, clientPort));
+        logger.info("Connection closed from {}:{}", clientIP, clientPort);
+    }
+
+    private void processQueue(BufferedReader in) {
+        try {
+            String line = ""; // Just let go in
+            while ((doRun) && (line != null) ) {
+
+                logParser.waitWhileEndDrainsCanDrain(this);
+                line = in.readLine();
+                if (line != null) {
+                    logParser.putIntoQueue(line);
+                }
+            }
+        }catch (StopWaitAsked | IOException | InterruptedException e) {
+            if (doRun)
+                logger.error(e.getClass().getSimpleName(), e);
+        }
     }
 
 }

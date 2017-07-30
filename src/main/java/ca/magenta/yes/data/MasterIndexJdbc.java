@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 // https://www.cockroachlabs.com/docs/start-a-local-cluster-in-docker.html#os-linux
 // https://www.cockroachlabs.com/docs/build-a-java-app-with-cockroachdb.html
 // docker exec -it roach1 ./cockroach user set yesuser --insecure
+// docker exec -it roach1 ./cockroach sql --insecure -e 'CREATE DATABASE yes'
 // docker exec -it roach1 ./cockroach sql --insecure -e 'GRANT ALL ON DATABASE yes TO yesuser'
 // docker exec -it roach1 ./cockroach sql --insecure -e  'ALTER USER yesuser WITH  PASSWORD yespw'
 

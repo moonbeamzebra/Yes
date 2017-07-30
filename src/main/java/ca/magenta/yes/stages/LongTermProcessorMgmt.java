@@ -46,7 +46,7 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
                 longTermProcessor.getRuntimeTimestamps());
 
         try {
-            longTermIndexPublisher.putInQueue(publishPackage);
+            longTermIndexPublisher.putIntoQueue(publishPackage);
         } catch (InterruptedException e) {
             logger.error("InterruptedException", e);
         }
@@ -88,9 +88,11 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
     }
 
     @Override
-    public boolean isEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
+    public void waitWhileEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
 
-        return isLocalQueueCanDrain(callerRunner) && longTermIndexPublisher.isEndDrainsCanDrain(callerRunner);
+        longTermIndexPublisher.waitWhileEndDrainsCanDrain(callerRunner);
+
+        waitWhileLocalQueueCanDrain(callerRunner);
 
     }
 
