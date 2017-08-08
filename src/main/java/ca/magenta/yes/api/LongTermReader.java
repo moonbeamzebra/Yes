@@ -154,7 +154,7 @@ public class LongTermReader extends Runner {
         ObjectMapper mapper = new ObjectMapper();
         ScoreDoc lastScoreDoc = null;
         int totalRead = maxTotalHits; // just to let enter in the following loop
-        while ( doRun && (totalRead >= maxTotalHits) && (soFarCount < limit)) {
+        while ( isDoRun() && (totalRead >= maxTotalHits) && (soFarCount < limit)) {
             TopDocs results;
 
             results = searcher.searchAfter(lastScoreDoc, stringQuery, maxTotalHits, sort);
@@ -174,7 +174,7 @@ public class LongTermReader extends Runner {
                     soFarCount++;
                 }
 
-                if ( !doRun || !(soFarCount < limit) )
+                if ( !isDoRun() || !(soFarCount < limit) )
                 {
                     break;
                 }

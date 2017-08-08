@@ -8,8 +8,6 @@ import ca.magenta.yes.data.Partition;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,6 +16,8 @@ import java.util.List;
 public class ConnectorManager extends Runner {
 
     private final org.slf4j.Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+
+    private final Object connectorManagerMonitor = new Object();
 
     private final Config config;
     private final MasterIndex masterIndex;
@@ -48,33 +48,52 @@ public class ConnectorManager extends Runner {
 
         this.stopConnectors();
 
-        super.stopInstance();
+        stopIt();
+
+        synchronized (connectorManagerMonitor)
+        {
+            connectorManagerMonitor.notifyAll();
+        }
+
+        try {
+            this.join();
+        } catch (InterruptedException e) {
+            logger.error(e.getClass().getSimpleName(), e);
+            Thread.currentThread().interrupt();
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} [{}] stopped", this.getClass().getSimpleName(), this.getName());
+        }
     }
 
 
     private void stopConnectors() {
         for (TCPGenericConnector tcpGenericConnector : tcpGenericConnectors) {
             tcpGenericConnector.stopServer();
-            logger.info(String.format("GenericConnector [%s] stopped", tcpGenericConnector.getName()));
+            logger.info("GenericConnector [{}] stopped", tcpGenericConnector.getName());
         }
 
     }
 
+    @Override
     public void run() {
 
-        logger.info(String.format("%s [%s] started", this.getClass().getSimpleName(), this.getName()));
-        //long previousNow = System.currentTimeMillis();
+        logger.info("{} [{}] started", this.getClass().getSimpleName(), this.getName());
         try {
 
-            while (doRun) {
-                // TODO monitor tcpGenericConnectors here
-                sleep(10000);
+            while (isDoRun()) {
+                synchronized (connectorManagerMonitor)
+                {
+                    // TODO monitor tcpGenericConnectors here
+                    connectorManagerMonitor.wait(10000);
+                }
             }
         } catch (InterruptedException e) {
-            if (doRun)
+            if (isDoRun())
                 logger.error("InterruptedException", e);
         }
-        logger.info(String.format("%s [%s] stopped", this.getClass().getSimpleName(), this.getName()));
+        logger.info("{} [{}] stopped", this.getClass().getSimpleName(), this.getName());
     }
 
     private ArrayList<TCPGenericConnector> constructConnectors(Config config, MasterIndex masterIndex) throws AppException {
@@ -134,7 +153,7 @@ public class ConnectorManager extends Runner {
                         throw new AppException(String.format("Bad GenericConnector partition name or instance; '-' or decimal only not allowed [%d]=[%s]", index, connector));
                     }
                 } catch (NumberFormatException e) {
-                    throw new AppException(String.format("Bad GenericConnector port [%d]=[%s]", connector), e);
+                    throw new AppException(String.format("Bad GenericConnector port [%d]=[%s]", index, connector), e);
                 }
             }
             index++;

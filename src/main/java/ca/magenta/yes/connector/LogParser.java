@@ -53,7 +53,7 @@ public class LogParser extends MyQueueProcessor<String> {
         long queueLength;
         long hiWaterMarkQueueLength = 0;
 
-        while (doRun) {
+        while (isDoRun()) {
             queueLength = inputQueue.size();
             if (queueLength > hiWaterMarkQueueLength)
                 hiWaterMarkQueueLength = queueLength;
@@ -68,7 +68,7 @@ public class LogParser extends MyQueueProcessor<String> {
                         logger.error(e.getClass().getSimpleName(), e);
                     }
                 } catch (InterruptedException e) {
-                    if (doRun)
+                    if (isDoRun())
                         logger.error("InterruptedException", e);
                 }
                 logger.debug("LogParser received: " + logMsg);
@@ -93,12 +93,12 @@ public class LogParser extends MyQueueProcessor<String> {
             }
             catch (StopWaitAsked e )
             {
-                if (doRun)
+                if (isDoRun())
                     logger.warn("Stop Wait Asked");
             }
             catch (InterruptedException e )
             {
-                if (doRun)
+                if (isDoRun())
                     logger.error(e.getClass().getSimpleName(), e);
             }
         }

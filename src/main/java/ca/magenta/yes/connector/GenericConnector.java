@@ -27,7 +27,7 @@ public class GenericConnector extends AbstractTCPServerHandler {
 
     @Override
     public void run() {
-        doRun = true;
+        setDoRun(true);
 
         String clientIP = handlerSocket.getInetAddress().toString();
         int clientPort = handlerSocket.getPort();
@@ -47,7 +47,7 @@ public class GenericConnector extends AbstractTCPServerHandler {
             handlerSocket.close();
 
         } catch (IOException e) {
-            if (doRun)
+            if (isDoRun())
                 logger.error("IOException", e);
         }
 
@@ -59,7 +59,7 @@ public class GenericConnector extends AbstractTCPServerHandler {
     private void processQueue(BufferedReader in) {
         try {
             String line = ""; // Just let go in
-            while ((doRun) && (line != null) ) {
+            while ((isDoRun()) && (line != null) ) {
 
                 logParser.waitWhileEndDrainsCanDrain(this);
                 line = in.readLine();
@@ -68,7 +68,7 @@ public class GenericConnector extends AbstractTCPServerHandler {
                 }
             }
         }catch (StopWaitAsked | IOException | InterruptedException e) {
-            if (doRun)
+            if (isDoRun())
                 logger.error(e.getClass().getSimpleName(), e);
         }
     }

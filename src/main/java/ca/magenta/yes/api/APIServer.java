@@ -37,7 +37,7 @@ public class APIServer extends AbstractTCPServerHandler {
     @Override
     public void run()
     {
-        doRun = true;
+        setDoRun(true);
         try
         {
 
@@ -57,7 +57,7 @@ public class APIServer extends AbstractTCPServerHandler {
             String searchString = "*";
             //HashMap<String, String> control = null;
             Control control = null;
-            if ((doRun) && (inputLine = in.readLine()) != null) {
+            if ((isDoRun()) && (inputLine = in.readLine()) != null) {
                 logger.info("Client: " + inputLine);
                 ObjectMapper mapper = new ObjectMapper();
                 control = mapper.readValue(inputLine, Control.class);
@@ -74,12 +74,12 @@ public class APIServer extends AbstractTCPServerHandler {
 
                     realTimeReader.startInstance();
 
-                    while ((doRun) && (inputLine = in.readLine()) != null) {
+                    while ((isDoRun()) && (inputLine = in.readLine()) != null) {
                         logger.info("Client: " + inputLine);
 
                     }
 
-                    realTimeReader.gentlyStopInstance();
+                    //realTimeReader.gentlyStopInstance();
 
                     realTimeReader.stopInstance();
 
@@ -124,7 +124,7 @@ public class APIServer extends AbstractTCPServerHandler {
                         logger.info("Client: " + inputLine);
                     }
 
-                    longTermReader.gentlyStopInstance();
+                    //longTermReader.gentlyStopInstance();
 
                     longTermReader.stopInstance();
                 }
@@ -139,7 +139,7 @@ public class APIServer extends AbstractTCPServerHandler {
         }
         catch( SocketException e )
         {
-            if (doRun)
+            if (isDoRun())
                 logger.error("SocketException", e);
         }
         catch( Exception e )

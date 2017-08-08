@@ -3,60 +3,68 @@ package ca.magenta.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-abstract public class Runner extends Thread {
+public abstract class Runner extends Thread {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    protected volatile boolean doRun = true;
+    public boolean isDoRun() {
+        return doRun;
+    }
+
+    public void setDoRun(boolean doRun) {
+        this.doRun = doRun;
+    }
+
+    private volatile boolean doRun = true;
 
     public Runner(String name) {
 
         super(name);
     }
 
-    //public void gentleStopIt() {
-    //    doRun = false;
-    //}
-
     protected synchronized void stopIt() {
-        doRun = false;
+        setDoRun(false);
     }
 
     public synchronized void startInstance() throws AppException {
         doRun = true;
         this.start();
-        logger.debug(String.format("%s [%s] started", this.getClass().getSimpleName(), this.getName()));
-    }
-
-    public void gentlyStopInstance(long millis) {
-        doRun = false;
-        try {
-            logger.info(String.format("%s [%s] gently ask to stop; wait %d millis", this.getClass().getSimpleName(), this.getName(), millis));
-            this.join(millis);
-        } catch (InterruptedException e) {
-            logger.error("InterruptedException", e);
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} [{}] started", this.getClass().getSimpleName(), this.getName());
         }
-
-        logger.debug(String.format("%s [%s] gently ask to stop", this.getClass().getSimpleName(), this.getName()));
     }
 
-    public void gentlyStopInstance() {
-        gentlyStopInstance(500);
-    }
+//    public void gentlyStopInstance(long millis) {
+//        doRun = false;
+//        try {
+//            logger.info("{} [{}] gently ask to stop; wait %d millis", this.getClass().getSimpleName(), this.getName(), millis);
+//            this.join(millis);
+//        } catch (InterruptedException e) {
+//            logger.error("InterruptedException", e);
+//            Thread.currentThread().interrupt();
+//        }
+//
+//        if (logger.isDebugEnabled()) {
+//            logger.debug("{} [{}] gently ask to stop", this.getClass().getSimpleName(), this.getName());
+//        }
+//    }
+
+//    public void gentlyStopInstance() {
+//        gentlyStopInstance(500);
+//    }
 
     public synchronized void stopInstance() {
         stopIt();
-        this.interrupt();
         try {
             this.join();
         } catch (InterruptedException e) {
-            logger.error("InterruptedException", e);
+            logger.error(e.getClass().getSimpleName(), e);
+            Thread.currentThread().interrupt();
         }
 
-        logger.debug(String.format("%s [%s] stopped", this.getClass().getSimpleName(), this.getName()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} [{}] stopped", this.getClass().getSimpleName(), this.getName());
+        }
     }
 
-    public boolean isDoRun() {
-        return doRun;
-    }
 }

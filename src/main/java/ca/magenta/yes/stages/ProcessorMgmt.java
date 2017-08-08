@@ -1,6 +1,5 @@
 package ca.magenta.yes.stages;
 
-
 import ca.magenta.utils.AppException;
 import ca.magenta.utils.queuing.MyBlockingQueue;
 import ca.magenta.utils.queuing.MyQueueProcessor;
@@ -22,6 +21,7 @@ public abstract class ProcessorMgmt extends MyQueueProcessor<NormalizedMsgRecord
     private final SimpleDateFormat dayFormat =
             new SimpleDateFormat(String.format("yyyy%sMM%sdd'GMT'", File.separator, File.separator));
 
+    private final Object cuttingTimeMonitor = new Object();
 
     private final String processorThreadName;
 
@@ -47,71 +47,163 @@ public abstract class ProcessorMgmt extends MyQueueProcessor<NormalizedMsgRecord
 
             logger.info("[{}] started for partition [{}]", this.getClass().getSimpleName(), partition.getInstanceName());
 
-            Processor processor;
+            runLoop();
 
-            while (doRun || (!inputQueue.isEmpty())) {
-                processor = createProcessor(inputQueue, queueDepth);
-                String relativePathName = forgeRelativePathName();
-                String baseTmpPath = Globals.getConfig().getTmpIndexBaseDirectory();
-                String tempIndexPathName = NormalizedMsgRecord.forgeTempIndexName(baseTmpPath, relativePathName, this.getClass().getSimpleName());
-                processor.createIndex(tempIndexPathName);
-                Thread processorThread = new Thread(processor, this.processorThreadName);
-                inputQueue.resetWaitState();
-                processorThread.start();
-
-                if (doRun) {
-                    try {
-                        Thread.sleep(cuttingTime + this.giveRandom());
-                    } catch (InterruptedException e) {
-                        if (doRun)
-                            logger.error("InterruptedException", e);
-                    }
-                }
-                if (!doRun) {
-                    // The still running processor take care of draining the queue
-                    this.letDrain();
-                }
-
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Time to rotate...stop the thread");
-                }
-                processor.stopIt();
-                //inputQueue.stopWait();
-                //processorThread.interrupt();
-                try {
-                    processorThread.join();
-                } catch (InterruptedException e) {
-                    logger.error("InterruptedException", e);
-                }
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Stopped");
-                }
-                if (this instanceof LongTermProcessorMgmt) {
-                    soFarHiWaterMarkQueueLength = processor.printReport(soFarHiWaterMarkQueueLength);
-                }
-
-                try {
-                    long count = processor.getThisRunCount();
-                    if (count > 0) {
-                        publishIndex(processor, relativePathName, tempIndexPathName);
-                    } else {
-                        processor.commitAndClose();
-                        deleteUnusedIndex(tempIndexPathName);
-                    }
-                } catch (IOException e) {
-                    logger.error(e.getClass().getSimpleName(), e);
-                } catch (Throwable e) {
-                    logger.error(e.getClass().getSimpleName(), e);
-                }
-
-            }
+//            Processor processor;
+//
+//            while (doRun || (!inputQueue.isEmpty())) {
+//                processor = createProcessor(inputQueue, queueDepth);
+//                String relativePathName = forgeRelativePathName();
+//                String baseTmpPath = Globals.getConfig().getTmpIndexBaseDirectory();
+//                String tempIndexPathName = NormalizedMsgRecord.forgeTempIndexName(baseTmpPath, relativePathName, this.getClass().getSimpleName());
+//                processor.createIndex(tempIndexPathName);
+//                Thread processorThread = new Thread(processor, this.processorThreadName);
+//                inputQueue.resetWaitState();
+//                processorThread.start();
+//
+//                if (doRun) {
+//                    try {
+//                        Thread.sleep(cuttingTime + this.giveRandom());
+//                    } catch (InterruptedException e) {
+//                        if (doRun)
+//                            logger.error("InterruptedException", e);
+//                    }
+//                }
+//                if (!doRun) {
+//                    // The still running processor take care of draining the queue
+//                    this.letDrain();
+//                }
+//
+//                if (logger.isDebugEnabled()) {
+//                    logger.debug("Time to rotate...stop the thread");
+//                }
+//                processor.stopIt();
+//                //inputQueue.stopWait();
+//                //processorThread.interrupt();
+//                try {
+//                    processorThread.join();
+//                } catch (InterruptedException e) {
+//                    logger.error("InterruptedException", e);
+//                }
+//                if (logger.isDebugEnabled()) {
+//                    logger.debug("Stopped");
+//                }
+//                if (this instanceof LongTermProcessorMgmt) {
+//                    soFarHiWaterMarkQueueLength = processor.printReport(soFarHiWaterMarkQueueLength);
+//                }
+//
+//                try {
+//                    long count = processor.getThisRunCount();
+//                    if (count > 0) {
+//                        publishIndex(processor, relativePathName, tempIndexPathName);
+//                    } else {
+//                        processor.commitAndClose();
+//                        deleteUnusedIndex(tempIndexPathName);
+//                    }
+//                } catch (IOException e) {
+//                    logger.error(e.getClass().getSimpleName(), e);
+//                } catch (Throwable e) {
+//                    logger.error(e.getClass().getSimpleName(), e);
+//                }
+//
+//            }
         } catch (AppException e) {
             logger.error("AppException", e);
         }
 
-        logger.info("[%s] stopped for partition [{}]", this.getClass().getSimpleName(), partition.getInstanceName());
+        logger.info("[{}] stopped for partition [{}]", this.getClass().getSimpleName(), partition.getInstanceName());
 
     }
+
+    private void runLoop() throws AppException {
+
+        Processor processor;
+
+        while (isDoRun() || (!inputQueue.isEmpty())) {
+            processor = createProcessor(inputQueue, queueDepth);
+            String relativePathName = forgeRelativePathName();
+            String baseTmpPath = Globals.getConfig().getTmpIndexBaseDirectory();
+            String tempIndexPathName = NormalizedMsgRecord.forgeTempIndexName(baseTmpPath, relativePathName, this.getClass().getSimpleName());
+            processor.createIndex(tempIndexPathName);
+            Thread processorThread = new Thread(processor, this.processorThreadName);
+            inputQueue.resetWaitState();
+            processorThread.start();
+
+            if (isDoRun()) {
+                synchronized (cuttingTimeMonitor) {
+                    try {
+                        cuttingTimeMonitor.wait(cuttingTime + this.giveRandom());
+                    } catch (InterruptedException e) {
+                        logger.error(e.getClass().getSimpleName(), e);
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+//            if (!doRun) {
+//                // The still running processor take care of draining the queue
+//                this.letDrain();
+//            }
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Time to rotate...stop the thread");
+            }
+            processor.stopIt();
+            try {
+                processorThread.join();
+            } catch (InterruptedException e) {
+                logger.error("InterruptedException", e);
+                Thread.currentThread().interrupt();
+            }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Stopped");
+            }
+            if (this instanceof LongTermProcessorMgmt) {
+                soFarHiWaterMarkQueueLength = processor.printReport(soFarHiWaterMarkQueueLength);
+            }
+
+            try {
+                long count = processor.getThisRunCount();
+                if (count > 0) {
+                    publishIndex(processor, relativePathName, tempIndexPathName);
+                } else {
+                    processor.commitAndClose();
+                    deleteUnusedIndex(tempIndexPathName);
+                }
+            } catch (IOException | RuntimeException e) {
+                logger.error(e.getClass().getSimpleName(), e);
+            }
+
+        }
+    }
+
+//    private synchronized void cuttingTimeWait(long cuttingTime) {
+//        try {
+//            cuttingTimeMonitor.wait(cuttingTime);
+//        } catch (InterruptedException e) {
+//            logger.error(e.getClass().getSimpleName(), e);
+//            Thread.currentThread().interrupt();
+//        }
+//    }
+
+    @Override
+    public synchronized void stopInstance() {
+        stopIt();
+        synchronized (cuttingTimeMonitor) {
+            cuttingTimeMonitor.notifyAll();
+        }
+        try {
+            this.join();
+        } catch (InterruptedException e) {
+            logger.error(e.getClass().getSimpleName(), e);
+            Thread.currentThread().interrupt();
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("{} [{}] stopped", this.getClass().getSimpleName(), this.getName());
+        }
+
+    }
+
 
     protected abstract long giveRandom();
 

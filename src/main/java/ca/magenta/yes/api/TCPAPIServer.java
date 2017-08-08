@@ -26,8 +26,8 @@ public class TCPAPIServer extends AbstractTCPServer {
 
     @Override
     public void run() {
-        doRun = true;
-        while (doRun) {
+        setDoRun(true);
+        while (isDoRun()) {
             try {
 
                 Socket socket = serverSocket.accept();
@@ -37,7 +37,7 @@ public class TCPAPIServer extends AbstractTCPServer {
                 addTcpServerHandler(apiServer);
                 apiServer.start();
             } catch (SocketException e) {
-                if (doRun) {
+                if (isDoRun()) {
                     logger.error("SocketException", e);
                 }
             } catch (IOException e) {

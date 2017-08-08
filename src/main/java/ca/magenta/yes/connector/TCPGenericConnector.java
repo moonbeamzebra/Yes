@@ -55,8 +55,8 @@ public class TCPGenericConnector extends AbstractTCPServer {
     public void run() {
         logger.info(String.format("Start listen on port [%d]", serverSocket.getLocalPort()));
 
-        doRun = true;
-        while (doRun) {
+        setDoRun(true);
+        while (isDoRun()) {
             try {
 
                 Socket socket = serverSocket.accept();
@@ -66,7 +66,7 @@ public class TCPGenericConnector extends AbstractTCPServer {
                 addTcpServerHandler(genericConnector);
                 genericConnector.start();
             } catch (SocketException e) {
-                if (doRun) {
+                if (isDoRun()) {
                     logger.error("SocketException", e);
                 }
             } catch (IOException e) {

@@ -16,6 +16,11 @@ public abstract class MyQueueProcessor<T> extends Runner {
     protected long count = 0;
 
 
+    @Override
+    protected void stopIt() {
+        super.stopIt();
+        stopWait();
+    }
 
     public MyQueueProcessor(String name, Partition partition, int queueDepth, long printEvery) {
         super(name);
@@ -85,4 +90,10 @@ public abstract class MyQueueProcessor<T> extends Runner {
     }
 
     protected abstract String getShortName();
+
+    public void stopWait() {
+
+        inputQueue.stopWait();
+    }
+
 }

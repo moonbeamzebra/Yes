@@ -70,53 +70,44 @@ public abstract class Processor implements Runnable {
         runtimeTimestamps = new MasterIndexRecord.RuntimeTimestamps();
         try {
 
-            while (doRun || !inputQueue.isEmpty()) {
-                try {
-                    NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
-                    if (normalizedMsgRecord != null) {
-                        long srcTimestamp = normalizedMsgRecord.getSrcTimestamp();
-                        long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("Processor received: {}", normalizedMsgRecord.toString());
-                        }
-                        runtimeTimestamps.compute(srcTimestamp, rxTimestamp);
-                        try {
-                            storeInLucene(normalizedMsgRecord);
-                            count++;
-                            thisRunCount++;
-                            reportCount++;
-
-                        } catch (AppException e) {
-                            logger.error("AppException", e);
-                        } catch (Throwable e) {
-                            logger.error(e.getClass().getSimpleName(), e);
-                        }
-
-                        if (reportCount == PRINT_EVERY) {
-
-                            long soFarHiWaterMarkQueueLength = printReport(processorMgmt.getSoFarHiWaterMarkQueueLength());
-                            processorMgmt.setSoFarHiWaterMarkQueueLength(soFarHiWaterMarkQueueLength);
-                        }
-                    }
-                }
-                catch (StopWaitAsked e)
-                {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Stop Wait Asked !");
-                    }
-                }
-            }
+            runLoop();
 
         } catch (InterruptedException e) {
-            if (doRun)
-                logger.error("InterruptedException", e);
-            else if (logger.isDebugEnabled()) {
-                logger.debug("Processor manager asked to stop!");
-            }
+            logger.error(e.getClass().getSimpleName(), e);
+            // Clean up state ...
+            Thread.currentThread().interrupt();
         }
 
-
         runtimeTimestamps.setRunEndTimestamp(System.currentTimeMillis());
+    }
+
+    private void runLoop() throws InterruptedException {
+        while (doRun || !inputQueue.isEmpty()) {
+            try {
+                NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
+                if (normalizedMsgRecord != null) {
+                    long srcTimestamp = normalizedMsgRecord.getSrcTimestamp();
+                    long rxTimestamp = normalizedMsgRecord.getRxTimestamp();
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Processor received: {}", normalizedMsgRecord.toString());
+                    }
+                    runtimeTimestamps.compute(srcTimestamp, rxTimestamp);
+                    storeInLucene(normalizedMsgRecord);
+
+                    if (reportCount == PRINT_EVERY) {
+
+                        long soFarHiWaterMarkQueueLength = printReport(processorMgmt.getSoFarHiWaterMarkQueueLength());
+                        processorMgmt.setSoFarHiWaterMarkQueueLength(soFarHiWaterMarkQueueLength);
+                    }
+                }
+            }
+            catch (StopWaitAsked e)
+            {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Stop Wait Asked !");
+                }
+            }
+        }
     }
 
     synchronized void commitAndClose() throws IOException {
@@ -141,19 +132,17 @@ public abstract class Processor implements Runnable {
         long totalTime = now - previousNow;
         float msgPerSec = ((float) reportCount / (float) totalTime) * 1000;
 
-        //if (reportCount > 0) {
-            String report = MyQueueProcessor.buildReportString(partition,
-                    this.getShortName(),
-                    reportCount,
-                    totalTime,
-                    msgPerSec,
-                    queueLength,
-                    newHiWaterMarkQueueLength,
-                    msgPerSecSinceStart,
-                    queueDepth);
+        String report = MyQueueProcessor.buildReportString(partition,
+                this.getShortName(),
+                reportCount,
+                totalTime,
+                msgPerSec,
+                queueLength,
+                newHiWaterMarkQueueLength,
+                msgPerSecSinceStart,
+                queueDepth);
 
-            System.out.println(report);
-        //}
+        System.out.println(report);
         previousNow = now;
         reportCount = 0;
 
@@ -163,12 +152,23 @@ public abstract class Processor implements Runnable {
 
     protected abstract String getShortName();
 
-    private synchronized void storeInLucene(NormalizedMsgRecord normalizedMsgRecord) throws AppException {
+    private synchronized void storeInLucene(NormalizedMsgRecord normalizedMsgRecord) {
 
-        normalizedMsgRecord.store(luceneIndexWriter);
+        try {
 
-        if (logger.isTraceEnabled()) {
-            logger.trace("Document added");
+            normalizedMsgRecord.store(luceneIndexWriter);
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("Document added");
+            }
+
+            count++;
+            thisRunCount++;
+            reportCount++;
+        } catch (AppException e) {
+            logger.error("AppException", e);
+        } catch (RuntimeException e) {
+            logger.error(e.getClass().getSimpleName(), e);
         }
     }
 

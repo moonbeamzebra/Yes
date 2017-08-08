@@ -40,7 +40,7 @@ public class LongTermIndexPublisher extends MyQueueProcessor<LongTermIndexPublis
         long queueLength;
         long hiWaterMarkQueueLength = 0;
 
-        while (doRun) {
+        while (isDoRun()) {
             queueLength = inputQueue.size();
             if (queueLength > hiWaterMarkQueueLength)
                 hiWaterMarkQueueLength = queueLength;
@@ -79,10 +79,10 @@ public class LongTermIndexPublisher extends MyQueueProcessor<LongTermIndexPublis
                 }
 
             } catch (StopWaitAsked e) {
-                if (doRun)
+                if (isDoRun())
                     logger.error(e.getClass().getSimpleName(), e);
             } catch (InterruptedException e) {
-                if (doRun)
+                if (isDoRun())
                     logger.error(e.getClass().getSimpleName(), e);
             } catch (AppException | IOException e) {
                 logger.error(e.getClass().getSimpleName(), e);

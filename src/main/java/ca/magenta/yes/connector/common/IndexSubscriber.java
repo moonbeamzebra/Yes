@@ -58,7 +58,7 @@ public abstract class IndexSubscriber extends Runner {
             //Sort sort = new Sort(new SortedNumericSortField("rxTimestamp",SortField.Type.LONG, false));
 
             ObjectMapper mapper = new ObjectMapper();
-            while (doRun) {
+            while (isDoRun()) {
                 Directory index = queue.take();
 
                 try {
@@ -81,10 +81,10 @@ public abstract class IndexSubscriber extends Runner {
                 }
             }
         } catch (InterruptedException e) {
-            if (doRun)
+            if (isDoRun())
                 logger.error("InterruptedException", e);
         } catch (QueryNodeException e) {
-            if (doRun)
+            if (isDoRun())
                 logger.error("QueryNodeException", e);
         } finally {
             try {

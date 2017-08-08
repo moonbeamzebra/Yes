@@ -115,7 +115,7 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
 
         longTermIndexPublisher.letDrain();
 
-        longTermIndexPublisher.gentlyStopInstance(2000);
+        //longTermIndexPublisher.gentlyStopInstance(2000);
 
         longTermIndexPublisher.stopInstance();
 

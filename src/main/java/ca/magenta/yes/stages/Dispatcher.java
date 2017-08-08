@@ -49,7 +49,7 @@ public class Dispatcher extends MyQueueProcessor<String> {
         long queueLength;
         long hiWaterMarkQueueLength = 0;
         try {
-            while (doRun) {
+            while (isDoRun()) {
                 queueLength = inputQueue.size();
                 if (queueLength > hiWaterMarkQueueLength)
                     hiWaterMarkQueueLength = queueLength;
@@ -67,14 +67,14 @@ public class Dispatcher extends MyQueueProcessor<String> {
                 }
                 catch (StopWaitAsked e)
                 {
-                    if (doRun)
+                    if (isDoRun())
                     {
                         logger.error("Stop Wait Asked");
                     }
                 }
             }
         } catch (InterruptedException e) {
-            if (doRun)
+            if (isDoRun())
                 logger.error("InterruptedException", e);
         }
 
@@ -117,15 +117,6 @@ public class Dispatcher extends MyQueueProcessor<String> {
         }
     }
 
-//    public void putInQueue(String jsonMsg) throws InterruptedException {
-//
-//        this.putIntoQueue(jsonMsg);
-//    }
-//
-//    private String takeFromQueue() throws InterruptedException, StopWaitAsked {
-//        return this.takeFromQueue();
-//    }
-
     @Override
     public synchronized void startInstance() throws AppException {
 
@@ -139,7 +130,9 @@ public class Dispatcher extends MyQueueProcessor<String> {
     public synchronized void stopInstance() {
         super.stopInstance();
 
+        realTimeProcessorMgmt.letDrain();
         realTimeProcessorMgmt.stopInstance();
+        longTermProcessorMgmt.letDrain();
         longTermProcessorMgmt.stopInstance();
 
     }
