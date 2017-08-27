@@ -160,7 +160,7 @@ public class LogParser extends MyQueueProcessor<String> {
 
         dispatcher.waitWhileEndDrainsCanDrain(callerRunner);
 
-        this.waitWhileLocalQueueCanDrain(callerRunner);
+        this.waitWhileLocalQueueCanDrain();
     }
 
     @Override

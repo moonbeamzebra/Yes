@@ -9,7 +9,7 @@ import java.util.concurrent.BlockingQueue;
 
 public class IndexPublisher implements Runnable {
 
-    public static Logger logger = Logger.getLogger(IndexPublisher.class);
+    public static final Logger logger = Logger.getLogger(IndexPublisher.class);
 
     private String name = null;
 
@@ -20,10 +20,6 @@ public class IndexPublisher implements Runnable {
     private Thread thread = null;
 
     private volatile boolean doRun = true;
-
-//    public void stop() {
-//        doRun = false;
-//    }
 
     private void start() {
         thread = new Thread(this, name);
@@ -51,10 +47,11 @@ public class IndexPublisher implements Runnable {
 
         } catch (InterruptedException e) {
             logger.error("InterruptedException", e);
+            Thread.currentThread().interrupt();
         }
     }
 
-    synchronized private void dispatch(Directory indexDir) {
+    private synchronized void dispatch(Directory indexDir) {
 
         for (IndexSubscriber subscriber : subscribers) {
             try {
@@ -63,17 +60,21 @@ public class IndexPublisher implements Runnable {
                     logger.debug("Store to " + subscriber.getName());
             } catch (InterruptedException e) {
                 logger.error("Unable to post to " + subscriber.getName(), e);
+                Thread.currentThread().interrupt();
+
             }
         }
     }
 
     public void publish(Directory indexDir) throws InterruptedException {
-        if (logger.isDebugEnabled())
-            logger.debug(String.format("Received [%s]", indexDir));
-        //logger.info("subscribers.size:" + subscribers.size());
+        if (logger.isDebugEnabled()) {
+            logger.debug(String.format("subscribers.size: %d ; Received [%s]", subscribers.size(), indexDir));
+        }
         if (!subscribers.isEmpty())
             try {
-                //logger.info("outboundQueue.put");
+                if (logger.isDebugEnabled()) {
+                    logger.debug("outboundQueue.put");
+                }
                 outboundQueue.put(indexDir);
             } catch (InterruptedException e) {
                 if (doRun)

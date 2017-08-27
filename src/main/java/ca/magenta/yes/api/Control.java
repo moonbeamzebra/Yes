@@ -10,37 +10,29 @@ import java.io.IOException;
 
 public class Control {
 
-    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+    private static final Logger logger = LoggerFactory.getLogger(Control.class.getName());
 
     public Control(YesQueryMode mode,
                    String partition,
-                   int limit,
-                   long olderTime,
-                   long newerTime,
                    String searchString,
-                   boolean reverse) {
+                   LongTermReader.Params longTermReaderParams)
+ {
         this.mode = mode;
         this.partition = partition;
-        this.limit = limit;
-        this.olderTime = olderTime;
-        this.newerTime = newerTime;
         this.searchString = searchString;
-        this.reverse = reverse;
+        this.longTermReaderParams = longTermReaderParams;
     }
 
-    public Control(String jsonStr) throws AppException {
+    Control(String jsonStr) throws AppException {
 
         try {
             Control data = (new ObjectMapper()).readValue(jsonStr, Control.class);
 
             this.mode = data.getMode();
+            this.partition = data.getPartition();
             this.searchString = data.getSearchString();
 
-            this.partition = data.getPartition();
-            this.limit = data.getLimit();
-            this.olderTime = data.getOlderTime();
-            this.newerTime = data.getNewerTime();
-            this.reverse = data.isReverse();
+            this.longTermReaderParams = data.getLongTermReaderParams();
 
         } catch (IOException e) {
             throw new AppException(e.getClass().getSimpleName(), e);
@@ -51,15 +43,11 @@ public class Control {
     public Control(YesQueryMode mode, String searchString) {
         this.mode = mode;
         this.searchString = searchString;
-
-        this.partition = null; // Not used in read time mode
-        this.limit = 0; // Not used in read time mode
-        this.olderTime = 0; // Not used in read time mode
-        this.newerTime = 0; // Not used in read time mode
-        this.reverse = false; // Not used in read time mode
+        this.partition = null; // Not used in read time mode (yet)
     }
 
-    private Control() {
+    // Required for Json mapping
+    public Control() {
     }
 
     public String toJson() throws AppException {
@@ -76,11 +64,11 @@ public class Control {
         String json =  "Control{" +
                 "mode=" + mode +
                 ", partition='" + partition + '\'' +
-                ", limit=" + limit +
-                ", olderTime=" + olderTime +
-                ", newerTime=" + newerTime +
                 ", searchString='" + searchString + '\'' +
-                ", reverse=" + reverse +
+                ", olderTime=" + longTermReaderParams.getTimeRange().getOlderTime() +
+                ", newerTime=" + longTermReaderParams.getTimeRange().getNewerTime() +
+                ", reverse=" + longTermReaderParams.isReverse() +
+                ", limit=" + longTermReaderParams.getLimit() +
                 '}';
         try {
             return toJson();
@@ -91,40 +79,27 @@ public class Control {
         return json;
     }
 
-    private YesQueryMode mode = YesQueryMode.LONG_TERM;
+    private YesQueryMode mode = null;
     private String partition = null;
-    private int limit = 0;
-    private long olderTime = 0;
-    private long newerTime = 0;
     private String searchString = null;
-    private boolean reverse = false;
 
+    private LongTermReader.Params longTermReaderParams = null;
+
+    // Required public for Json mapping
     public YesQueryMode getMode() {
         return mode;
+    }
+
+    public LongTermReader.Params getLongTermReaderParams() {
+        return longTermReaderParams;
     }
 
     public String getPartition() {
         return partition;
     }
 
-    public int getLimit() {
-        return limit;
-    }
-
-    public long getOlderTime() {
-        return olderTime;
-    }
-
-    public long getNewerTime() {
-        return newerTime;
-    }
-
     public String getSearchString() {
         return searchString;
-    }
-
-    public boolean isReverse() {
-        return reverse;
     }
 
     public enum YesQueryMode {

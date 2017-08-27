@@ -132,17 +132,17 @@ public abstract class ProcessorMgmt extends MyQueueProcessor<NormalizedMsgRecord
             if (isDoRun()) {
                 synchronized (cuttingTimeMonitor) {
                     try {
-                        cuttingTimeMonitor.wait(cuttingTime + this.giveRandom());
+                        long cuttingTimeAndSo = cuttingTime + this.giveRandom();
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("processor [{}] will rotate in {} millisec", processorThreadName, cuttingTimeAndSo);
+                        }
+                        cuttingTimeMonitor.wait(cuttingTimeAndSo);
                     } catch (InterruptedException e) {
                         logger.error(e.getClass().getSimpleName(), e);
                         Thread.currentThread().interrupt();
                     }
                 }
             }
-//            if (!doRun) {
-//                // The still running processor take care of draining the queue
-//                this.letDrain();
-//            }
 
             if (logger.isDebugEnabled()) {
                 logger.debug("Time to rotate...stop the thread");
@@ -155,7 +155,7 @@ public abstract class ProcessorMgmt extends MyQueueProcessor<NormalizedMsgRecord
                 Thread.currentThread().interrupt();
             }
             if (logger.isDebugEnabled()) {
-                logger.debug("Stopped");
+                logger.debug("Processor Stopped");
             }
             if (this instanceof LongTermProcessorMgmt) {
                 soFarHiWaterMarkQueueLength = processor.printReport(soFarHiWaterMarkQueueLength);

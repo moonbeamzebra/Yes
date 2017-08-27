@@ -1,41 +1,45 @@
 package ca.magenta.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Map;
 
-abstract public class AbstractTCPServer extends Runner {
+public abstract class AbstractTCPServer extends Runner {
+
+    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
+
 
     protected ServerSocket serverSocket;
     private int port;
-    //protected boolean doRun = false;
 
     private HashMap<String, AbstractTCPServerHandler> tcpServerHandlers = new HashMap<>();
 
     public AbstractTCPServer(String threadName, int port) {
         super(threadName);
-        //this.setName(name);
         this.port = port;
     }
 
+    // AppException can be thrown by override methods
     public void startServer() throws AppException {
         try {
             serverSocket = new ServerSocket(port);
             this.start();
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getClass().getSimpleName(), e);
         }
     }
 
-    synchronized public void stopServer() {
+    public synchronized void stopServer() {
         stopIt();
-        //doRun = false;
         this.interrupt();
         try {
             serverSocket.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.getClass().getSimpleName(), e);
         }
 
         for (Map.Entry<String, AbstractTCPServerHandler> requestHandlerSet : tcpServerHandlers.entrySet()) {
@@ -56,7 +60,7 @@ abstract public class AbstractTCPServer extends Runner {
         tcpServerHandlers.remove(abstractTCPServerHandler.getName());
     }
 
-    synchronized public int getClientCount() {
+    public synchronized int getClientCount() {
         return tcpServerHandlers.size();
     }
 

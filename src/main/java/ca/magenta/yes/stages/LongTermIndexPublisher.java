@@ -133,7 +133,7 @@ public class LongTermIndexPublisher extends MyQueueProcessor<LongTermIndexPublis
     @Override
     public void waitWhileEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
 
-        waitWhileLocalQueueCanDrain(callerRunner);
+        waitWhileLocalQueueCanDrain();
 
     }
 

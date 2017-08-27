@@ -44,11 +44,8 @@ public class YesClient {
 
             Control control = new Control(Control.YesQueryMode.LONG_TERM,
                     partition,
-                    limit,
-                    periodTimeRange.getOlderTime(),
-                    periodTimeRange.getNewerTime(),
                     searchString,
-                    reverse
+                    new LongTermReader.Params(periodTimeRange, reverse, limit)
                     );
 
             toServer.println(control.toJson());
@@ -76,7 +73,7 @@ public class YesClient {
             apiServer.close();
 
             if (lastMessage.length() > LongTermReader.END_DATA_STRING.length()) {
-                logger.error(String.format("%s", lastMessage));
+                logger.error("{}", lastMessage);
             }
         } catch (IOException e) {
             throw new AppException(e.getClass().getSimpleName(), e);
@@ -128,21 +125,9 @@ public class YesClient {
 
             Control control = new Control(Control.YesQueryMode.LONG_TERM,
                     null,
-                    9,
-                    periodTimeRange.getOlderTime(),
-                    periodTimeRange.getNewerTime(),
                     searchString,
-                    reverse
+                    new LongTermReader.Params(periodTimeRange,reverse,9)
             );
-
-
-//            String control = String.format(
-//                    "{\"mode\":\"longTerm\",\"olderTime\":\"%s\",\"newerTime\":\"%s\",\"searchString\":\"%s\",\"reverse\":\"%s\"}",
-//                    periodTimeRange.getOlderTime(),
-//                    periodTimeRange.getNewerTime(),
-//                    searchString,
-//                    Boolean.toString(reverse)
-//            );
 
             toServer.println(control.toJson());
 
@@ -167,7 +152,7 @@ public class YesClient {
             apiServer.close();
 
             if (lastMessage.length() > LongTermReader.END_DATA_STRING.length()) {
-                logger.error(String.format("%s", lastMessage));
+                logger.error("{}", lastMessage);
             }
 
         } catch (Throwable t) {

@@ -2,12 +2,8 @@ package ca.magenta.utils.queuing;
 
 import ca.magenta.utils.Runner;
 import ca.magenta.yes.data.Partition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class MyQueueProcessor<T> extends Runner {
-
-    private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     protected final Partition partition;
     protected final long printEvery;
@@ -41,7 +37,7 @@ public abstract class MyQueueProcessor<T> extends Runner {
     }
 
 
-    protected void waitWhileLocalQueueCanDrain(Runner callerRunner) throws StopWaitAsked, InterruptedException {
+    protected void waitWhileLocalQueueCanDrain() throws InterruptedException {
         inputQueue.waitForWellDrain();
 
     }
@@ -91,7 +87,7 @@ public abstract class MyQueueProcessor<T> extends Runner {
 
     protected abstract String getShortName();
 
-    public void stopWait() {
+    private void stopWait() {
 
         inputQueue.stopWait();
     }

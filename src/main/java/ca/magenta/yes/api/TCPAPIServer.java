@@ -13,14 +13,12 @@ public class TCPAPIServer extends AbstractTCPServer {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    //private final String indexBaseDirectory;
     private final MasterIndex masterIndex;
 
 
     public TCPAPIServer(String partitionName, int port, MasterIndex masterIndex) {
         super(partitionName, port);
 
-        //this.indexBaseDirectory = indexBaseDirectory;
         this.masterIndex = masterIndex;
     }
 

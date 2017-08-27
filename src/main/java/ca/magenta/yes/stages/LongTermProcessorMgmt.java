@@ -92,7 +92,7 @@ class LongTermProcessorMgmt extends ProcessorMgmt {
 
         longTermIndexPublisher.waitWhileEndDrainsCanDrain(callerRunner);
 
-        waitWhileLocalQueueCanDrain(callerRunner);
+        waitWhileLocalQueueCanDrain();
 
     }
 

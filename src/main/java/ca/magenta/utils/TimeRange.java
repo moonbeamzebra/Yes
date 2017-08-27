@@ -1,11 +1,12 @@
 package ca.magenta.utils;
 
+import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TimeRange {
+public class TimeRange implements Serializable {
 
     public TimeRange(long olderTime, long newerTime) {
         this.olderTime = olderTime;
@@ -21,8 +22,12 @@ public class TimeRange {
     private static final long MILLISECONDS_IN_1_MONTH = 30 * MILLISECONDS_IN_1_DAY;
     private static final long MILLISECONDS_IN_1_YEAR = 365 * MILLISECONDS_IN_1_DAY;
 
-    private final long olderTime;
-    private final long newerTime;
+    private TimeRange() {
+    }
+
+    private long olderTime = 0;
+    private long newerTime = 0;
+
 
     private static final Pattern typeLastPattern = Pattern.compile("(\\d+)([yMdHmsSw])");
 
@@ -30,9 +35,12 @@ public class TimeRange {
     // FROM2016-12-30T08:33:25.352-TO2016-12-30T08:43:25.352
     private static final Pattern typeFromToPattern = Pattern.compile("FROM(.+)-TO(.+)");
     private static final SimpleDateFormat typeFromToSimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    private static final SimpleDateFormat toStringDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSz");
 
-    static public TimeRange returnTimeRangeBackwardFromNow(String periodString) throws AppException {
-        periodString = periodString.trim();
+
+    public static TimeRange returnTimeRangeBackwardFromNow(String period) throws AppException {
+
+        String periodString = period.trim();
 
         if (periodString.toUpperCase().startsWith("LAST")) {
             return returnTimeRange(true, System.currentTimeMillis(), periodString);
@@ -45,11 +53,11 @@ public class TimeRange {
 
     private static TimeRange returnTimeRange(boolean backward /* in the pass */,
                                              long offset,
-                                             String periodString) throws AppException {
+                                             String period) throws AppException {
 
         long time = 0;
 
-        periodString = periodString.trim();
+        String periodString = period.trim();
 
         if (periodString.toUpperCase().startsWith("LAST")) {
             time = returnTime_LAST(periodString.substring(4));
@@ -176,20 +184,11 @@ public class TimeRange {
         }
     }
 
-    public long getOlderTime() {
-        return olderTime;
-    }
-
-    public long getNewerTime() {
-        return newerTime;
-    }
-
     @Override
     public String toString() {
 
-        SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSz");
-        String olderTimeStr = DATE_FORMAT.format(olderTime);
-        String newerTimeStr = DATE_FORMAT.format(newerTime);
+        String olderTimeStr = toStringDateFormat.format(olderTime);
+        String newerTimeStr = toStringDateFormat.format(newerTime);
 
         return String.format("TimeRange{olderTime=%s(%s), newerTime=%s(%s)}",
                 olderTimeStr,
@@ -197,4 +196,21 @@ public class TimeRange {
                 newerTimeStr,
                 newerTime);
     }
+
+    public long getOlderTime() {
+        return olderTime;
+    }
+
+    public void setOlderTime(long olderTime) {
+        this.olderTime = olderTime;
+    }
+
+    public long getNewerTime() {
+        return newerTime;
+    }
+
+    public void setNewerTime(long newerTime) {
+        this.newerTime = newerTime;
+    }
+
 }

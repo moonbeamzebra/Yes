@@ -142,7 +142,7 @@ public class Dispatcher extends MyQueueProcessor<String> {
 
         realTimeProcessorMgmt.waitWhileEndDrainsCanDrain(callerRunner);
         longTermProcessorMgmt.waitWhileEndDrainsCanDrain(callerRunner);
-        this.waitWhileLocalQueueCanDrain(callerRunner);
+        this.waitWhileLocalQueueCanDrain();
 
     }
 

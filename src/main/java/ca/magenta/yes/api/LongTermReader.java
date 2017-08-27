@@ -5,38 +5,36 @@ import ca.magenta.utils.Runner;
 import ca.magenta.utils.TimeRange;
 import ca.magenta.yes.Globals;
 import ca.magenta.yes.data.MasterIndex;
-import ca.magenta.yes.data.MasterIndexRecord;
 import ca.magenta.yes.data.NormalizedMsgRecord;
-import ca.magenta.yes.data.Searcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.log4j.Logger;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.nio.file.Paths;
 
 public class LongTermReader extends Runner {
 
-    public static Logger logger = Logger.getLogger(LongTermReader.class);
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LongTermReader.class.getName());
 
+    private static final String ERROR_LABEL = " ERROR: ";
     public static final String END_DATA_STRING = "End of data";
 
     private final PrintWriter client;
 
-    //private final String indexBaseDirectory;
     private final MasterIndex masterIndex;
 
 
@@ -49,26 +47,24 @@ public class LongTermReader extends Runner {
 
 
     LongTermReader(String name,
-                   TimeRange periodTimeRange,
-                   String partition,
-                   int limit,
-                   String searchString,
                    MasterIndex masterIndex,
-                   boolean reverse,
+                   String partition,
+                   String searchString,
+                   Params params,
                    PrintWriter client) {
 
         super(name);
 
-        //this.indexBaseDirectory = indexBaseDirectory;
-        this.periodTimeRange = periodTimeRange;
-        this.partition = partition;
-        this.limit = limit;
-        this.searchString = searchString;
         this.masterIndex = masterIndex;
-        this.reverse = reverse;
+        this.partition = partition;
+        this.searchString = searchString;
+        this.periodTimeRange = params.getTimeRange();
+        this.reverse = params.isReverse();
+        this.limit = params.getLimit();
         this.client = client;
     }
 
+    @Override
     public void run() {
 
         logger.info("New LongTermReader " + this.getName() + " running");
@@ -77,17 +73,10 @@ public class LongTermReader extends Runner {
 
         try {
             doLongTerm(periodTimeRange, partition, limit, searchString, reverse, client);
-        } catch (IOException e) {
-            logger.error("IOException", e);
-            errorMessage = " ERROR: " + e.getMessage();
-        } catch (QueryNodeException e) {
-            logger.error("QueryNodeException", e);
-            errorMessage = " ERROR: " + e.getMessage();
-        } catch (Throwable e) {
+        } catch (IOException | QueryNodeException | RuntimeException | ParseException | AppException e) {
             logger.error(e.getClass().getSimpleName(), e);
-            errorMessage = " ERROR: " + e.getMessage();
-        }
-        finally {
+            errorMessage = ERROR_LABEL + e.getMessage();
+        } finally {
             String endOfDataMsg = END_DATA_STRING + errorMessage;
             if (client != null) {
                 logger.debug(endOfDataMsg);
@@ -98,7 +87,7 @@ public class LongTermReader extends Runner {
         logger.info("IndexSubscriber " + this.getName() + " stops");
     }
 
-    synchronized  private void doLongTerm(TimeRange periodTimeRange,
+    private synchronized void doLongTerm(TimeRange periodTimeRange,
                                           String partition,
                                           int limit,
                                           String searchString,
@@ -122,13 +111,15 @@ public class LongTermReader extends Runner {
                                      boolean reverse,
                                      PrintWriter client,
                                      int limit,
-                                     int soFarCount) throws IOException, QueryNodeException, ParseException {
+                                     int soFarCountParam) throws IOException, QueryNodeException {
+
+        int soFarCount = soFarCountParam;
 
 
         String indexNamePath = Globals.getConfig().getLtIndexBaseDirectory() + File.separator + longTermIndexName;
 
-        logger.info(String.format("longTermIndexName: {%s}", indexNamePath));
-        logger.info(String.format("indexNamePath: {%s}", indexNamePath));
+        logger.info("longTermIndexName: {{}}", indexNamePath);
+        logger.info("indexNamePath: {{}}", indexNamePath);
         IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexNamePath)));
         IndexSearcher searcher = new IndexSearcher(reader);
 
@@ -137,19 +128,13 @@ public class LongTermReader extends Runner {
                 NormalizedMsgRecord.toStringTimestamp(periodTimeRange.getNewerTime()),
                 searchString);
 
-        logger.info(String.format("Search[%s]: {%s}", longTermIndexName, completeSearchStr));
+        logger.info("Search[{}]: {{}}", longTermIndexName, completeSearchStr);
 
-        //StandardQueryParser queryParserHelper = new StandardQueryParser();
-        //Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
-
-        //StandardQueryParser queryParserHelper = new StandardQueryParser();
         Query stringQuery = NormalizedMsgRecord.buildQuery_messageAsDefaultField(searchString);
-        //Query stringQuery = queryParserHelper.parse(searchString, NormalizedMsgRecord.MESSAGE_FIELD_NAME);
 
         int maxTotalHits = Globals.getConfig().getMaxTotalHit_LongTermIndex();
 
         Sort sort = NormalizedMsgRecord.buildSort_uidDriving(reverse);
-        //Sort sort = new Sort(new SortField(NormalizedMsgRecord.UID_FIELD_NAME, SortField.Type.STRING,reverse));
 
         ObjectMapper mapper = new ObjectMapper();
         ScoreDoc lastScoreDoc = null;
@@ -174,7 +159,7 @@ public class LongTermReader extends Runner {
                     soFarCount++;
                 }
 
-                if ( !isDoRun() || !(soFarCount < limit) )
+                if ( !isDoRun() || (soFarCount >= limit) )
                 {
                     break;
                 }
@@ -184,5 +169,46 @@ public class LongTermReader extends Runner {
         reader.close();
 
         return soFarCount;
+    }
+
+    public static class Params implements Serializable {
+
+        public Params() {
+        }
+
+        public Params(TimeRange timeRange, boolean reverse, int limit) {
+            this.timeRange = timeRange;
+            this.reverse = reverse;
+            this.limit = limit;
+        }
+
+        public TimeRange getTimeRange() {
+            return timeRange;
+        }
+
+        public void setTimeRange(TimeRange timeRange) {
+            this.timeRange = timeRange;
+        }
+
+        public boolean isReverse() {
+            return reverse;
+        }
+
+        public void setReverse(boolean reverse) {
+            this.reverse = reverse;
+        }
+
+        public int getLimit() {
+            return limit;
+        }
+
+        public void setLimit(int limit) {
+            this.limit = limit;
+        }
+
+        private TimeRange timeRange = null;
+        private boolean reverse = false;
+        private int limit = 0;
+
     }
 }

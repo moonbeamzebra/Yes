@@ -40,9 +40,15 @@ public abstract class Processor implements Runnable {
     private long reportCount = 0;
 
     synchronized void stopIt() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("In stopIt");
+        }
         doRun = false;
 
         inputQueue.stopWait();
+        if (logger.isDebugEnabled()) {
+            logger.debug("In stopIt; after stopWait");
+        }
     }
 
     private static final long PRINT_EVERY = 50000;
@@ -82,7 +88,8 @@ public abstract class Processor implements Runnable {
     }
 
     private void runLoop() throws InterruptedException {
-        while (doRun || !inputQueue.isEmpty()) {
+        //while (doRun || !inputQueue.isEmpty()) {
+        while (doRun) {
             try {
                 NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
                 if (normalizedMsgRecord != null) {

@@ -11,7 +11,7 @@ public abstract class Runner extends Thread {
         return doRun;
     }
 
-    public void setDoRun(boolean doRun) {
+    protected void setDoRun(boolean doRun) {
         this.doRun = doRun;
     }
 
@@ -26,6 +26,7 @@ public abstract class Runner extends Thread {
         setDoRun(false);
     }
 
+    // AppException can be thrown by override methods
     public synchronized void startInstance() throws AppException {
         doRun = true;
         this.start();
@@ -33,25 +34,6 @@ public abstract class Runner extends Thread {
             logger.debug("{} [{}] started", this.getClass().getSimpleName(), this.getName());
         }
     }
-
-//    public void gentlyStopInstance(long millis) {
-//        doRun = false;
-//        try {
-//            logger.info("{} [{}] gently ask to stop; wait %d millis", this.getClass().getSimpleName(), this.getName(), millis);
-//            this.join(millis);
-//        } catch (InterruptedException e) {
-//            logger.error("InterruptedException", e);
-//            Thread.currentThread().interrupt();
-//        }
-//
-//        if (logger.isDebugEnabled()) {
-//            logger.debug("{} [{}] gently ask to stop", this.getClass().getSimpleName(), this.getName());
-//        }
-//    }
-
-//    public void gentlyStopInstance() {
-//        gentlyStopInstance(500);
-//    }
 
     public synchronized void stopInstance() {
         stopIt();
@@ -67,4 +49,6 @@ public abstract class Runner extends Thread {
         }
     }
 
+    @Override
+    public void run() {}
 }
