@@ -77,7 +77,7 @@ public class RealTimeProcessorMgmt extends ProcessorMgmt {
 
     @Override
     public void waitWhileEndDrainsCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
-        waitWhileLocalQueueCanDrain();
+        waitWhileLocalQueueCanDrain(callerRunner);
     }
 
     @Override

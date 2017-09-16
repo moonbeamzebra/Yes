@@ -1,5 +1,6 @@
 package ca.magenta.utils.queuing;
 
+import ca.magenta.utils.Runner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,11 @@ public class MyBlockingQueue<T> {
 
     private Queue<T> queue = new LinkedList<>();
     private final int capacity;
+
+
+    public void setWaitTimeMode(boolean waitTimeMode) {
+        this.waitTimeMode = waitTimeMode;
+    }
 
     private boolean waitTimeMode;
 
@@ -51,10 +57,14 @@ public class MyBlockingQueue<T> {
     }
 
 
-    synchronized void waitForWellDrain() throws InterruptedException {
+    synchronized void waitForWellDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
 
-        while ( DRAINING_THRESHOLD < (queue.size() / capacity)) {
-            wait();
+        while ( ( DRAINING_THRESHOLD < (queue.size() / capacity)) && callerRunner.isDoRun() ) {
+            wait(2000);
+            if ( ! waitTimeMode )
+            {
+                throw new StopWaitAsked();
+            }
         }
     }
 
@@ -87,8 +97,12 @@ public class MyBlockingQueue<T> {
                 Thread.currentThread().interrupt();
             }
         }
+        logger.info("Let drain {} in {}", queue.size(), ownerName);
     }
 
+    public boolean isWaitTimeMode() {
+        return waitTimeMode;
+    }
 
 
 }

@@ -61,13 +61,19 @@ public class GenericConnector extends AbstractTCPServerHandler {
             String line = ""; // Just let go in
             while ((isDoRun()) && (line != null) ) {
 
-                logParser.waitWhileEndDrainsCanDrain(this);
-                line = in.readLine();
-                if (line != null) {
-                    logParser.putIntoQueue(line);
+                try {
+                    logParser.waitWhileEndDrainsCanDrain(this);
+                    line = in.readLine();
+                    if (line != null) {
+                        logParser.putIntoQueue(line);
+                    }
+                }
+                catch (StopWaitAsked e)
+                {
+                    logger.error(e.getClass().getSimpleName(), e);
                 }
             }
-        }catch (StopWaitAsked | IOException | InterruptedException e) {
+        }catch (IOException | InterruptedException e) {
             if (isDoRun())
                 logger.error(e.getClass().getSimpleName(), e);
         }

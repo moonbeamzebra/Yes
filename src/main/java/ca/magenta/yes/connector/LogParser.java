@@ -125,6 +125,8 @@ public class LogParser extends MyQueueProcessor<String> {
 
         dispatcher.letDrain();
 
+        logger.info("Before dispatcher.stopInstance");
+
         // Stop drain
         dispatcher.stopInstance();
     }
@@ -160,7 +162,7 @@ public class LogParser extends MyQueueProcessor<String> {
 
         dispatcher.waitWhileEndDrainsCanDrain(callerRunner);
 
-        this.waitWhileLocalQueueCanDrain();
+        this.waitWhileLocalQueueCanDrain(callerRunner);
     }
 
     @Override

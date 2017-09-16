@@ -37,8 +37,8 @@ public abstract class MyQueueProcessor<T> extends Runner {
     }
 
 
-    protected void waitWhileLocalQueueCanDrain() throws InterruptedException {
-        inputQueue.waitForWellDrain();
+    protected void waitWhileLocalQueueCanDrain(Runner callerRunner) throws InterruptedException, StopWaitAsked {
+        inputQueue.waitForWellDrain(callerRunner);
 
     }
 

@@ -89,7 +89,7 @@ public abstract class Processor implements Runnable {
 
     private void runLoop() throws InterruptedException {
         //while (doRun || !inputQueue.isEmpty()) {
-        while (doRun) {
+        while (doRun && inputQueue.isWaitTimeMode() ) {
             try {
                 NormalizedMsgRecord normalizedMsgRecord = takeFromQueue();
                 if (normalizedMsgRecord != null) {
@@ -111,7 +111,7 @@ public abstract class Processor implements Runnable {
             catch (StopWaitAsked e)
             {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Stop Wait Asked !");
+                    logger.debug("Stop Wait Asked !; doRun:{}", doRun);
                 }
             }
         }
